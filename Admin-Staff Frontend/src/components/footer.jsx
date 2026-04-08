@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Facebook, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react'; 
+import { FaFacebook } from 'react-icons/fa6'; 
 import { useState } from 'react';
 import LegalModal from './legalModal';
 
@@ -59,7 +60,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
             >
-                <Facebook size={20} />
+                <FaFacebook size={20} />
                 <span className="text-sm hover:underline transition">Follow us on Facebook</span>
             </a>
         </div>

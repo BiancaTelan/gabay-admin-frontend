@@ -3,12 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from './authContext';
 import Header from './components/header';
-import Help from './pages/Help';
-import ContactUs from './pages/ContactUs';
 import ForgotPassword from './pages/ForgotPassword';
 import Footer from './components/footer';
-import VerifyEmail from './pages/VerifyEmail';
-import GeneralForm from './pages/GeneralForm';
 
 import StaffLayout from './components/StaffLayout';
 import StaffDashboard from './pages/Staff/StaffDashboard';
@@ -40,7 +36,7 @@ const StaffRoute = () => {
   const location = useLocation();
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn || userRole !== 'staff') {
+  if (!isLoggedIn || userRole !== 'Staff') {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
   return <Outlet />;
@@ -51,7 +47,7 @@ const AdminRoute = () => {
   const location = useLocation();
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn || userRole !== 'admin') {
+  if (!isLoggedIn || userRole !== 'Admin') {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
   return <Outlet />;
@@ -94,13 +90,10 @@ function App() {
       
       <main className={showHeader ? "pt-0" : ""}>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home onReserveGeneral={() => navigate('/general-form')} />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/contact" element={<ContactUs />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          {/* Public Routes (Strictly Authentication) */}
+          <Route path="/" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* STAFF ROUTES */}
           <Route element={<StaffRoute />}>
@@ -113,7 +106,6 @@ function App() {
                 <Route path="doctors" element={<DoctorList />} />
                 <Route path="doctor-schedule" element={<DoctorScheduleCalendar />} />
                 <Route path="no-show-appointments" element={<StaffNoShows />} />
-
                 <Route path="s-account" element={<PersonnelAccount />} />
                 <Route path="s-notifs" element={<StaffNotifs />} /> 
               </Route>
@@ -129,18 +121,14 @@ function App() {
               <Route path="appointments" element={<Appointments />} /> 
               <Route path="audit-logs" element={<AuditLogs />} />
               <Route path="system-logs" element={<SystemLogs />} />
-
               <Route path="a-account" element={<PersonnelAccount />} />
               <Route path="a-notifs" element={<AdminNotifs />} />
               <Route path="a-calendar" element={<AdminCalendar />} />
-
-              {/*<Route path="reports" element={<Reports />} />
-              <Route path="a-settings" element={<AdminSettings />} />
-              <Route path="a-help" element={<AdminHelp />} />
-              <Route path="a-tools" element={<AdminTools />} />*/}
             </Route>  
           </Route>
-          <Route path="*" element={<Navigate to="/" />} />
+          
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/admin/login" replace />} />
         </Routes>
 
       </main>

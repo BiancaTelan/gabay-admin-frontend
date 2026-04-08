@@ -60,7 +60,7 @@ export default function AdminLogin() {
 
     if (formData.email === 'admin@example.com' && formData.password === 'password') {
       const fakeToken = btoa(JSON.stringify({ role: 'admin', sub: formData.email, exp: Date.now() + 86400000 }));
-      login(fakeToken, 'admin');
+      login(fakeToken, 'Admin');
       const intended = location.state?.from?.pathname;
       if (intended) {
         navigate(intended, { replace: true });
@@ -74,8 +74,10 @@ export default function AdminLogin() {
     urlEncodedData.append('username', formData.email); 
     urlEncodedData.append('password', formData.password);
 
-    try {
-      const response = await fetch('/api/auth/login', {
+    
+      try {
+      // Temporarily hardcoded to skip the broken .env file!
+      const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncodedData.toString(),
@@ -101,11 +103,10 @@ export default function AdminLogin() {
 
       const accessToken = data.access_token;
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const userRole = payload.role;
+      const userRole = payload.role.toLowerCase();
 
-      // SECURITY CHECK: ADMIN ONLY
-      if (userRole === 'admin' || userRole === 'staff') {
-        setServerError("Access Denied: This portal is for authorized personnel only.");
+      if (userRole !== 'admin' && userRole !== 'staff') {
+        setServerError("Access Denied: You do not have administrative privileges.");
         return;
       }
 

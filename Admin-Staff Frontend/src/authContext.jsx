@@ -1,81 +1,46 @@
-import { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [userRole, setUserRole] = useState(localStorage.getItem('role') || null);
+  const [token, setToken] = useState(localStorage.getItem('gabay_admin_token') || null);
+  const [userRole, setUserRole] = useState(localStorage.getItem('gabay_admin_role') || null);
   const [userInfo, setUserInfo] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    let intervalId; 
-
-    const fetchUnreadCount = async () => {
-      if (!token) {
-        setUnreadCount(0);
-        return;
-      }
-
+    if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const userEmail = payload.sub;
-
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/appointments/history/${userEmail}`);
+        setUserInfo(payload);
         
-        if (response.ok) {
-          const data = await response.json();
-          let totalUnread = data.unread_count || 0;
-          if (data.is_verified === false) {
-            totalUnread += 1; 
-          }
-          setUnreadCount(totalUnread);
+        if (payload.role && payload.role !== userRole) {
+          setUserRole(payload.role);
+          localStorage.setItem('gabay_admin_role', payload.role);
         }
       } catch (error) {
-        console.error("Failed to fetch unread count:", error);
+        console.error("Invalid token detected. Logging out.");
+        logout(); 
       }
-    };
-
-    fetchUnreadCount();
-
-    if (token) {
-      intervalId = setInterval(fetchUnreadCount, 30000);
     }
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
   }, [token]);
-  const updateUnreadCount = (count) => {
-    setUnreadCount(count);
-  };
 
-  const login = (newToken, role, userData) => {
+  const login = (newToken, role) => {
     setToken(newToken);
     setUserRole(role);
-    setUserInfo(userData);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('role', role);
-    if (userData) localStorage.setItem('userInfo', JSON.stringify(userData));
+    localStorage.setItem('gabay_admin_token', newToken);
+    localStorage.setItem('gabay_admin_role', role);
   };
 
   const logout = () => {
     setToken(null);
     setUserRole(null);
     setUserInfo(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userInfo');
+    localStorage.removeItem('gabay_admin_token');
+    localStorage.removeItem('gabay_admin_role');
   };
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('userInfo');
-    if (storedUser) setUserInfo(JSON.parse(storedUser));
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ token, userRole, userInfo, login, logout, unreadCount, updateUnreadCount }}>
+    <AuthContext.Provider value={{ token, userRole, userInfo, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
