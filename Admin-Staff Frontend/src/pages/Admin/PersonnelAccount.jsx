@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CheckCircle, Camera } from 'lucide-react';
+import { LogOut, CheckCircle, Camera, X, Lock, Mail, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast'; 
 import Input from '../../components/input';
 import ConfirmationModal from '../../components/confirmModal';
@@ -10,17 +10,15 @@ import { AuthContext } from '../../authContext';
 
 export default function PersonnelAccount() {
   const navigate = useNavigate();
-  const { token, onLogout, userRole, userInfo } = useContext(AuthContext);
+  const { token, logout, userRole, setProfilePhoto } = useContext(AuthContext);
   const fileInputRef = useRef(null);
 
-  // Dynamic values based on role
-  const apiBase = userRole === 'admin' ? '/api/admin' : '/api/staff';
-  const displayRole = userRole === 'admin' ? 'Admin' : 'Staff';
+  const apiBase = userRole?.toLowerCase() === 'admin' ? '/api/admin': '/api/staff';
+  const displayRole = userRole?.toLowerCase() === 'admin' ? 'Admin' : 'Staff';
 
   const [localUserInfo, setLocalUserInfo] = useState({
     firstname: "",
     surname: "",
-    mi: "",
     suffix: "",
     role: userRole?.toUpperCase() || "STAFF",
     email: "",
@@ -38,20 +36,13 @@ export default function PersonnelAccount() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [changeModalType, setChangeModalType] = useState('password');
 
+  // --- 1. FETCH PROFILE ---
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!token || token.split('.').length !== 3) {
-        console.error("Invalid token");
-        return;
-      }
+      if (!token) return;
       try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userEmail = payload.sub;
-
-        /* BACKEND API: Dynamic based on apiBase */
-        const response = await fetch(`${apiBase}/profile/${userEmail}`, {
+        // Securely call the 'me' endpoint. The backend knows who is calling based on the token!
+        const response = await fetch(`http://127.0.0.1:8000${apiBase}/profile/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -60,12 +51,13 @@ export default function PersonnelAccount() {
           setLocalUserInfo(data);
         }
       } catch (error) {
-        console.error(`Failed to fetch ${displayRole} profile:`, error);
+        console.error(`Failed to fetch profile:`, error);
       }
     };
     fetchProfile();
-  }, [token, apiBase, displayRole]);
+  }, [token, apiBase]);
 
+  // --- INPUT HANDLERS ---
   const handleInputChange = (e) => {
     let { name, value } = e.target;
     if (name === 'dob') {
@@ -85,6 +77,7 @@ export default function PersonnelAccount() {
     setLocalUserInfo(prev => ({ ...prev, dob: `${m}/${d}/${y}` }));
   };
 
+  // --- 2. UPLOAD PHOTO ---
   const handleImageClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -94,16 +87,14 @@ export default function PersonnelAccount() {
     if (!file) return;
 
     if (file.size > 100 * 1024 * 1024) {
-        toast.error("File is too large (Max 100MB)");
-        return;
+        return toast.error("File is too large (Max 100MB)");
     }
 
     const formData = new FormData();
     formData.append('profile_photo', file);
 
     try {
-        /* BACKEND API: Dynamic upload endpoint */
-        const response = await fetch(`${apiBase}/upload-photo`, {
+        const response = await fetch(`http://127.0.0.1:8000${apiBase}/upload-photo`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
@@ -113,12 +104,14 @@ export default function PersonnelAccount() {
 
         const data = await response.json();
         setLocalUserInfo(prev => ({ ...prev, profilePhoto: data.photo_url }));
-        toast.success("Photo updated!");
+        setProfilePhoto(data.photo_url);
+        toast.success("Photo updated successfully!");
     } catch (error) {
         toast.error(error.message);
     }
   };
 
+  // --- 3. SAVE PROFILE ---
   const validate = () => {
     let newErrors = {};
     const today = new Date();
@@ -141,7 +134,7 @@ export default function PersonnelAccount() {
       if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthDate.getDate())) age--;
       
       if (birthDate > today) newErrors.dob = "Date cannot be in the future";
-      else if (age < 18) newErrors.dob = `${userRole.toUpperCase()} MUST BE AT LEAST 18 YEARS OLD`;
+      else if (age < 18) newErrors.dob = `MUST BE AT LEAST 18 YEARS OLD`;
     }
 
     if (!localUserInfo.contactNumber.trim()) newErrors.contactNumber = "Required";
@@ -154,8 +147,7 @@ export default function PersonnelAccount() {
   const handleSave = async () => {
     if (validate()) {
       try {
-        /* BACKEND API: Dynamic update endpoint */
-        const response = await fetch(`${apiBase}/update-profile`, {
+        const response = await fetch(`http://127.0.0.1:8000${apiBase}/update-profile`, {
           method: 'PUT',
           headers: { 
               'Content-Type': 'application/json',
@@ -163,7 +155,8 @@ export default function PersonnelAccount() {
           },
           body: JSON.stringify(localUserInfo)
         });
-        if (!response.ok) throw new Error(`Failed to save ${userRole} profile.`);
+        if (!response.ok) throw new Error(`Failed to save profile.`);
+        
         setIsEditing(false);
         toast.success('Profile Updated Successfully!');
       } catch (error) {
@@ -178,14 +171,13 @@ export default function PersonnelAccount() {
       type: 'info',
       title: 'Log Out',
       message: 'Are you sure you want to log out?',
-      onConfirm: () => { onLogout(); navigate('/'); }
+      onConfirm: () => { logout(); navigate('/'); }
     });
   };
 
   const getFullDisplayName = () => {
-    const { firstname, mi, surname, suffix } = localUserInfo;
-    const formattedMI = mi?.trim() ? `${mi.trim()}.` : '';
-    return `${firstname} ${formattedMI} ${surname} ${suffix}`.replace(/\s+/g, ' ').trim();
+    const { firstname,  surname, suffix } = localUserInfo;
+    return `${firstname} ${surname} ${suffix}`.replace(/\s+/g, ' ').trim();
   };
 
   return (
@@ -216,6 +208,7 @@ export default function PersonnelAccount() {
 
       <div className="flex flex-col lg:flex-row gap-16">
         <div className="flex-1 space-y-12">
+          
           <section>
             <h2 className="text-base font-bold text-gabay-teal mb-5 tracking-widest uppercase">Personal Information</h2>
 
@@ -224,9 +217,6 @@ export default function PersonnelAccount() {
                 <div className="grid grid-cols-12 gap-4">
                   <div className="col-span-8 md:col-span-10">
                     <Input label="First Name" name="firstname" value={localUserInfo.firstname} onChange={handleInputChange} error={errors.firstname} isEditing={true} required />
-                  </div>
-                  <div className="col-span-4 md:col-span-2">
-                    <Input label="M.I." name="mi" value={localUserInfo.mi} onChange={handleInputChange} isEditing={true} maxLength={2} placeholder="A" />
                   </div>
                 </div>
                 <div className="grid grid-cols-12 gap-4">
@@ -283,8 +273,8 @@ export default function PersonnelAccount() {
 
           {isEditing && (
             <div className="flex gap-4 pt-2">
-              <button onClick={() => { setLocalUserInfo(tempUserInfo); setIsEditing(false); setErrors({}); }} className="px-8 py-1 rounded-full border border-gabay-teal text-base text-gabay-teal font-poppins font-semibold hover:bg-teal-50 bg-white transition-all text-sm">CANCEL</button>
-              <button onClick={handleSave} className="px-10 py-2 rounded-full bg-gabay-teal text-base text-white font-poppins font-semibold hover:bg-teal-600 transition-all shadow-md text-sm">SAVE CHANGES</button>
+              <button onClick={() => { setLocalUserInfo(tempUserInfo); setIsEditing(false); setErrors({}); }} className="px-8 py-1 rounded-full border border-gabay-teal text-gabay-teal font-poppins font-semibold hover:bg-teal-50 bg-white transition-all text-sm">CANCEL</button>
+              <button onClick={handleSave} className="px-10 py-2 rounded-full bg-gabay-teal text-white font-poppins font-semibold hover:bg-teal-600 transition-all shadow-md text-sm">SAVE CHANGES</button>
             </div>
           )}
         </div>
@@ -335,7 +325,7 @@ export default function PersonnelAccount() {
               </div>
             )}
             <button onClick={openLogoutModal} className="flex items-center gap-2 text-gabay-teal hover:underline transition-colors hover:text-gabay-teal2 text-sm font-bold">
-              <LogOut size={18} /> Log Out
+              <logout size={18} /> Log Out
             </button>
           </div>
         </div>
@@ -347,6 +337,11 @@ export default function PersonnelAccount() {
         onClose={() => setIsChangeModalOpen(false)} 
         type={changeModalType} 
         currentEmail={localUserInfo.email} 
+        token={token}
+        apiBase={apiBase}
+        onSuccess={(updatedEmail) => {
+          setLocalUserInfo(prev => ({ ...prev, email: updatedEmail }));
+        }}
       />
     </div>
   );

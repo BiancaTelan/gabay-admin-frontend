@@ -5,9 +5,10 @@ import { AuthContext } from '../authContext';
 import { useNavigate, useLocation } from 'react-router-dom'; 
 
 export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn }) {
-  const { userInfo } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount, profilePhoto } = useContext(AuthContext);
+  
   
   const isActive = (path) => location.pathname === path;
 
@@ -40,11 +41,17 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
           <Calendar size={23} />
         </button>
         
-        <button onClick={() => navigate('/admin/a-notifs')} 
-        className="p-2 text-gabay-blue hover:bg-blue-50 rounded-lg transition relative">
+        <button 
+          onClick={() => navigate('/admin/a-notifs')} 
+          className="p-2 text-gabay-blue hover:bg-blue-50 rounded-lg transition relative"
+        >
           <Bell size={23} />
-          {/* Notification Dot */}
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+          
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 border-2 border-white rounded-full animate-in zoom-in duration-300">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
 
         <div className="h-8 w-[1px] bg-gray-200 mx-1 md:mx-2"></div>
@@ -55,7 +62,7 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
           className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden"
         >
           <img 
-            src={userInfo?.profilePhoto || "/default-avatar.png"} 
+            src={profilePhoto || "/default-avatar.png"} 
             alt="Admin" 
             className="h-9 w-9 rounded-full object-cover bg-gray-100" 
           />

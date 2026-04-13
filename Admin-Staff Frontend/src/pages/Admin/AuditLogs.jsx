@@ -1,17 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Search, Download, Funnel, ChevronLeft, ChevronRight 
-} from 'lucide-react';
-
-// --- SAMPLE DATA ---
-const rawAuditData = [
-  { id: 'LOG-001', date: '04/02/2026', time: '12:40:26 PM', user: 'Patient Name', role: 'PATIENT', action: 'LoggedIn', description: 'User has logged in', ip: '192.168.1.45' },
-  { id: 'LOG-002', date: '04/02/2026', time: '9:23:55 AM', user: 'Staff Name', role: 'STAFF', action: 'UpdateSchedule', description: "Updated Dr. Silao's schedule", ip: '192.168.1.12' },
-  { id: 'LOG-003', date: '04/01/2026', time: '3:12:28 PM', user: 'Staff Name', role: 'STAFF', action: 'ApproveReservation', description: 'Approved reservation of Juan Dela Cruz', ip: '192.168.1.47' },
-  { id: 'LOG-004', date: '03/31/2026', time: '11:36:08 AM', user: 'Admin Name', role: 'ADMIN', action: 'DisableAccount', description: 'Disabled account of Coco Martin', ip: '192.168.1.17' },
-  { id: 'LOG-005', date: '03/31/2026', time: '10:58:41 AM', user: 'System', role: 'SYSTEM', action: 'AutoBackup', description: 'Automatic backup complete', ip: 'Localhost' },
-  { id: 'LOG-006', date: '03/30/2026', time: '2:15:10 PM', user: 'Dr. Smith', role: 'DOCTOR', action: 'AddPrescription', description: 'Added prescription for Patient ID 22', ip: '192.168.1.50' },
-];
+import React, { useState, useMemo, useEffect, useContext } from 'react';
+import { Search, Download, Funnel, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AuthContext } from '../../authContext'; 
+import { toast } from 'react-hot-toast';
+import ExcelJS from 'exceljs';
 
 const roleStyles = {
   PATIENT: 'bg-purple-100 text-gabay-violet',
@@ -22,51 +13,128 @@ const roleStyles = {
 };
 
 export default function AuditLogs() {
+  const { token } = useContext(AuthContext);
+  
+  // --- STATE ---
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
+  const [logsData, setLogsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [filters, setFilters] = useState({
-    sortKey: 'date', // Default sort by date
-    sortOrder: 'desc', // Default to latest first
+    sortKey: 'date', 
+    sortOrder: 'desc', 
     roles: ['PATIENT', 'STAFF', 'DOCTOR', 'ADMIN', 'SYSTEM']
   });
 
   const itemsPerPage = 10;
 
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/admin/logs`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch audit logs');
+        
+        const data = await response.json();
+        setLogsData(data);
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchLogs();
+  }, [token]);
+
   // --- LOGIC: FILTERING & SORTING ---
   const filteredData = useMemo(() => {
-    let result = rawAuditData.filter(item => 
-      item.user.toLowerCase().includes(search.toLowerCase()) || 
-      item.ip.toLowerCase().includes(search.toLowerCase()) ||
-      item.action.toLowerCase().includes(search.toLowerCase()) ||
-      item.date.includes(search)
+    let result = logsData.filter(item => 
+      (item.user && item.user.toLowerCase().includes(search.toLowerCase())) || 
+      (item.ip && item.ip.toLowerCase().includes(search.toLowerCase())) ||
+      (item.action && item.action.toLowerCase().includes(search.toLowerCase())) ||
+      (item.date && item.date.includes(search))
     );
 
-    // Apply Role Checkboxes
     if (filters.roles.length > 0) {
       result = result.filter(i => filters.roles.includes(i.role));
     }
 
-    // SORTING
     result.sort((a, b) => {
       let valA = a[filters.sortKey];
       let valB = b[filters.sortKey];
 
-      // Special handling for Date/Time sorting
       if (filters.sortKey === 'date') {
         valA = new Date(`${a.date} ${a.time}`);
         valB = new Date(`${b.date} ${b.time}`);
         return filters.sortOrder === 'asc' ? valA - valB : valB - valA;
       }
 
-      const comparison = valA.toString().localeCompare(valB.toString(), undefined, { numeric: true });
+      const comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true });
       return filters.sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [search, filters]);
+  }, [search, filters, logsData]); 
+
+  // --- EXPORT TO EXCEL ---
+  const handleExportExcel = async () => {
+    if (filteredData.length === 0) {
+      toast.error("No logs to export.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('System Audit Logs');
+
+    worksheet.columns = [
+      { header: 'Date', key: 'date', width: 15 },
+      { header: 'Time', key: 'time', width: 15 },
+      { header: 'User', key: 'user', width: 25 },
+      { header: 'Role', key: 'role', width: 12 },
+      { header: 'Action', key: 'action', width: 20 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'IP Address', key: 'ip', width: 18 }
+    ];
+
+    filteredData.forEach(log => {
+      worksheet.addRow({
+        date: log.date,
+        time: log.time,
+        user: log.user,
+        role: log.role,
+        action: log.action,
+        description: log.description,
+        ip: log.ip
+      });
+    });
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0b3b60' } };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `GABAY_AuditLogs_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Audit Log report generated!");
+  };
 
   // --- PAGINATION LOGIC ---
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -112,8 +180,11 @@ export default function AuditLogs() {
         </div>
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
-          <button className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export as CSV
+          <button 
+            onClick={handleExportExcel}
+            className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
+          >
+            <Download size={16} /> Export as Excel
           </button>
           
           <div className="relative flex-1 lg:flex-none">
@@ -171,6 +242,11 @@ export default function AuditLogs() {
 
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-gray-500 font-poppins">
+            Loading personnel data...
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
@@ -203,7 +279,7 @@ export default function AuditLogs() {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>)}
 
         {/* PAGINATION */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">

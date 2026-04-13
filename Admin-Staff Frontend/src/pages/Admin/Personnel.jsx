@@ -1,38 +1,83 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Search, Download, Funnel, Plus, 
-  Edit3, MinusCircle, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Check 
-} from 'lucide-react';
-import GeneralForm from '../GeneralForm';
-
-// --- SAMPLE DATA ---
-const rawData = [
-  { id: 'DOC001', role: 'DOCTOR', name: 'Zack Arias', dept: 'General IM', isSpecialty: false, schedule: 'M, W, F', email: 'zack@gmail.com', status: 'Active' },
-  { id: 'STF001', role: 'STAFF', name: 'Ana Batungbakal', dept: 'General IM', isSpecialty: false, schedule: 'T, TH', email: 'ana@gmail.com', status: 'Offline' },
-  { id: 'DOC002', role: 'DOCTOR', name: 'Bernice Castro', dept: 'Dermatology', isSpecialty: true, schedule: 'M, W, TH', email: 'bernice@gmail.com', status: 'Inactive' },
-  { id: 'STF002', role: 'STAFF', name: 'Carlos Dala', dept: 'IM - Pulmonology', isSpecialty: true, schedule: 'W, F', email: 'carlos@gmail.com', status: 'Deactivated' },
-  { id: 'ADM001', role: 'ADMIN', name: 'Dante Estacio', dept: 'N/A', isSpecialty: false, schedule: 'M, T, W', email: 'dante@gmail.com', status: 'Active' },
-  { id: 'DOC003', role: 'DOCTOR', name: 'Elena Fajardo', dept: 'General IM', isSpecialty: false, schedule: 'F', email: 'elena@gmail.com', status: 'Active' },
-  { id: 'STF003', role: 'STAFF', name: 'Gina Gomez', dept: 'Pediatrics', isSpecialty: true, schedule: 'M, T', email: 'gina@gmail.com', status: 'Active' },
-  { id: 'DOC004', role: 'DOCTOR', name: 'Harvey Isip', dept: 'Cardiology', isSpecialty: true, schedule: 'W, TF', email: 'harvey@gmail.com', status: 'Offline' },
-  { id: 'STF004', role: 'STAFF', name: 'Irene Javier', dept: 'General IM', isSpecialty: false, schedule: 'M-F', email: 'irene@gmail.com', status: 'Active' },
-  { id: 'DOC005', role: 'DOCTOR', name: 'Jojo Kasilag', dept: 'Neurology', isSpecialty: true, schedule: 'T, TH, S', email: 'jojo@gmail.com', status: 'Inactive' },
-  // ... PAGE 2
-  { id: 'DOC006', role: 'DOCTOR', name: 'Michael Gomez', dept: 'Pediatrics', isSpecialty: false, schedule: 'F', email: 'michael@gmail.com', status: 'Deactivated' },
-  { id: 'STF005', role: 'STAFF', name: 'Alex Simon', dept: 'Pediatrics', isSpecialty: true, schedule: 'M, T', email: 'alex@gmail.com', status: 'Inactive' },
-  { id: 'DOC007', role: 'DOCTOR', name: 'Inigo Bautista', dept: 'Dermatology', isSpecialty: true, schedule: 'T, TH', email: 'inigo@gmail.com', status: 'Offline' },
-  { id: 'ADM002', role: 'ADMIN', name: 'Rachel Mawac', dept: 'N/A', isSpecialty: false, schedule: 'M-F', email: 'rachel@gmail.com', status: 'Active' },
-  { id: 'ADM003', role: 'ADMIN', name: 'Chelly Redondo', dept: 'N/A', isSpecialty: false, schedule: 'TH, F', email: 'chelly@gmail.com', status: 'Active' },
-];
+import React, { useState, useMemo, useEffect, useContext } from 'react';
+import { Search, Download, Funnel, Plus, Edit3, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { AuthContext } from '../../authContext';
+import { toast } from 'react-hot-toast';
+import ExcelJS from 'exceljs';
 
 export default function Personnel() {
+  const { token } = useContext(AuthContext);
+
+  // --- SCHEDULE UI HELPERS ---
+  const DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
+
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let i = 6; i <= 20; i++) { // From 6:00 AM to 8:00 PM
+      const hour = i > 12 ? i - 12 : i;
+      const ampm = i >= 12 ? 'PM' : 'AM';
+      times.push(`${hour}:00 ${ampm}`);
+      times.push(`${hour}:30 ${ampm}`);
+    }
+    return times;
+  };
+  const TIME_OPTIONS = generateTimeOptions();
+  
+  // --- STATE ---
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
+  const [departments, setDepartments] = useState([]);
+  const [personnelData, setPersonnelData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // --- EDIT MODAL STATE ---
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingPerson, setEditingPerson] = useState(null);
+
+  // --- ADD DOCTOR MODAL STATE ---
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newDoctor, setNewDoctor] = useState({
+    firstname: '', surname: '', deptID: '',
+    schedule: '', time: ''
+  });
+
+  const handleAddDoctor = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/admin/doctors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        // Fixed: Mapping the React state to the Python Pydantic Schema!
+        body: JSON.stringify({
+          firstname: newDoctor.firstname,
+          surname: newDoctor.surname,
+          deptID: newDoctor.deptID,
+          workingDays: newDoctor.schedule || "Unassigned",
+          workingHours: newDoctor.time || "Unassigned"
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(JSON.parse(errorText).detail || 'Failed to add doctor');
+      }
+      
+      toast.success('Doctor added successfully!');
+      setIsAddModalOpen(false);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const [filters, setFilters] = useState({
-    sortKey: 'name', // 'name', 'id'
+    sortKey: 'name',
     sortOrder: 'asc',
     deptType: ['General', 'Specialty'],  
     roles: ['STAFF', 'DOCTOR', 'ADMIN'], 
@@ -41,14 +86,95 @@ export default function Personnel() {
 
   const itemsPerPage = 10;
 
-  // --- LOGIC: FILTERING & SORTING ---
+  // --- FETCH DATA ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        
+        const personnelRes = await fetch(`http://127.0.0.1:8000/api/admin/personnel`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!personnelRes.ok) throw new Error('Failed to fetch personnel');
+        const pData = await personnelRes.json();
+        setPersonnelData(pData);
+
+        const deptRes = await fetch(`http://127.0.0.1:8000/api/admin/departments`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!deptRes.ok) throw new Error('Failed to fetch departments');
+        const dData = await deptRes.json();
+        setDepartments(dData);
+
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token) fetchData();
+  }, [token]);
+
+  // --- UPDATE DATA ---
+  const handleOpenEdit = (person) => {
+    let fName = person.firstname || '';
+    let sName = person.surname || '';
+    
+    if (!fName && !sName && person.name) {
+      const nameParts = person.name.split(' ');
+      fName = nameParts[0];
+      sName = nameParts.slice(1).join(' ');
+    }
+
+    setEditingPerson({
+      ...person,
+      firstname: fName,
+      surname: sName,
+      deptID: person.deptID || '' 
+    });
+    
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdatePersonnel = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/admin/personnel/${editingPerson.raw_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          role: editingPerson.role,
+          deptID: editingPerson.deptID ? parseInt(editingPerson.deptID) : null, 
+          workingDays: editingPerson.schedule,
+          workingHours: editingPerson.time,
+          firstname: editingPerson.firstname, 
+          surname: editingPerson.surname
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update assignment');
+      
+      toast.success('Assignment updated successfully!');
+      setIsEditModalOpen(false);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- FILTER LOGIC ---
   const filteredData = useMemo(() => {
-    let result = rawData.filter(item => 
-      item.name.toLowerCase().includes(search.toLowerCase()) || 
-      item.id.toLowerCase().includes(search.toLowerCase())
+    let result = personnelData.filter(item => 
+      (item.name && item.name.toLowerCase().includes(search.toLowerCase())) || 
+      (item.id && String(item.id).toLowerCase().includes(search.toLowerCase()))
     );
 
-    // Apply Filters
     if (filters.roles.length > 0) result = result.filter(i => filters.roles.includes(i.role));
     if (filters.statuses.length > 0) result = result.filter(i => filters.statuses.includes(i.status));
     if (filters.deptType.length > 0) {
@@ -58,41 +184,80 @@ export default function Personnel() {
       });
     }
 
-    // SORTING
     result.sort((a, b) => {
-      const valA = a[filters.sortKey];
-      const valB = b[filters.sortKey];
-
-      // numeric: true = DOC001 vs DOC010 
-      const comparison = valA.localeCompare(valB, undefined, { 
-        numeric: true, 
-        sensitivity: 'base' 
-      });
-
+      const valA = String(a[filters.sortKey] || '');
+      const valB = String(b[filters.sortKey] || '');
+      const comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
       return filters.sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [search, filters]);
+  }, [search, filters, personnelData]);
 
-  // --- LOGIC: PAGINATION ---
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  // --- EXPORT TO EXCEL LOGIC ---
+  const handleExportExcel = async () => {
+    if (filteredData.length === 0) {
+      toast.error("No personnel data to export.");
+      return;
+    }
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Personnel Assignments');
+    worksheet.columns = [
+      { header: 'Employee ID', key: 'id', width: 15 },
+      { header: 'Role', key: 'role', width: 15 },
+      { header: 'Full Name', key: 'name', width: 25 },
+      { header: 'Department', key: 'dept', width: 30 },
+      { header: 'Schedule', key: 'schedule', width: 20 },
+      { header: 'Working Hours', key: 'time', width: 25 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+
+    filteredData.forEach(person => {
+      worksheet.addRow({
+        id: person.id,
+        role: person.role,
+        name: person.name,
+        dept: person.dept,
+        schedule: person.schedule,
+        time: person.time,
+        status: person.status
+      });
+    });
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0b3b60' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    
+    headerRow.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin' }, left: { style: 'thin' },
+        bottom: { style: 'thin' }, right: { style: 'thin' }
+      };
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `GABAY_Personnel_Assignments_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Excel report generated successfully!");
+  };
+
+  // --- PAGINATION LOGIC ---
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
   const pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const entryStart = (currentPage - 1) * itemsPerPage + 1;
+  const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
-  // --- LOGIC: SELECTION ---
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(pagedData.map(i => i.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const toggleSelection = (id) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
+  const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
+  const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
   return (
     <div className="space-y-6">
@@ -114,14 +279,17 @@ export default function Personnel() {
           />
           <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
         </div>
-        <button className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-gabay-teal2 transition">
+        <button onClick={() => setIsAddModalOpen(true)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-gabay-teal2 transition">
             <Plus size={16} /> <span className="hidden sm:inline">New Personnel</span><span className="sm:hidden">Personnel</span> 
           </button>
         </div>
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
-          <button className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export as CSV
+          <button 
+            onClick={handleExportExcel}
+            className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
+          >
+            <Download size={16} /> Export as Excel
           </button>
           
           {/* MULTI-FILTER DROPDOWN */}
@@ -134,7 +302,7 @@ export default function Personnel() {
             </button>
             
             {showFilterDropdown && (
-  <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5 max-h-[500px] overflow-y-auto scrollbar-thin">
+          <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5 max-h-[500px] overflow-y-auto scrollbar-thin">
     
           {/* SORTING SECTION */}
           <div>
@@ -167,25 +335,27 @@ export default function Personnel() {
           </div>
 
           {/* DEPARTMENT */}
-          <div>
-            <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Department Type</p>
-            <div className="grid grid-cols-2 gap-2">
-              {['General', 'Specialty'].map(type => (
-                <label key={type} className="flex items-center gap-2 text-sm font-poppins cursor-pointer group">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 rounded accent-gabay-blue"
-                    checked={filters.deptType.includes(type)}
-                    onChange={(e) => {
-                      const newTypes = e.target.checked ? [...filters.deptType, type] : filters.deptType.filter(x => x !== type);
-                      setFilters({...filters, deptType: newTypes});
-                    }}
-                  /> 
-                  <span className="text-gray-600 font-poppins group-hover:text-gabay-blue transition-colors">{type}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* DYNAMIC DEPARTMENT DROPDOWN */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Department</label>
+                <select 
+                  className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" 
+                  
+                  value={editingPerson?.deptID || newDoctor?.deptID || ''} 
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    if (isEditModalOpen) setEditingPerson({...editingPerson, deptID: val});
+                    if (isAddModalOpen) setNewDoctor({...newDoctor, deptID: val});
+                  }}
+                >
+                  <option value="" disabled>Select a Department...</option>
+                  {departments.map(dept => (
+                    <option key={dept.deptID} value={dept.deptID}>
+                      {dept.department} ({dept.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
           {/* ROLES */}
           <div>
@@ -252,7 +422,11 @@ export default function Personnel() {
 
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Native swipe container*/}
+        {isLoading ? (
+          <div className="p-12 text-center text-gray-500 font-poppins">
+            Loading personnel data...
+          </div>
+        ) : (
         <div className="overflow-x-auto cursor-default">
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
@@ -270,7 +444,7 @@ export default function Personnel() {
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Name</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Department</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Schedule</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Email</th>
+                <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Time</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Status</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider text-center">Actions</th>
               </tr>
@@ -302,7 +476,7 @@ export default function Personnel() {
                   <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{person.name}</td>
                   <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.dept}</td>
                   <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.schedule}</td>
-                  <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{person.email}</td>
+                  <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{person.time}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5 text-[11px] uppercase md:text-[12px] font-poppins font-medium text-gray-700">
                       <div className={`w-2 h-2 rounded-full ${
@@ -315,15 +489,14 @@ export default function Personnel() {
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex justify-center gap-2">
-                      <button className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors"><Edit3 size={18}/></button>
-                      <button className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"><MinusCircle size={18}/></button>
+                      <button onClick={() => handleOpenEdit(person)} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors"><Edit3 size={18}/></button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </div>)}
 
         {/* PAGE RESULTS */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -361,6 +534,257 @@ export default function Personnel() {
           </p>
         </div>
       </div>
+
+      {/* EDIT ASSIGNMENT MODAL */}
+      {isEditModalOpen && editingPerson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden font-poppins">
+            <div className="bg-gabay-blue px-6 py-4 flex justify-between items-center text-white">
+              <h2 className="text-lg font-bold">Edit Personnel Assignment</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="hover:text-gray-300 transition"><X size={20}/></button>
+            </div>
+            
+            <form onSubmit={handleUpdatePersonnel} className="p-6 space-y-4">
+              <div>
+                {/* --- CONDITIONAL HEADER & NAME EDITING --- */}
+                {editingPerson.role === 'DOCTOR' ? (
+                  // DOCTOR VIEW: Allow Name Editing, Hide System Role
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
+                      <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={editingPerson.firstname} onChange={e => setEditingPerson({...editingPerson, firstname: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
+                      <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={editingPerson.surname} onChange={e => setEditingPerson({...editingPerson, surname: e.target.value})} />
+                    </div>
+                  </div>
+                ) : (
+                  // STAFF VIEW: Read-Only Header & Editable System Role
+                  <>
+                    <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg flex justify-between items-center mb-6">
+                      <div>
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Employee</p>
+                          <p className="font-bold text-gray-700">{editingPerson.name}</p>
+                      </div>
+                      <div className="text-right">
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Status</p>
+                          <p className={`font-bold ${editingPerson.status === 'Active' ? 'text-gabay-green' : 'text-red-500'}`}>{editingPerson.status}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
+                      <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={editingPerson.role} onChange={e => setEditingPerson({...editingPerson, role: e.target.value})}>
+                        <option value="STAFF">Staff</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* DYNAMIC DEPARTMENT DROPDOWN */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Department</label>
+                <select 
+                  className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" 
+                  
+                  value={editingPerson?.deptID || newDoctor?.deptID || ''} 
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    // Update the correct state depending on which modal is open
+                    if (isEditModalOpen) setEditingPerson({...editingPerson, deptID: val});
+                    if (isAddModalOpen) setNewDoctor({...newDoctor, deptID: val});
+                  }}
+                >
+                  <option value="" disabled>Select a Department...</option>
+                  {departments.map(dept => (
+                    <option key={dept.deptID} value={dept.deptID}>
+                      {dept.department} ({dept.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-2">Working Days</label>
+                  <div className="flex flex-wrap gap-2">
+                    {DAYS_OF_WEEK.map(day => {
+                      // Parse the current string into an array safely
+                      const currentDays = editingPerson.schedule && editingPerson.schedule !== 'Unassigned' 
+                        ? editingPerson.schedule.split(',').map(d => d.trim()) 
+                        : [];
+                      
+                      const isSelected = currentDays.includes(day);
+
+                      return (
+                        <button
+                          type="button"
+                          key={day}
+                          onClick={() => {
+                            let newDays = [...currentDays];
+                            if (isSelected) newDays = newDays.filter(d => d !== day);
+                            else newDays.push(day);
+                            
+                            newDays.sort((a, b) => DAYS_OF_WEEK.indexOf(a) - DAYS_OF_WEEK.indexOf(b));
+                            
+                            setEditingPerson({...editingPerson, schedule: newDays.join(', ') || 'Unassigned'});
+                          }}
+                          className={`w-10 h-10 rounded-full text-xs font-bold transition-all duration-200 shadow-sm ${
+                            isSelected 
+                              ? 'bg-gabay-blue text-white ring-2 ring-gabay-blue ring-offset-1' 
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Working Hours</label>
+                  <div className="flex items-center gap-3">
+                    {/* Start Time Dropdown */}
+                    <select 
+                      className="flex-1 border p-2.5 rounded-lg text-sm outline-none focus:border-gabay-blue bg-white"
+                      value={editingPerson.time && editingPerson.time !== 'Unassigned' ? editingPerson.time.split(' - ')[0] : ''}
+                      onChange={(e) => {
+                        const currentEnd = editingPerson.time && editingPerson.time !== 'Unassigned' ? editingPerson.time.split(' - ')[1] : '5:00 PM';
+                        setEditingPerson({...editingPerson, time: `${e.target.value} - ${currentEnd}`});
+                      }}
+                    >
+                      <option value="" disabled>Start Time</option>
+                      {TIME_OPTIONS.map(t => <option key={`start-${t}`} value={t}>{t}</option>)}
+                    </select>
+
+                    <span className="text-gray-400 font-bold px-1">to</span>
+                    
+                    {/* End Time Dropdown */}
+                    <select 
+                      className="flex-1 border p-2.5 rounded-lg text-sm outline-none focus:border-gabay-blue bg-white"
+                      value={editingPerson.time && editingPerson.time !== 'Unassigned' ? editingPerson.time.split(' - ')[1] : ''}
+                      onChange={(e) => {
+                        const currentStart = editingPerson.time && editingPerson.time !== 'Unassigned' ? editingPerson.time.split(' - ')[0] : '8:00 AM';
+                        setEditingPerson({...editingPerson, time: `${currentStart} - ${e.target.value}`});
+                      }}
+                    >
+                      <option value="" disabled>End Time</option>
+                      {TIME_OPTIONS.map(t => <option key={`end-${t}`} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="px-5 py-2 text-sm font-medium text-white bg-gabay-blue hover:bg-opacity-90 rounded-lg transition disabled:opacity-50">
+                  {isSubmitting ? 'Saving...' : 'Save Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD DOCTOR MODAL */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden font-poppins">
+            <div className="bg-gabay-teal px-6 py-4 flex justify-between items-center text-white">
+              <h2 className="text-lg font-bold">Add New Doctor</h2>
+              <button onClick={() => setIsAddModalOpen(false)} className="hover:text-gray-200 transition"><X size={20}/></button>
+            </div>
+            
+            <form onSubmit={handleAddDoctor} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
+                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={newDoctor.firstname} onChange={e => setNewDoctor({...newDoctor, firstname: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
+                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={newDoctor.surname} onChange={e => setNewDoctor({...newDoctor, surname: e.target.value})} />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Department</label>
+                <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={newDoctor.deptID} onChange={e => setNewDoctor({...newDoctor, deptID: Number(e.target.value)})}>
+                  <option value={1}>General Internal Medicine</option>
+                  <option value={2}>Pediatrics</option>
+                  <option value={3}>Dermatology</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-2">Working Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS_OF_WEEK.map(day => {
+                    const currentDays = newDoctor.schedule ? newDoctor.schedule.split(',').map(d => d.trim()) : [];
+                    const isSelected = currentDays.includes(day);
+
+                    return (
+                      <button
+                        type="button" key={day}
+                        onClick={() => {
+                          let newDays = [...currentDays];
+                          if (isSelected) newDays = newDays.filter(d => d !== day);
+                          else newDays.push(day);
+                          newDays.sort((a, b) => DAYS_OF_WEEK.indexOf(a) - DAYS_OF_WEEK.indexOf(b));
+                          setNewDoctor({...newDoctor, schedule: newDays.join(', ')});
+                        }}
+                        className={`w-10 h-10 rounded-full text-xs font-bold transition-all duration-200 shadow-sm ${
+                          isSelected ? 'bg-gabay-teal text-white ring-2 ring-gabay-teal ring-offset-1' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* --- TIME PICKERS --- */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Working Hours</label>
+                <div className="flex items-center gap-3">
+                  <select 
+                    className="flex-1 border p-2.5 rounded-lg text-sm outline-none focus:border-gabay-teal"
+                    value={newDoctor.time ? newDoctor.time.split(' - ')[0] : ''}
+                    onChange={(e) => {
+                      const currentEnd = newDoctor.time ? newDoctor.time.split(' - ')[1] || '5:00 PM' : '5:00 PM';
+                      setNewDoctor({...newDoctor, time: `${e.target.value} - ${currentEnd}`});
+                    }}
+                  >
+                    <option value="" disabled>Start</option>
+                    {TIME_OPTIONS.map(t => <option key={`start-${t}`} value={t}>{t}</option>)}
+                  </select>
+                  <span className="text-gray-400 font-bold px-1">to</span>
+                  <select 
+                    className="flex-1 border p-2.5 rounded-lg text-sm outline-none focus:border-gabay-teal"
+                    value={newDoctor.time ? newDoctor.time.split(' - ')[1] : ''}
+                    onChange={(e) => {
+                      const currentStart = newDoctor.time ? newDoctor.time.split(' - ')[0] || '8:00 AM' : '8:00 AM';
+                      setNewDoctor({...newDoctor, time: `${currentStart} - ${e.target.value}`});
+                    }}
+                  >
+                    <option value="" disabled>End</option>
+                    {TIME_OPTIONS.map(t => <option key={`end-${t}`} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="px-5 py-2 text-sm font-medium text-white bg-gabay-teal hover:bg-opacity-90 rounded-lg transition disabled:opacity-50">
+                  {isSubmitting ? 'Saving...' : 'Add Doctor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

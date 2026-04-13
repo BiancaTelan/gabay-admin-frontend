@@ -82,7 +82,7 @@ export default function Users() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${editingUser.raw_id}`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/admin/users/${editingUser.raw_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -118,7 +118,7 @@ export default function Users() {
     setIsSubmitting(true); 
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${userToDelete.rawId}`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/admin/users/${userToDelete.rawId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -141,12 +141,9 @@ export default function Users() {
       toast.error("No data available to export.");
       return;
     }
-
-    // 1. Create a new Excel Workbook and Worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('GABAY Personnel');
 
-    // 2. Define the exact columns and auto-widths for a clean look
     worksheet.columns = [
       { header: 'Hospital Number', key: 'id', width: 18 },
       { header: 'Full Name', key: 'name', width: 25 },
@@ -159,7 +156,6 @@ export default function Users() {
       { header: 'Join Date', key: 'joinDate', width: 15 }
     ];
 
-    // 3. Map your filtered React data into the worksheet
     filteredData.forEach(user => {
       worksheet.addRow({
         id: user.id,
@@ -174,17 +170,15 @@ export default function Users() {
       });
     });
 
-    // 4. Style the Header Row (Professional GABAY Navy Blue)
     const headerRow = worksheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }; // White text
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }; 
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF0b3b60' } // GABAY Navy Blue
+      fgColor: { argb: 'FF0b3b60' } 
     };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Add a light border to the header
     headerRow.eachCell((cell) => {
       cell.border = {
         top: { style: 'thin' }, left: { style: 'thin' },
@@ -192,7 +186,6 @@ export default function Users() {
       };
     });
 
-    // 5. Generate and securely download the .xlsx file
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     
