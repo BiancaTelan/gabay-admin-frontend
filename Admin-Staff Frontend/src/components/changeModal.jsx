@@ -37,7 +37,7 @@ export default function ChangeModal({ isOpen, onClose, type, currentEmail, token
       : { current_password: currentPassword, new_password: newPassword };
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000${apiBase}${endpoint}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}${endpoint}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
