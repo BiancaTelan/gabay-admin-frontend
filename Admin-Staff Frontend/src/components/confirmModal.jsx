@@ -1,57 +1,59 @@
 import React from 'react';
-import { AlertTriangle, LogOut, Info } from 'lucide-react';
+import { createPortal } from 'react-dom'; // <-- We import the Portal here
+import { AlertTriangle, Info, CheckCircle, X } from 'lucide-react';
 
-export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, type = "danger" }) {
+export default function ConfirmationModal({ isOpen, onClose, type = 'info', title, message, onConfirm }) {
   if (!isOpen) return null;
 
-  const isDanger = type === 'danger';
-  const isWarning = type === 'warning';
-  const isInfo = type === 'info';
+  const config = {
+    warning: { icon: <AlertTriangle size={24} className="text-amber-500" />, bg: 'bg-amber-50', button: 'bg-amber-500 hover:bg-amber-600' },
+    danger: { icon: <AlertTriangle size={24} className="text-red-500" />, bg: 'bg-red-50', button: 'bg-red-500 hover:bg-red-600' },
+    success: { icon: <CheckCircle size={24} className="text-green-500" />, bg: 'bg-green-50', button: 'bg-green-500 hover:bg-green-600' },
+    info: { icon: <Info size={24} className="text-gabay-blue" />, bg: 'bg-blue-50', button: 'bg-gabay-blue hover:bg-opacity-90' }
+  };
 
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 font-poppins px-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fade-in-down border border-gray-100">
-        <div className="flex flex-col items-center text-center">
-          
-          <div className={`p-4 rounded-full mb-4 ${
-            (isDanger || isWarning) ? 'bg-red-50 text-gabay-red' : 'bg-teal-50 text-gabay-teal'
-          }`}>
-            {(isDanger || isWarning) ? <AlertTriangle size={36} /> : <LogOut size={36} />}
+  const currentConfig = config[type] || config.info;
+
+  // The Modal UI
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden font-poppins relative animate-in zoom-in-95 duration-200">
+        
+        {/* Close Button */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+          <X size={20} />
+        </button>
+
+        <div className="p-6">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${currentConfig.bg}`}>
+            {currentConfig.icon}
           </div>
+          
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{title}</h2>
+          <p className="text-sm text-gray-500 mb-8">{message}</p>
 
-          <h3 className={`text-xl font-bold mb-2 font-montserrat ${
-            (isDanger || isWarning) ? 'text-gabay-red' : 'text-gabay-navy'
-          }`}>
-            {title}
-          </h3>
-          
-          <p className="text-gray-500 text-sm mb-8 leading-relaxed px-2">
-            {message}
-          </p>
-          
-          <div className="flex gap-3 w-full">
-            {!isWarning && (
-              <button 
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all text-sm uppercase tracking-wide"
-              >
-                Cancel
-              </button>
-            )}
-            
+          <div className="flex justify-end gap-3">
             <button 
-              onClick={onConfirm}
-              className={`flex-1 py-2.5 rounded-xl text-white font-bold shadow-md transition-all text-sm uppercase tracking-wide ${
-                (isDanger || isWarning) 
-                  ? 'bg-gabay-red hover:bg-gabay-red2 shadow-red-200' 
-                  : 'bg-gabay-teal hover:bg-teal-600 shadow-teal-200'
-              }`}
+              onClick={onClose} 
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
             >
-              {isWarning ? "Understood" : "Confirm"}
+              Cancel
+            </button>
+            <button 
+              onClick={() => {
+                if (onConfirm) onConfirm();
+                onClose();
+              }} 
+              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition shadow-sm ${currentConfig.button}`}
+            >
+              Confirm
             </button>
           </div>
         </div>
+        
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

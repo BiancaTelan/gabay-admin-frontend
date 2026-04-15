@@ -1,11 +1,21 @@
-import { NavLink } from 'react-router-dom';
+import React, { useContext, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserRoundCog, Building2, 
   CalendarCheck, Activity, Terminal, FileBarChart, 
   LogOut, Settings, Menu 
 } from 'lucide-react';
+import { AuthContext } from '../authContext';
+import ConfirmationModal from '../components/confirmModal'; 
 
 export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false, type: '', title: '', message: '', onConfirm: null 
+  });
+
   const menuGroups = [
     {
       title: "MAIN MENU",
@@ -26,6 +36,19 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
       ]
     }
   ];
+
+  const openLogoutModal = () => {
+    setModalConfig({
+      isOpen: true,
+      type: 'info',
+      title: 'Log Out',
+      message: 'Are you sure you want to log out?',
+      onConfirm: () => { 
+        logout(); 
+        navigate('/'); 
+      }
+    });
+  };
 
   return (
     <aside className="flex flex-col h-full py-6 transition-all duration-300">
@@ -55,7 +78,8 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
                   end={item.path === '/admin'}
                   className={({ isActive }) =>
                     `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-300 text-sm font-poppins font-medium ${
-                      isActive ? 'bg-[#EBF2FF] text-[#3B82F6]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                      isActive ? 'bg-[#EBF2FF] text-[#3B82F6]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`
+                  }>
                   <div className="flex-shrink-0 w-5 flex justify-center">
                     {item.icon}
                   </div>
@@ -72,16 +96,26 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
         ))}
       </div>
 
+      {/* Footer Items */}
       <div className="px-4 mt-auto pt-5 border-t border-gray-100 space-y-1">
         <button className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 w-full font-poppins text-gray-500 hover:text-gray-900 text-sm transition-all`}>
           <Settings size={22} /> 
           {!isCollapsed && <span>Settings</span>}
         </button>
-        <button className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 w-full font-poppins text-gabay-teal hover:bg-teal-50 rounded-lg text-sm transition-all font-semibold`}>
+
+        <button 
+          onClick={openLogoutModal} 
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 w-full text-gabay-teal hover:underline transition-colors hover:text-gabay-teal2 text-sm font-bold font-poppins`}
+        >
           <LogOut size={22} /> 
           {!isCollapsed && <span>Log Out</span>}
         </button>
       </div>
+
+      <ConfirmationModal 
+        {...modalConfig} 
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} 
+      />
     </aside>
   );
 }
