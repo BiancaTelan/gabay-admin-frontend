@@ -41,7 +41,7 @@ export default function Departments() {
   useEffect(() => {
     const fetchDepts = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/admin/departments/stats`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments/stats`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -63,7 +63,7 @@ export default function Departments() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/departments`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData)
@@ -90,7 +90,7 @@ export default function Departments() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/departments/${editingDept.raw_id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments/${editingDept.raw_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -122,7 +122,7 @@ export default function Departments() {
     if (deleteConfirmationText !== deptToDelete.name) return; // Final safety check
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/departments/${deptToDelete.raw_id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments/${deptToDelete.raw_id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

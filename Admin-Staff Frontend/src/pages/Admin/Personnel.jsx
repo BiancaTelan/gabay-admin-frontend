@@ -48,7 +48,7 @@ export default function Personnel() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/doctors`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         // Fixed: Mapping the React state to the Python Pydantic Schema!
@@ -91,7 +91,7 @@ export default function Personnel() {
     const fetchData = async () => {
       try {
         
-        const personnelRes = await fetch(`http://127.0.0.1:8000/api/admin/personnel`, {
+        const personnelRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -99,7 +99,7 @@ export default function Personnel() {
         const pData = await personnelRes.json();
         setPersonnelData(pData);
 
-        const deptRes = await fetch(`http://127.0.0.1:8000/api/admin/departments`, {
+        const deptRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -143,7 +143,7 @@ export default function Personnel() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/personnel/${editingPerson.raw_id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel/${editingPerson.raw_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({

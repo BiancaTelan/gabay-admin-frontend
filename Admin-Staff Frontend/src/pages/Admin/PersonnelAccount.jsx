@@ -42,7 +42,7 @@ export default function PersonnelAccount() {
       if (!token) return;
       try {
         // Securely call the 'me' endpoint. The backend knows who is calling based on the token!
-        const response = await fetch(`http://127.0.0.1:8000${apiBase}/profile/me`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -94,7 +94,7 @@ export default function PersonnelAccount() {
     formData.append('profile_photo', file);
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000${apiBase}/upload-photo`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/upload-photo`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
@@ -147,7 +147,7 @@ export default function PersonnelAccount() {
   const handleSave = async () => {
     if (validate()) {
       try {
-        const response = await fetch(`http://127.0.0.1:8000${apiBase}/update-profile`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/update-profile`, {
           method: 'PUT',
           headers: { 
               'Content-Type': 'application/json',
