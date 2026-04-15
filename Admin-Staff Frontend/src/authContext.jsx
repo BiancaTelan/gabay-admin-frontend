@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [profilePhoto, setProfilePhoto] = useState(null);
 
   // --- GLOBAL NOTIFICATION STATES ---
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]); 
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastReadTimestamp, setLastReadTimestamp] = useState(
     localStorage.getItem('gabay_admin_last_read') || '2000-01-01T00:00:00.000Z'
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     const fetchGlobalNotifications = async () => {
       if (!token) return;
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/admin/notifications`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/notifications`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch notifications');
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     if (token && userRole) {
       const apiBase = userRole.toLowerCase() === 'admin' ? '/api/admin' : '/api/staff';
       
-      fetch(`http://127.0.0.1:8000${apiBase}/profile/me`, {
+      fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())

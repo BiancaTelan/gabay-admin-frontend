@@ -52,6 +52,7 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
+        
         </button>
 
         <div className="h-8 w-[1px] bg-gray-200 mx-1 md:mx-2"></div>
