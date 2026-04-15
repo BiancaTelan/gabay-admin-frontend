@@ -28,7 +28,7 @@ export default function Users() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/addusers`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/addusers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export default function Users() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/users/${editingUser.raw_id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${editingUser.raw_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -118,7 +118,7 @@ export default function Users() {
     setIsSubmitting(true); 
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/admin/users/${userToDelete.rawId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${userToDelete.rawId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -219,7 +219,7 @@ export default function Users() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/admin/users`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

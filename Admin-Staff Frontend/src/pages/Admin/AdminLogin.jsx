@@ -77,7 +77,7 @@ export default function AdminLogin() {
     
       try {
       // Temporarily hardcoded to skip the broken .env file!
-      const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: urlEncodedData.toString(),

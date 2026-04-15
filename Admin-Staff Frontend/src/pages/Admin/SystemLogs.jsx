@@ -42,7 +42,7 @@ export default function SystemLogs() {
   useEffect(() => {
     const fetchHealthLogs = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/admin/health-logs`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/health-logs`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -64,7 +64,7 @@ export default function SystemLogs() {
     const fetchHardware = async () => {
       if (!token) return;
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/admin/system-metrics`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/system-metrics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
