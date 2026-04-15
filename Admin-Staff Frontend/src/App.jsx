@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react'; 
 import { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthContext } from './authContext';
 import Header from './components/header';
 import ForgotPassword from './pages/ForgotPassword';
@@ -72,6 +73,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white font-sans relative">
+      <Analytics />
       <Toaster 
         position="top-center" 
         reverseOrder={false} 
