@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import Button from './button';
+import Button from './button'; 
 
-export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave }) {
+export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, editingSchedule }) {
   const daysOfWeek = [
     { label: 'M', full: 'Monday' },
     { label: 'T', full: 'Tuesday' },
@@ -16,49 +16,60 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave })
   const [endTime, setEndTime] = useState("14:00");
 
   useEffect(() => {
-    if (doctor) {
-      const isTBD = doctor.schedule === 'TBD';
-      const currentDays = isTBD 
-        ? [] 
-        : doctor.schedule.split(', ').map(d => d.trim());
-      
-      setSelectedDays(currentDays);
+    if (isOpen) {
+      if (editingSchedule) {
+        const reverseMap = { 'Monday': 'M', 'Tuesday': 'T', 'Wednesday': 'W', 'Thursday': 'TH', 'Friday': 'F' };
+        setSelectedDays([reverseMap[editingSchedule.day] || editingSchedule.day]);
 
-      if (doctor.timePeriod === 'TBD') {
+        try {
+          const [startStr, endStr] = editingSchedule.time.split(" - ");
+          
+          const convertTo24Hour = (time12h) => {
+            const [time, modifier] = time12h.split(' ');
+            let [hours, minutes] = time.split(':');
+            if (hours === '12') hours = '00';
+            if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+            return `${hours.toString().padStart(2, '0')}:${minutes}`;
+          };
+          
+          setStartTime(convertTo24Hour(startStr));
+          setEndTime(convertTo24Hour(endStr));
+        } catch (e) { console.error("Time parse error", e); }
+        
+      } else {
+        setSelectedDays([]);
         setStartTime("08:00");
         setEndTime("14:00");
       }
     }
-  }, [doctor, isOpen]);
+  }, [isOpen, editingSchedule]);
 
   if (!isOpen || !doctor) return null;
 
   const toggleDay = (day) => {
-    setSelectedDays(prev => 
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
+    if (editingSchedule) {
+      setSelectedDays([day]); 
+    } else {
+      setSelectedDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+    }
   };
 
   const handleConfirm = () => {
-    if (selectedDays.length === 0) {
-      alert("Please select at least one duty day.");
-      return;
-    }
+    if (selectedDays.length === 0) return alert("Please select a duty day.");
 
     const formatTime = (time) => {
       let [h, m] = time.split(':');
       let ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12 || 12;
-      return `${h}:${m} ${ampm}`;
+      return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
     };
 
     const newSchedule = selectedDays.join(', ');
     const newPeriod = `${formatTime(startTime)} – ${formatTime(endTime)}`;
     
-    onSave(doctor.id, newSchedule, newPeriod);
-    onClose();
+    onSave(doctor.id, newSchedule, newPeriod, editingSchedule?.id); 
   };
-
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 font-poppins text-left">
@@ -66,7 +77,7 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave })
         <div className="p-5 flex items-center border-b border-gray-50">
           <div className="w-10"></div>
           <h3 className="flex-1 text-center font-montserrat font-bold uppercase tracking-wide text-sm text-gabay-blue">
-            Update Duty Schedule
+            {editingSchedule ? "Edit Schedule Block" : "Add New Schedule Block"}
           </h3>
           <button 
             onClick={onClose} 
@@ -123,7 +134,7 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave })
 
           <div className="pt-2">
             <Button variant="teal" type="button" onClick={handleConfirm} className="w-full py-3 shadow-lg shadow-teal-100">
-              SAVE SCHEDULE
+              SAVE NEW SCHEDULE
             </Button>
           </div>
         </div>

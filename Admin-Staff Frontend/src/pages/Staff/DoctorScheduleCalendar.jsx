@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Clock, Plus, ChevronLeft as ChevronLeftIcon } from 'lucide-react';
+import { AuthContext } from '../../authContext';
 
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
@@ -22,7 +23,9 @@ const weekDays = [
 
 export default function DoctorScheduleCalendar() {
   const navigate = useNavigate();
-  const { doctors = [] } = useOutletContext() || {};
+  const { token, userRole } = useContext(AuthContext); 
+  const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
+  const [doctors, setDoctors] = useState([]);
   
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -30,6 +33,21 @@ export default function DoctorScheduleCalendar() {
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/list`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setDoctors(data);
+      } catch (error) {
+        console.error("Error loading calendar data:", error);
+      }
+    };
+    if (token) fetchDoctors();
+  }, [token]);
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -50,11 +68,26 @@ export default function DoctorScheduleCalendar() {
   };
 
   const getDoctorsForDay = (dayIndex) => {
-    const dayMap = ['S', 'M', 'T', 'W', 'TH', 'F', 'ST'];
-    const currentDayCode = dayMap[dayIndex];
-    return doctors.filter(doc => 
-        doc.schedule?.split(',').map(s => s.trim()).includes(currentDayCode)
-    );
+    const fullDayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetDay = fullDayMap[dayIndex];
+    
+    const onDuty = [];
+
+    doctors.forEach(doc => {
+      if (!doc.schedules || !Array.isArray(doc.schedules)) return;
+
+      const matchedSchedule = doc.schedules.find(s => s.day === targetDay);
+
+      if (matchedSchedule) {
+        onDuty.push({
+          id: doc.id,
+          name: doc.name,
+          time: matchedSchedule.time
+        });
+      }
+    });
+
+    return onDuty;
   };
 
   return (
@@ -146,7 +179,7 @@ export default function DoctorScheduleCalendar() {
                         <div className="flex items-center gap-0.5 text-gray-400">
                           <Clock size={7} />
                           <span className="text-[7px] italic font-medium truncate">
-                            {doc.timePeriod?.split('–')[0]}
+                            {doc.time?.split('–')[0]}
                           </span>
                         </div>
                       </div>

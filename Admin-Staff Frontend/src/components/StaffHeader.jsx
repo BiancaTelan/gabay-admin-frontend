@@ -1,12 +1,32 @@
-import { Bell, Calendar } from 'lucide-react';
+import { Bell, Calendar, User } from 'lucide-react'; // 
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { useContext, useState } from 'react'; // 
 import { AuthContext } from '../authContext';
 import gabayLogo from '../assets/gabayLogo.png';
 
 export default function StaffHeader() {
-  const { userInfo } = useContext(AuthContext);
+  const { userInfo, unreadCount } = useContext(AuthContext);
   const navigate = useNavigate();
+  
+  const [imgError, setImgError] = useState(false);
+
+  
+  const getProfileImageUrl = () => {
+    if (!userInfo?.profilePhoto) return null; 
+    
+    let path = userInfo.profilePhoto;
+    if (path.startsWith('http')) return path; 
+    
+    path = path.replace(/\\/g, '/');
+
+    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    const finalUrl = `${baseUrl}${safePath}`;
+
+    return finalUrl;
+  };
+
+  const profileImage = getProfileImageUrl();
 
   const getImageUrl = (path) => {
   if (!path) return "/default-avatar.png";
@@ -17,6 +37,7 @@ export default function StaffHeader() {
   return (
     <header className="font-poppins sticky top-0 z-50 bg-white border-b border-gray-200 py-3">
       <div className="flex items-center justify-between w-full px-5">
+        
         {/* Left: Logo and nav links */}
         <div className="flex items-center gap-12">
           <div className="cursor-pointer shrink-0" onClick={() => navigate('/staff/dashboard')}>
@@ -56,18 +77,24 @@ export default function StaffHeader() {
             >
               <Calendar size={24} />
             </button>
+            
             <button
               onClick={() => navigate('/staff/s-notifs')}
               className="p-2 rounded-xl transition-all text-gray-400 hover:bg-blue-50 hover:text-gabay-blue relative"
               title="Notifications"
             >
               <Bell size={24} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
     
             <button
               onClick={() => navigate('/staff/s-account')}
-              className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden"
+              className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden bg-gray-100"
             >
                 <img 
                   src={getImageUrl(profilePhoto)} 

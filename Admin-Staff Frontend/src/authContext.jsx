@@ -40,10 +40,23 @@ export const AuthProvider = ({ children }) => {
 
     const fetchGlobalNotifications = async () => {
       if (!token) return;
+      
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/notifications`, {
+        const currentRole = userRole || localStorage.getItem('gabay_admin_role');
+        if (!currentRole) return;
+        
+        const apiBase = currentRole.toLowerCase() === 'admin' ? '/api/admin' : '/api/staff';
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/notifications`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (response.status === 401) {
+          console.warn("Token expired. Stopping polling and logging out.");
+          logout(); 
+          return; 
+        }
+
         if (!response.ok) throw new Error('Failed to fetch notifications');
         
         const data = await response.json();

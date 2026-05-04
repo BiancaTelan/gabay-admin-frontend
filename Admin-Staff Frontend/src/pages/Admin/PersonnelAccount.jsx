@@ -10,17 +10,17 @@ import { AuthContext } from '../../authContext';
 
 export default function PersonnelAccount() {
   const navigate = useNavigate();
-  const { token, logout, userRole, setProfilePhoto } = useContext(AuthContext);
+  const { token, logout, userRole, setProfilePhoto, user } = useContext(AuthContext);
   const fileInputRef = useRef(null);
 
-  const apiBase = userRole?.toLowerCase() === 'admin' ? '/api/admin': '/api/staff';
-  const displayRole = userRole?.toLowerCase() === 'admin' ? 'Admin' : 'Staff';
+  const currentRole = user?.role || userRole; 
+  const apiBase = currentRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
 
   const [localUserInfo, setLocalUserInfo] = useState({
     firstname: "",
     surname: "",
     suffix: "",
-    role: userRole?.toUpperCase() || "STAFF",
+    role: currentRole?.toUpperCase() || "STAFF",
     email: "",
     contactNumber: "",
     dob: "",
@@ -36,26 +36,31 @@ export default function PersonnelAccount() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [changeModalType, setChangeModalType] = useState('password');
 
-  // --- 1. FETCH PROFILE ---
+  // --- FETCH PROFILE ---
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!token) return;
       try {
-        // Securely call the 'me' endpoint. The backend knows who is calling based on the token!
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         });
+
+        if (!response.ok) throw new Error("Failed to fetch profile data");
         
-        if (response.ok) {
-          const data = await response.json();
-          setLocalUserInfo(data);
-        }
+        const data = await response.json();
+        setLocalUserInfo(prev => ({ ...prev, ...data })); 
       } catch (error) {
-        console.error(`Failed to fetch profile:`, error);
+        console.error("Profile Fetch Error:", error);
       }
     };
-    fetchProfile();
-  }, [token, apiBase]);
+
+    if (token) {
+      fetchProfile();
+    }
+  }, [apiBase, token]);
 
   // --- INPUT HANDLERS ---
   const handleInputChange = (e) => {
@@ -331,7 +336,7 @@ export default function PersonnelAccount() {
               </div>
             )}
             <button onClick={openLogoutModal} className="flex items-center gap-2 text-gabay-teal hover:underline transition-colors hover:text-gabay-teal2 text-sm font-bold">
-              <logout size={18} /> Log Out
+              <LogOut size={18} /> Log Out
             </button>
           </div>
         </div>

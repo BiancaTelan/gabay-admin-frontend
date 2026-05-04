@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { CalendarDays } from 'lucide-react';
 import Button from '../../components/button';
 import ConfirmRescheduleModal from '../../components/ConfirmRescheduleModal';
+import { AuthContext } from '../../authContext';
 
 export default function RescheduleAppointmentPage() {
+  const { token } = useContext(AuthContext);
+  const [allowedDays, setAllowedDays] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
   const rawData = location.state?.appointment || location.state?.patientData;
@@ -19,9 +22,11 @@ export default function RescheduleAppointmentPage() {
     hospitalNo: rawData.hospitalNo || rawData.hospitalNumber || 'N/A'
   } : null;
 
-  const [selectedDate, setSelectedDate] = useState(
-    appointment?.appointmentDate ? new Date(appointment.appointmentDate) : null
-  );
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (!appointment?.appointmentDate) return null;
+    const parsed = new Date(appointment.appointmentDate);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  });
   const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,10 +37,35 @@ export default function RescheduleAppointmentPage() {
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ') || '';
 
+  useEffect(() => {
+    const fetchWorkingDays = async () => {
+      const doctorId = appointment?.docID; 
+      if (!doctorId || !token) return;
+      
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setAllowedDays(data.working_days || []);
+      } catch (error) {
+        console.error("Failed to fetch working days:", error);
+      }
+    };
+
+    fetchWorkingDays();
+  }, [appointment?.docID, token]);;
+
+  const isWorkingDay = (d) => {
+    return allowedDays.includes(d.getDay());
+  };
+
   const handleOpenModal = (e) => {
     e.preventDefault();
 
-    const originalDate = new Date(appointment?.appointmentDate).setHours(0, 0, 0, 0);
+    const parsedOriginal = new Date(appointment?.appointmentDate);
+    const originalDate = isNaN(parsedOriginal.getTime()) ? null : parsedOriginal.setHours(0, 0, 0, 0);
     const newDate = selectedDate ? new Date(selectedDate).setHours(0, 0, 0, 0) : null;
     const today = new Date().setHours(0, 0, 0, 0);
 
@@ -57,33 +87,50 @@ export default function RescheduleAppointmentPage() {
     setShowConfirmModal(true);
   };
 
-  const handleConfirm = () => {
-    return new Promise((resolve, reject) => {
-      setLoading(true);
-      setError('');
+  const handleConfirm = async () => {
+    setLoading(true);
+    setError('');
 
-      setTimeout(() => {
-        try {
-          setLoading(false);
-          setShowConfirmModal(false);
-          resolve();
+    try {
 
-          setTimeout(() => {
-            const isNoShow = location.state?.patientData?.source === 'no-show';
-            const destination = isNoShow ? '/staff/no-show-appointments' : '/staff/appointments';
-        
-            const navigationState = isNoShow 
-              ? { updatedId: appointment?.id, newStatus: 'Rescheduled' } 
-              : { tab: 'approved' };
+      const formattedDate = selectedDate.toLocaleDateString('en-US', {
+        month: '2-digit', day: '2-digit', year: 'numeric'
+      });
 
-            navigate(destination, { state: navigationState });
-          }, 800);
-        } catch (err) {
-          setLoading(false);
-          reject(err);
-        }
-      }, 400);
-    });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/${appointment.id}/reschedule`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          new_date: formattedDate,
+          batch: selectedBatch,
+          reason: reason
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to reschedule appointment');
+      }
+
+      setShowConfirmModal(false);
+      
+      const isNoShow = location.state?.patientData?.source === 'no-show';
+      const destination = isNoShow ? '/staff/no-show-appointments' : '/staff/appointments';
+      const navigationState = isNoShow 
+        ? { updatedId: appointment?.id, newStatus: 'Rescheduled' } 
+        : { tab: 'approved' };
+
+      navigate(destination, { state: navigationState });
+
+    } catch (err) {
+      console.error("Reschedule error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formattedPreviewDate = selectedDate?.toLocaleDateString('en-US', {
@@ -147,7 +194,9 @@ export default function RescheduleAppointmentPage() {
                       <DatePicker
                         selected={selectedDate}
                         onChange={(d) => setSelectedDate(d)}
+                        filterDate={isWorkingDay}
                         minDate={new Date()}
+                        disabled={allowedDays.length === 0}
                         dateFormat="MM/dd/yyyy"
                         wrapperClassName="w-full"
                         customInput={
