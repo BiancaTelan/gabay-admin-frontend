@@ -27,6 +27,7 @@ import AuditLogs from './pages/Admin/AuditLogs';
 import SystemLogs from './pages/Admin/SystemLogs';
 import AdminNotifs from './pages/Admin/AdminNotifs';
 import AdminCalendar from './pages/Admin/AdminCalendar';
+import AdminSettings from './pages/Admin/AdminSettings';
 
 import PersonnelAccount from './pages/Admin/PersonnelAccount';
 
@@ -129,6 +130,7 @@ function App() {
               <Route path="a-account" element={<PersonnelAccount />} />
               <Route path="a-notifs" element={<AdminNotifs />} />
               <Route path="a-calendar" element={<AdminCalendar />} />
+              <Route path="a-settings" element={<AdminSettings />} />
             </Route>  
           </Route>
           
