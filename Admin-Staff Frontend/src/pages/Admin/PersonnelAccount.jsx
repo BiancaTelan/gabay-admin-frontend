@@ -10,7 +10,7 @@ import { AuthContext } from '../../authContext';
 
 export default function PersonnelAccount() {
   const navigate = useNavigate();
-  const { token, logout, userRole, setProfilePhoto, user } = useContext(AuthContext);
+  const { token, logout, userRole, setProfilePhoto, user, profilePhoto } = useContext(AuthContext);
   const fileInputRef = useRef(null);
 
   const currentRole = user?.role || userRole; 

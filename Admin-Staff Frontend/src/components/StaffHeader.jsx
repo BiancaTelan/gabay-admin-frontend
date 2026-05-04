@@ -5,25 +5,9 @@ import { AuthContext } from '../authContext';
 import gabayLogo from '../assets/gabayLogo.png';
 
 export default function StaffHeader() {
-  const { userInfo, unreadCount } = useContext(AuthContext);
+  const { userInfo, unreadCount, profilePhoto } = useContext(AuthContext);
   const navigate = useNavigate();
-  
-  const getProfileImageUrl = () => {
-    if (!userInfo?.profilePhoto) return null; 
-    
-    let path = userInfo.profilePhoto;
-    if (path.startsWith('http')) return path; 
-    
-    path = path.replace(/\\/g, '/');
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
-    const safePath = path.startsWith('/') ? path : `/${path}`;
-    const finalUrl = `${baseUrl}${safePath}`;
-
-    return finalUrl;
-  };
-
-  const profileImage = getProfileImageUrl();
 
   const getImageUrl = (path) => {
   if (!path) return "/default-avatar.png";
