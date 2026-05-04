@@ -8,6 +8,12 @@ export default function StaffHeader() {
   const { userInfo } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const getImageUrl = (path) => {
+  if (!path) return "/default-avatar.png";
+  if (path.startsWith("http")) return path; // Fallback for old images
+  return `${import.meta.env.VITE_API_BASE_URL}${path}`;
+  };
+
   return (
     <header className="font-poppins sticky top-0 z-50 bg-white border-b border-gray-200 py-3">
       <div className="flex items-center justify-between w-full px-5">
@@ -64,8 +70,8 @@ export default function StaffHeader() {
               className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden"
             >
                 <img 
-                  src={userInfo?.profilePhoto || "/default-avatar.png"} 
-                  alt="Staff" 
+                  src={getImageUrl(profilePhoto)} 
+                  alt="Admin" 
                   className="h-9 w-9 rounded-full object-cover bg-gray-100" 
                 />
             </button>

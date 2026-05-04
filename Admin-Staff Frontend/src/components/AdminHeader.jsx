@@ -9,7 +9,12 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
   const location = useLocation();
   const { unreadCount, profilePhoto } = useContext(AuthContext);
   
-  
+  const getImageUrl = (path) => {
+  if (!path) return "/default-avatar.png";
+  if (path.startsWith("http")) return path; // Fallback for old images
+  return `${import.meta.env.VITE_API_BASE_URL}${path}`;
+  };
+
   const isActive = (path) => location.pathname === path;
 
   const handleNav = (path) => {
@@ -62,11 +67,11 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
           onClick={() => navigate('/admin/a-account')} 
           className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden"
         >
-          <img 
-            src={profilePhoto || "/default-avatar.png"} 
-            alt="Admin" 
-            className="h-9 w-9 rounded-full object-cover bg-gray-100" 
-          />
+            <img 
+              src={getImageUrl(profilePhoto)} 
+              alt="Admin" 
+              className="h-9 w-9 rounded-full object-cover bg-gray-100" 
+            />
         </button>
       </div>
     </header>

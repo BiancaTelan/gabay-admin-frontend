@@ -70,6 +70,12 @@ export default function PersonnelAccount() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
+  const getImageUrl = (path) => {
+  if (!path) return "/default-avatar.png";
+  if (path.startsWith("http")) return path; // Fallback for old images
+  return `${import.meta.env.VITE_API_BASE_URL}${path}`;
+  };
+
   const handleCalendarChange = (e) => {
     const dateValue = e.target.value; 
     if (!dateValue) return;
@@ -284,9 +290,9 @@ export default function PersonnelAccount() {
             <div className="relative group w-40 h-40" onClick={isEditing ? handleImageClick : null}>
               <div className={`w-40 h-40 rounded-full bg-gray-200 overflow-hidden border-4 border-white shadow-lg transition-all ${isEditing ? 'cursor-pointer' : ''}`}>
                 <img 
-                  src={localUserInfo.profilePhoto || "/default-avatar.png"} 
-                  alt="Profile Photo" 
-                  className="w-full h-full object-cover" 
+                  src={getImageUrl(profilePhoto)} 
+                  alt="Admin" 
+                  className="h-9 w-9 rounded-full object-cover bg-gray-100" 
                 />
                 {isEditing && (
                   <div className="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">

@@ -19,22 +19,7 @@ export default function StaffDashboard() {
     slot: 12,
     forApproval: 3
   });
-
-  const [patients, setPatients] = useState([
-    { name: 'Juan Dela Cruz', hospitalNumber: '26-154928', reason: 'Consultation', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Maria Santos', hospitalNumber: '26-154929', reason: 'Follow-up', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Jose Rizal', hospitalNumber: '26-154930', reason: 'Follow-up', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Antonio Luna', hospitalNumber: '26-154931', reason: 'Consultation', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Gabriela Silang', hospitalNumber: '26-154932', reason: 'Follow-up', assignedDoctor: 'Dr. Diane Marie Mendoza' },
-    { name: 'Emilio Aguinaldo', hospitalNumber: '26-154933', reason: 'Consultation', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Andres Bonifacio', hospitalNumber: '26-154934', reason: 'Follow-up', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Melchora Aquino', hospitalNumber: '26-154935', reason: 'Consultation', assignedDoctor: 'Dr. Diane Marie Mendoza' }
-  ]);
-
-  const [queueList, setQueueList] = useState([
-    { name: 'Juan Dela Cruz', hospitalNumber: '26-154928', status: 'served' },
-    { name: 'Maria Santos', hospitalNumber: '26-154929', status: 'served' }
-  ]);
+  
 
   const handleQueueItemClick = (patient) => {
     setSelectedPatient(patient);
