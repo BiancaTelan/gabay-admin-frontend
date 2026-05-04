@@ -21,109 +21,41 @@ export default function AdminLogin() {
 
   const { login } = useContext(AuthContext);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setServerError('');
+  const handleLoginSubmit = async (e) => {
+  e.preventDefault(); 
 
-    let newErrors = {};
+  try {
+    const formBody = new URLSearchParams();
+    formBody.append('username', formData.email); 
+    formBody.append('password', formData.password);
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!emailPattern.test(formData.email)) {
-      newErrors.email = "Invalid Email Address";
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+      body: formBody
+    });
+
+    if (!response.ok) {
+      setServerError("Invalid credentials. Please try again."); 
+      throw new Error("Invalid credentials");
     }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Invalid Password";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return; 
-    }
-
-    // --- MOCK CREDENTIALS ---
-    if (formData.email === 'staff@example.com' && formData.password === 'password') {
-      const fakeToken = btoa(JSON.stringify({ role: 'staff', sub: formData.email, exp: Date.now() + 86400000 }));
-      login(fakeToken, 'staff');
-      const intended = location.state?.from?.pathname;
-      if (intended) {
-        navigate(intended, { replace: true });
-      } else {
-        navigate('/staff/dashboard', { replace: true });
-      }
-      return;
-    }
-
-    if (formData.email === 'admin@example.com' && formData.password === 'password') {
-      const fakeToken = btoa(JSON.stringify({ role: 'admin', sub: formData.email, exp: Date.now() + 86400000 }));
-      login(fakeToken, 'Admin');
-      const intended = location.state?.from?.pathname;
-      if (intended) {
-        navigate(intended, { replace: true });
-      } else {
-        navigate('/admin', { replace: true });
-      }
-      return;
-    }
-
-    const urlEncodedData = new URLSearchParams();
-    urlEncodedData.append('username', formData.email); 
-    urlEncodedData.append('password', formData.password);
-
     
-      try {
-      // Temporarily hardcoded to skip the broken .env file!
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncodedData.toString(),
-      });
-      
-      const textResponse = await response.text();
-      let data;
-      
-      try {
-        data = textResponse ? JSON.parse(textResponse) : {};
-      } catch (parseError) {
-        throw new Error("The server encountered an error. Please try again later.");
-      }
-      
-      if (!response.ok) {
-        const errorMessage = data.detail || 'Incorrect email or password';
-        setErrors({
-          email: " ", 
-          password: errorMessage 
-        });
-        return; 
-      }
+    const data = await response.json(); 
 
-      const accessToken = data.access_token;
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const userRole = payload.role.toLowerCase();
+    login(data.access_token, data.role); 
 
-      if (userRole !== 'admin' && userRole !== 'staff') {
-        setServerError("Access Denied: You do not have administrative privileges.");
-        return;
-      }
-
-      login(accessToken, userRole);
-      const intended = location.state?.from?.pathname;
-      if (intended) {
-        navigate(intended, { replace: true });
-      } else {
-        const redirectTo = userRole === 'staff' ? '/staff/dashboard' : '/admin';
-        navigate(redirectTo, { replace: true });
-      }
-
-    } catch (error) {
-      console.error('Login failed:', error);
-      setServerError(error.message); 
+    if (data.role.toUpperCase() === 'ADMIN') {
+      navigate('/admin/dashboard');
+    } else if (data.role.toUpperCase() === 'STAFF') {
+      navigate('/staff/dashboard');
+    } else {
+      console.error("Unknown role:", data.role);
     }
-  };
+
+  } catch (error) {
+    console.error("Login failed:", error);
+  }
+};
 
   return (
     <div className="relative min-h-screen flex items-center justify-center font-sans animate-in fade-in duration-500 text-left">
@@ -162,7 +94,7 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLoginSubmit} className="space-y-6">
             <Input 
               label="Personnel Email" 
               type="email" 

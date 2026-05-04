@@ -32,7 +32,6 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
       items: [
         { name: 'Audit Logs', path: '/admin/audit-logs', icon: <Activity size={22} /> },
         { name: 'System Logs', path: '/admin/system-logs', icon: <Terminal size={22} /> },
-        { name: 'Reports', path: '/admin/reports', icon: <FileBarChart size={22} /> },
       ]
     }
   ];
@@ -98,7 +97,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
 
       {/* Footer Items */}
       <div className="px-4 mt-auto pt-5 border-t border-gray-100 space-y-1">
-        <button className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 w-full font-poppins text-gray-500 hover:text-gray-900 text-sm transition-all`}>
+        <button onClick={() => navigate('/admin/a-settings')} className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 w-full font-poppins text-gray-500 hover:text-gray-900 text-sm transition-all`}>
           <Settings size={22} /> 
           {!isCollapsed && <span>Settings</span>}
         </button>
