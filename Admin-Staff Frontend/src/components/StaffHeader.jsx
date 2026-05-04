@@ -8,9 +8,6 @@ export default function StaffHeader() {
   const { userInfo, unreadCount } = useContext(AuthContext);
   const navigate = useNavigate();
   
-  const [imgError, setImgError] = useState(false);
-
-  
   const getProfileImageUrl = () => {
     if (!userInfo?.profilePhoto) return null; 
     
