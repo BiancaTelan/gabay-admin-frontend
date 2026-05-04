@@ -297,7 +297,7 @@ export default function PersonnelAccount() {
                 <img 
                   src={getImageUrl(profilePhoto)} 
                   alt="Admin" 
-                  className="h-9 w-9 rounded-full object-cover bg-gray-100" 
+                  className="h-full w-full rounded-full object-cover bg-gray-100" 
                 />
                 {isEditing && (
                   <div className="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
