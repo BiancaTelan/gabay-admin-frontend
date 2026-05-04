@@ -70,10 +70,10 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
             className="flex items-center justify-center p-0.5 rounded-full border-2 border-transparent hover:border-gabay-blue transition-all overflow-hidden bg-gray-100"
           >
             <img 
-            src={profilePhoto || "/default-avatar.png"} 
-            alt="Admin" 
-            className="h-9 w-9 rounded-full object-cover bg-gray-100" 
-          />
+                src={getImageUrl(profilePhoto)} 
+                alt="Admin" 
+                className="h-9 w-9 rounded-full object-cover bg-gray-100" 
+            />
           </button>
 
           {/* Dropdown Menu */}
