@@ -36,7 +36,7 @@ const StaffRoute = () => {
   const location = useLocation();
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn || userRole !== 'Staff') {
+  if (!isLoggedIn || userRole?.toUpperCase() !== 'STAFF') {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
   return <Outlet />;
@@ -47,7 +47,7 @@ const AdminRoute = () => {
   const location = useLocation();
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn || userRole !== 'Admin') {
+  if (!isLoggedIn || userRole?.toUpperCase() !== 'ADMIN') {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
   return <Outlet />;
@@ -76,10 +76,14 @@ function App() {
         position="top-center" 
         reverseOrder={false} 
         toastOptions={{
+          duration: 4000,
           style: {
-            fontFamily: 'Poppins, sans-serif', 
+            fontFamily: 'Poppins, sans-serif',
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
           },
-        }}
+        }} 
       />
       {showHeader && !isAdminPage && (
         <Header 
@@ -96,8 +100,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* STAFF ROUTES */}
-          <Route element={<StaffRoute />}>
-              <Route path="/staff/dashboard" element={<StaffLayout />}>
+            <Route element={<StaffRoute />}>
+              <Route path="/staff" element={<StaffLayout />}>
                 <Route index element={<StaffDashboard />} />
                 <Route path="dashboard" element={<StaffDashboard />} />
                 <Route path="appointments" element={<StaffAppointments />} />
@@ -115,6 +119,7 @@ function App() {
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<Users />} />
               <Route path="personnel" element={<Personnel />} />
               <Route path="departments" element={<Departments />} />

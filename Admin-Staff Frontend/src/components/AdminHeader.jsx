@@ -14,7 +14,6 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
 
   const handleNav = (path) => {
     navigate(path);
-    // Mobile Menu state [isMenuOpen, setIsMenuOpen] = useState(false).
   };
 
   return (

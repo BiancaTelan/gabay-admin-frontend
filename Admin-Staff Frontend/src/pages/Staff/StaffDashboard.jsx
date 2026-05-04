@@ -1,40 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarCheck, CalendarX, CalendarPlus, CalendarClock, Plus, ChevronRightIcon } from 'lucide-react';
 import StatCard from '../../components/StatCard';
 import QueueStatusModal from '../../components/QueueStatusModal';
 import AppointmentDetailsModal from '../../components/ApptDetailsModal';
+import { AuthContext } from '../../authContext'; 
+import { toast } from 'react-hot-toast';
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
+  const { token } = useContext(AuthContext);
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  const [stats, setStats] = useState({
-    approved: 4,
-    cancelled: 7,
-    slot: 12,
-    forApproval: 3
-  });
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
 
-  const [patients, setPatients] = useState([
-    { name: 'Juan Dela Cruz', hospitalNumber: '26-154928', reason: 'Consultation', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Maria Santos', hospitalNumber: '26-154929', reason: 'Follow-up', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Jose Rizal', hospitalNumber: '26-154930', reason: 'Follow-up', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Antonio Luna', hospitalNumber: '26-154931', reason: 'Consultation', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Gabriela Silang', hospitalNumber: '26-154932', reason: 'Follow-up', assignedDoctor: 'Dr. Diane Marie Mendoza' },
-    { name: 'Emilio Aguinaldo', hospitalNumber: '26-154933', reason: 'Consultation', assignedDoctor: 'Dr. Ritchie Cruz' },
-    { name: 'Andres Bonifacio', hospitalNumber: '26-154934', reason: 'Follow-up', assignedDoctor: 'Dr. Joseph Nieto' },
-    { name: 'Melchora Aquino', hospitalNumber: '26-154935', reason: 'Consultation', assignedDoctor: 'Dr. Diane Marie Mendoza' }
-  ]);
+  const [stats, setStats] = useState({ approved: 0, cancelled: 0, slot: 0, forApproval: 0 });
+  const [patients, setPatients] = useState([]);
+  const [queueList, setQueueList] = useState([]);
 
-  const [queueList, setQueueList] = useState([
-    { name: 'Juan Dela Cruz', hospitalNumber: '26-154928', status: 'served' },
-    { name: 'Maria Santos', hospitalNumber: '26-154929', status: 'served' }
-  ]);
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch(`${apiBase}/api/staff/overview`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+        setPatients(data.scheduledList);
+        setQueueList(data.queueList);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [token]);
+
+  const handleUpdateAction = async (patient, actionString, newStatusDisplay) => {
+    try {
+      const response = await fetch(`${apiBase}/api/staff/queue/${patient.id}?action=${actionString}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error("Update failed");
+      
+      fetchDashboardData();
+      toast.success(`Patient updated successfully`);
+    } catch (error) {
+      toast.error("Failed to update status");
+      console.error(error);
+    }
+  };
 
   const handleQueueItemClick = (patient) => {
     setSelectedPatient(patient);
@@ -42,56 +65,26 @@ export default function StaffDashboard() {
   };
 
   const handleStatusUpdate = (patient, newStatus) => {
-    setQueueList(prevList =>
-      prevList.map(item =>
-        item.hospitalNumber === patient.hospitalNumber ? { ...item, status: newStatus } : item
-      )
-    );
+    const actionMap = { 'serving': 'serving', 'served': 'served' };
+    handleUpdateAction(patient, actionMap[newStatus], newStatus);
     setModalOpen(false);
   };
 
+
   const handleAddToQueue = (patient) => {
-    setQueueList(prev => [...prev, { 
-      ...patient, 
-      status: 'waiting'
-    }]);
-    setPatients(prev => prev.filter(p => p.hospitalNumber !== patient.hospitalNumber));
+    handleUpdateAction(patient, 'add_to_queue', 'waiting');
     setAppointmentModalOpen(false);
   };
 
   const handleNoShow = (patient) => {
-    setStats(prev => ({ ...prev, slot: prev.slot + 1 }));
-    setPatients(prev => prev.filter(p => p.hospitalNumber !== patient.hospitalNumber));
+    handleUpdateAction(patient, 'no_show', 'No Show');
     setAppointmentModalOpen(false);
-
-    const uniqueId = Date.now(); 
-    const currentTime = new Date().toLocaleString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true,
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
-    });
-
-    navigate('/staff/no-show-appointments', {
-      state: { 
-        newNoShow: {
-          id: uniqueId,
-          name: patient.name,
-          hospitalNumber: patient.hospitalNumber,
-          reason: patient.reason,
-          assignedDoctor: patient.assignedDoctor,
-          time: currentTime
-        } 
-      }
-    });
   };
 
   const getStatusBadge = (status) => {
-    if (status === 'served' || status === 'completed') {
+    if (status === 'Completed') {
       return { text: 'Completed', className: 'text-green-500 bg-green-100' };
-    } else if (status === 'serving') {
+    } else if (status === 'In Progress' || status === 'serving') {
       return { text: 'Currently Serving', className: 'text-blue-600 bg-blue-100' };
     } else {
       return { text: 'Waiting', className: 'text-gray-500 bg-gray-200' };
@@ -101,7 +94,7 @@ export default function StaffDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gabay-blue px-6 py-6 mb-4 text-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gabay-blue px-6 py-6 mb-4 text-white rounded-xl shadow-sm">
         <div>
           <h1 className="font-montserrat text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="font-poppins text-sm text-white/90 mt-1">
@@ -127,58 +120,62 @@ export default function StaffDashboard() {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="font-montserrat text-xl font-bold text-gabay-blue mb-6">Scheduled Appointment List</h2>
+            <h2 className="font-montserrat text-xl font-bold text-gabay-blue mb-6">Today's Scheduled Appointments</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {patients.map((patient, idx) => (
-                <div key={patient.hospitalNumber} className="relative bg-gray-100 py-4 px-6 rounded-xl shadow-sm border border-gray-200">
-                  <div className="space-y-1">
+              {patients.map((patient) => (
+                <div key={patient.id} className="relative bg-gray-50 py-4 px-6 rounded-xl shadow-sm border border-gray-200 hover:border-gabay-teal transition-colors">
+                  <div className="space-y-1 pr-8">
                     <h3 className="font-poppins font-bold text-md text-gabay-navy">{patient.name}</h3>
                     <p className="font-poppins text-sm text-gray-600">{patient.hospitalNumber}</p>
                     <p className="font-poppins font-medium text-sm mt-2 text-gabay-teal">{patient.reason}</p>
-                    <p className="font-poppins text-sm text-gray-500 italic">{patient.assignedDoctor}</p>
+                    <p className="font-poppins text-sm text-gray-500 italic">{patient.assignedDoctor} • {patient.time}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      setSelectedAppointment(patient);
-                      setAppointmentModalOpen(true);
-                    }}
+                    onClick={() => { setSelectedAppointment(patient); setAppointmentModalOpen(true); }}
                     className="absolute right-5 top-1/2 -translate-y-1/2 bg-white border-2 border-gabay-blue rounded-lg p-1.5 hover:bg-gabay-blue hover:text-white transition-all shadow-sm"
                   >
                     <Plus size={20} strokeWidth={3} />
                   </button>
                 </div>
               ))}
-              {patients.length === 0 && <p className="text-gray-400 font-poppins italic">No scheduled appointments left for today.</p>}
+              {patients.length === 0 && (
+                <div className="col-span-full py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                  <p className="text-gray-500 font-poppins italic">No pending scheduled appointments left for today.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Queue List</h2>
+            <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Live Queue List</h2>
             <span className="text-xs bg-gabay-blue text-white px-2.5 py-1 rounded-full font-bold font-poppins">
               {queueList.filter(p => p.status === 'waiting' || p.status === 'serving').length} ACTIVE
             </span>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto custom-scrollbar">
             {queueList.map((item) => {
               const badge = getStatusBadge(item.status);
               return (
                 <div
-                  key={item.hospitalNumber}
+                  key={item.id}
                   onClick={() => handleQueueItemClick(item)}
                   className="flex items-center justify-between py-3 px-4 bg-gray-50 border border-gray-100 rounded-lg cursor-pointer hover:border-gabay-teal hover:bg-white transition-all shadow-sm"
                 >
-                  <div>
-                    <p className="font-poppins font-bold text-md text-gabay-navy">{item.name}</p>
+                  <div className="truncate pr-2">
+                    <p className="font-poppins font-bold text-md text-gabay-navy truncate">{item.name}</p>
                     <p className="font-poppins text-sm text-gray-400">{item.hospitalNumber}</p>
                   </div>
-                  <span className={`font-poppins text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider ${badge.className}`}>
+                  <span className={`font-poppins text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shrink-0 ${badge.className}`}>
                     {badge.text}
                   </span>
                 </div>
               );
             })}
+            {queueList.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-4 italic">The queue is currently empty.</p>
+            )}
           </div>
         </div>
       </div>

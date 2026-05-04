@@ -1,13 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, SquarePen, Funnel } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, SquarePen, Funnel, Bell } from 'lucide-react';
 import ApproveScheduleModal from '../../components/ApproveSchedModal';
 import BookScheduleForm from './BookScheduleForm';
+import { AuthContext } from '../../authContext';
+import toast from 'react-hot-toast';
 
 export default function StaffAppointments() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'pending');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || location.state?.activeTab || 'pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
@@ -23,41 +25,54 @@ export default function StaffAppointments() {
   const [sortConfig, setSortConfig] = useState({ key: 'date', order: 'asc' });
   const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [showNewPatient, setShowNewPatient] = useState(false);
-
   const itemsPerPage = 6;
 
-  useEffect(() => {
-    if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-      setCurrentPage(1);
-    }
-  }, [location.state]);
+  const { token, userRole } = useContext(AuthContext);
 
-  // Sample Data
-  const [pendingAppointments, setPendingAppointments] = useState([
-    { id: '1', name: 'Juan Dela Cruz', hospitalNo: '29-736473', reason: 'Consultation', requestedStartDate: '01/20/2026', requestedEndDate: '01/24/2026', status: 'pending', assignedDoctor: '', email: 'juan@example.com' },
-    { id: '2', name: 'Maria Santos', hospitalNo: '29-736474', reason: 'Follow-up', requestedStartDate: '01/22/2026', requestedEndDate: '01/25/2026', status: 'pending', assignedDoctor: 'Dr. Joseph Nieto', email: 'maria@example.com' },
-    { id: '3', name: 'Jose Rizal', hospitalNo: '29-736475', reason: 'Consultation', requestedStartDate: '02/01/2026', requestedEndDate: '02/05/2026', status: 'pending', assignedDoctor: 'Dr. Ritchie Cruz', email: 'jose@example.com' },
-    { id: '4', name: 'Antonio Luna', hospitalNo: '29-736476', reason: 'Follow-up', requestedStartDate: '02/03/2026', requestedEndDate: '02/07/2026', status: 'pending', assignedDoctor: 'Dr. Joseph Nieto', email: 'antonio@example.com' },
-    { id: '5', name: 'Andres Bonifacio', hospitalNo: '29-736477', reason: 'Consultation', requestedStartDate: '02/09/2026', requestedEndDate: '02/13/2026', status: 'pending', assignedDoctor: '', email: 'andres@example.com' },
-    { id: '6', name: 'Antonio Luna', hospitalNo: '29-736478', reason: 'Follow-up', requestedStartDate: '02/15/2026', requestedEndDate: '02/19/2026', status: 'pending', assignedDoctor: 'Dr. Joseph Nieto', email: 'antonio2@example.com' }
-  ]);
+  const [pendingAppointments, setPendingAppointments] = useState([]);
   const [approvedAppointments, setApprovedAppointments] = useState([]);
   const [bookedAppointments, setBookedAppointments] = useState([]);
-  const [canceledAppointments, setCanceledAppointments] = useState([
-    { id: '1', name: 'Juan Dela Cruz', hospitalNo: '29-736473', reason: 'Consultation', appointmentDate: '03/01/2026', batch: 'Morning', assignedDoctor: 'Dr. Ritchie Cruz', status: 'canceled' },
-    { id: '2', name: 'Maria Santos', hospitalNo: '29-736474', reason: 'Follow-up', appointmentDate: '03/04/2026', batch: 'Morning', assignedDoctor: 'Dr. Joseph Nieto', status: 'canceled' },
-    { id: '3', name: 'Jose Rizal', hospitalNo: '29-736475', reason: 'Consultation', appointmentDate: '03/09/2026', batch: 'Afternoon', assignedDoctor: 'Dr. Ritchie Cruz', status: 'canceled' },
-    { id: '4', name: 'Antonio Luna', hospitalNo: '29-736476', reason: 'Follow-up', appointmentDate: '03/12/2026', batch: 'Afternoon', assignedDoctor: 'Dr. Joseph Nieto', status: 'canceled' },
-    { id: '5', name: 'Andres Bonifacio', hospitalNo: '29-736477', reason: 'Consultation', appointmentDate: '03/20/2026', batch: 'Morning', assignedDoctor: 'Dr. Diane Marie Mendoza', status: 'canceled' },
-    { id: '6', name: 'Antonio Luna', hospitalNo: '29-736478', reason: 'Consultation', appointmentDate: '03/15/2026', batch:'Morning', assignedDoctor: 'Dr. Ritchie Cruz', status: 'canceled' }
-  ]);
+  const [canceledAppointments, setCanceledAppointments] = useState([]);
+  const [confirmedAppointments, setConfirmedAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Helper functions
+  const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
+
+  const fetchAppointments = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache' 
+        }
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch appointments");
+      
+      const data = await response.json();
+      
+      setPendingAppointments(data.filter(app => app.status === 'pending'));
+      setApprovedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled'));
+      setConfirmedAppointments(data.filter(app => app.status === 'confirmed'));
+      setCanceledAppointments(data.filter(app => ['canceled', 'denied'].includes(app.status)));
+      
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) fetchAppointments();
+  }, [token, apiBase]);
+
+    // Helper functions
   const getCurrentData = () => {
     switch (activeTab) {
       case 'pending': return pendingAppointments;
       case 'approved': return approvedAppointments;
+      case 'confirmed': return confirmedAppointments;
       case 'book': return bookedAppointments;
       case 'canceled': return canceledAppointments;
       default: return [];
@@ -123,17 +138,115 @@ useEffect(() => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Approve
-  const handleApprove = (approvedData) => {
-    console.log(`Sending email to ${approvedData.email} with appointment details.`);
-    setPendingAppointments(prev => prev.filter(a => a.id !== approvedData.id));
-    const finalData = { ...approvedData, status: 'approved' };
-    setApprovedAppointments(prev => [...prev, finalData]);
-    setModalOpen(false);
+  const handleApprove = async (approvedData) => {
+    try {
+      const selectedDate = approvedData.appointmentDate; 
+      const doctorId = selectedAppointment?.docID || approvedData?.docID;
+      
+      if (!doctorId) {
+        toast.error("You must assign a doctor before approving this date!");
+        return; 
+      }
+
+      const checkRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/check-availability?doctor_id=${doctorId}&date=${selectedDate}`, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      const availability = await checkRes.json();
+
+      if (!availability.is_available) {
+        toast.error(`Cannot schedule: ${availability.reason || "Slot is full!"}`);
+        return; // 
+      }
+
+      if (availability.slots_left === 1) {
+        toast.success("Warning: This is the last available slot for this day!");
+      }
+
+      const payload = {
+        assigned_date: selectedDate, 
+        assigned_doctor_id: doctorId
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${approvedData.id}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload) 
+      });
+
+      if (!response.ok) throw new Error("Failed to approve appointment");
+
+      await fetchAppointments(); 
+      
+      setModalOpen(false);
+      toast.success("Appointment successfully approved & scheduled!");
+
+    } catch (error) {
+      console.error("Approval error:", error);
+      toast.error("Failed to approve appointment.");
+    }
+  };
+
+  const handleDeny = async (appointmentId, reason) => {
+    if (!reason.trim()) {
+      toast.error("Please provide a reason for denying this appointment.");
+      return;
+    }
+
+    const loadingToast = toast.loading("Denying appointment and notifying patient...");
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${appointmentId}/deny`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: reason }) 
+      });
+
+      if (!response.ok) throw new Error("Failed to deny appointment");
+
+      await fetchAppointments(); 
+      setModalOpen(false);
+      
+      toast.success("Appointment denied and patient notified.", { id: loadingToast });
+    } catch (error) {
+      console.error("Deny error:", error);
+      toast.error("Failed to deny appointment.", { id: loadingToast });
+    }
+  };
+
+  const handleNotifyPatient = async (appointment) => {
+    const loadingToast = toast.loading("Sending reminder to patient...");
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${appointment.id}/notify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Failed to notify patient");
+      }
+
+      toast.success("Reminder successfully sent to the patient's email!", { id: loadingToast });
+    } catch (error) {
+      console.error("Notify error:", error);
+      toast.error(error.message, { id: loadingToast });
+    }
   };
 
   const tabs = [
     { id: 'pending', label: 'PENDING APPROVAL' },
+    { id: 'confirmed', label: 'AWAITING PATIENT' },
     { id: 'approved', label: 'APPROVED SCHEDULES' },
     { id: 'book', label: 'BOOK SCHEDULES' },
     { id: 'canceled', label: 'CANCELED SCHEDULES' },
@@ -184,7 +297,7 @@ useEffect(() => {
 
       {/* Tabs */}
       <div className="w-full border border-gabay-blue overflow-hidden mb-6">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -290,13 +403,15 @@ useEffect(() => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium font-poppins ${
-                            app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            app.status === 'approved' ? 'bg-green-100 text-green-800' :
-                            app.status === 'booked' ? 'bg-blue-100 text-blue-800' :
-                            app.status === 'canceled' ? 'bg-red-100 text-red-800' :
+                            app.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            app.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800' :
+                            app.status?.toLowerCase() === 'rescheduled' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                            app.status?.toLowerCase() === 'confirmed' ? 'bg-purple-100 text-purple-800' : 
+                            app.status?.toLowerCase() === 'booked' ? 'bg-blue-100 text-blue-800' :
+                            (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
-                            {app.status.toUpperCase()}
+                            {app.status ? app.status.toUpperCase() : 'UNKNOWN'}
                           </span>
                           {activeTab === 'pending' && (
                             <button onClick={() => { setSelectedAppointment(app); setModalMode('approve'); setModalOpen(true); }}
@@ -304,12 +419,20 @@ useEffect(() => {
                               <SquarePen size={24} />
                             </button>
                           )}
+
                           {activeTab === 'approved' && (
                             <button onClick={() => {
                               navigate('/staff/reschedule', { state: { appointment: app } });
                             }}
                               className="text-gabay-blue hover:text-gabay-navy transition" title="Reschedule">
                               <SquarePen size={24} />
+                            </button>
+                          )}
+
+                          {activeTab === 'confirmed' && (
+                            <button onClick={() => handleNotifyPatient(app)}
+                              className="text-orange-500 hover:text-orange-700 transition" title="Send Reminder to Patient">
+                              <Bell size={24} />
                             </button>
                           )}
                         </div>
@@ -355,11 +478,17 @@ useEffect(() => {
       )}
 
       {activeTab === 'book' && (
-        <BookScheduleForm onSuccess={() => {}} />
+        <BookScheduleForm onSuccess={() => {}} token={token} />
       )}
 
       {selectedAppointment && modalMode === 'approve' && (
-        <ApproveScheduleModal isOpen={modalOpen} onClose={() => setModalOpen(false)} appointment={selectedAppointment} onApprove={handleApprove} />
+        <ApproveScheduleModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        appointment={selectedAppointment} 
+        onApprove={handleApprove} 
+        onDeny={handleDeny}
+        token={token}/>
       )}
     </div>
   );
