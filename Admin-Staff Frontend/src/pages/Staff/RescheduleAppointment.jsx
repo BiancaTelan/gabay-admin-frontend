@@ -12,16 +12,9 @@ export default function RescheduleAppointmentPage() {
   const [allowedDays, setAllowedDays] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
+  
   const rawData = location.state?.appointment || location.state?.patientData;
-  const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
-  const [reason, setReason] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const nameParts = appointment?.name?.split(' ') || ['N/A'];
-  const firstName = nameParts[0];
-  const lastName = nameParts.slice(1).join(' ') || '';
-
+  
   const appointment = rawData ? {
     id: rawData.id,
     ...rawData,
@@ -29,6 +22,16 @@ export default function RescheduleAppointmentPage() {
     appointmentDate: rawData.appointmentDate || rawData.previousDate || new Date().toISOString(),
     hospitalNo: rawData.hospitalNo || rawData.hospitalNumber || 'N/A'
   } : null;
+
+  const nameParts = appointment?.name?.split(' ') || ['N/A'];
+  const firstName = nameParts[0];
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     if (!appointment?.appointmentDate) return null;
@@ -46,15 +49,17 @@ export default function RescheduleAppointmentPage() {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-        setAllowedDays(data.working_days || []);
+        if (response.ok) {
+           const data = await response.json();
+           setAllowedDays(data.working_days || []);
+        }
       } catch (error) {
         console.error("Failed to fetch working days:", error);
       }
     };
 
     fetchWorkingDays();
-  }, [appointment?.docID, token]);;
+  }, [appointment?.docID, token]);
 
   // --- VALIDATION FUNCTION ---
   const isWorkingDay = (d) => {
@@ -66,7 +71,7 @@ export default function RescheduleAppointmentPage() {
     e.preventDefault();
 
     const parsedOriginal = new Date(appointment?.appointmentDate);
-    const originalDate = isNaN(parsedOriginal.getTime()) ? null : parsedOriginal.setHours(0, 0, 0, 0);
+    const originalDate = isNaN(parsedOriginal.getTime()) ? null : new Date(parsedOriginal).setHours(0, 0, 0, 0);
     const newDate = selectedDate ? new Date(selectedDate).setHours(0, 0, 0, 0) : null;
     const today = new Date().setHours(0, 0, 0, 0);
 
@@ -94,7 +99,6 @@ export default function RescheduleAppointmentPage() {
     setError('');
 
     try {
-
       const formattedDate = selectedDate.toLocaleDateString('en-US', {
         month: '2-digit', day: '2-digit', year: 'numeric'
       });
