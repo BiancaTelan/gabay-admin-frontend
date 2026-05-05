@@ -11,7 +11,7 @@ export default function AdminCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dailyCapacity, setDailyCapacity] = useState(25);
+  const [capacityMap, setCapacityMap] = useState({})
   const [originalCapacity, setOriginalCapacity] = useState(25);
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
   const modalRef = useRef(null);
@@ -70,10 +70,10 @@ export default function AdminCalendar() {
         setEvents(allEvents.filter(e => e.type === 'EVENT').map(e => ({ ...e, date: parseLocal(e.date) })));
         setHolidays(allEvents.filter(e => e.type === 'HOLIDAY').map(e => ({ ...e, date: parseLocal(e.date) })));
         
-        if (data.capacity) {
-            setDailyCapacity(data.capacity);
-            setOriginalCapacity(data.capacity);
+        if (data.capacity_map) {
+            setCapacityMap(data.capacity_map);
         }
+
       }
     } catch (error) {
       console.error("Failed to load calendar data:", error);
@@ -309,7 +309,7 @@ export default function AdminCalendar() {
             
             <div className="text-center mb-6 ">
               <div className="inline-block font-montserrat bg-gray-50 border border-gray-100 px-4 py-1.5 rounded-lg text-gray-600 font-bold text-xs">
-                 SLOTS AVAILABLE: {Math.max(0, dailyCapacity - selectedDayStats.total)} / {dailyCapacity}
+                 SLOTS AVAILABLE: {Math.max(0, (capacityMap[format(selectedDate, 'EEEE')] || 0) - selectedDayStats.total)} / {capacityMap[format(selectedDate, 'EEEE')] || 0}
               </div>
             </div>
 

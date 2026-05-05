@@ -194,7 +194,10 @@ export default function StaffAppointments() {
 
   // --- HANDLE DENY APPOINTMENT ---
   const handleDeny = async (appointmentId, reason) => {
-    if (!reason.trim()) {
+    const reasonText = arg2 === undefined ? arg1 : arg2;
+    const targetId = arg2 === undefined ? selectedAppointment?.id : arg1;
+
+    if (!reasonText || typeof reasonText !== 'string' || !reasonText.trim()) {
       toast.error("Please provide a reason for denying this appointment.");
       return;
     }
