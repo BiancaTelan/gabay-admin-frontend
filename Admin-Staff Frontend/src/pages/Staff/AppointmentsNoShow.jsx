@@ -130,7 +130,10 @@ export default function StaffNoShows() {
                                     patientData: {
                                       id: row.id,
                                       patientName: row.patientName,
-                                      hospitalNumber: row.id,
+                                      hospitalNo: row.hospitalNo,
+                                      email: row.email,
+                                      docID: row.docID,
+                                      assignedDoctor: row.assignedDoctor,
                                       previousDate: row.dateTime,
                                       batch: isMorning ? 'Morning' : 'Afternoon',
                                       source: 'no-show' 

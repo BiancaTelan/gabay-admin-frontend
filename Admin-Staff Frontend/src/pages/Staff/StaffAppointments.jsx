@@ -114,16 +114,15 @@ export default function StaffAppointments() {
     filtered.sort((a, b) => {
       let valA, valB;
       if (sortConfig.key === 'date') {
-        if (activeTab === 'pending') {
-          valA = new Date(a.requestedStartDate);
-          valB = new Date(b.requestedStartDate);
-        } else {
-          valA = new Date(a.appointmentDate);
-          valB = new Date(b.appointmentDate);
-        }
+        const dateStrA = activeTab === 'pending' ? a.requestedStartDate : a.appointmentDate;
+        const dateStrB = activeTab === 'pending' ? b.requestedStartDate : b.appointmentDate;
+        const dateA = new Date(dateStrA);
+        const dateB = new Date(dateStrB);
+        valA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        valB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
       } else {
-        valA = a.name;
-        valB = b.name;
+        valA = (a.name || '').toLowerCase();
+        valB = (b.name || '').toLowerCase();
       }
       if (valA < valB) return sortConfig.order === 'asc' ? -1 : 1;
       if (valA > valB) return sortConfig.order === 'asc' ? 1 : -1;
@@ -432,7 +431,6 @@ export default function StaffAppointments() {
                           )}
 
                           {activeTab === 'confirmed' && (
-                            // --- NEW CONFIRMATION MODAL LOGIC TRIGGERED HERE ---
                             <button onClick={() => {
                                 setConfirmConfig({
                                   isOpen: true,
@@ -491,8 +489,16 @@ export default function StaffAppointments() {
         </>
       )}
 
+      {/* FIX: Add the Fetch callback to automatically reload the page and jump to the approved tab! */}
       {activeTab === 'book' && (
-        <BookScheduleForm onSuccess={() => {}} token={token} />
+        <BookScheduleForm 
+          onSuccess={() => {
+            fetchAppointments();
+            setActiveTab('approved');
+            setCurrentPage(1);
+          }} 
+          token={token} 
+        />
       )}
 
       {selectedAppointment && modalMode === 'approve' && (
@@ -505,7 +511,6 @@ export default function StaffAppointments() {
         token={token}/>
       )}
 
-      {/* --- NEW: RENDER THE CONFIRMATION MODAL --- */}
       <ConfirmationModal 
         {...confirmConfig} 
         onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))} 
