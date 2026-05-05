@@ -19,10 +19,10 @@ export default function StaffAppointments() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
   const [tempSortKey, setTempSortKey] = useState('date');
-  const [tempSortOrder, setTempSortOrder] = useState('asc');
+  const [tempSortOrder, setTempSortOrder] = useState('desc');
   const [tempSelectedDoctors, setTempSelectedDoctors] = useState([]);
   const [tempShowNewPatient, setTempShowNewPatient] = useState(false);
-  const [sortConfig, setSortConfig] = useState({ key: 'date', order: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'date', order: 'desc' });
   const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [showNewPatient, setShowNewPatient] = useState(false);
   const itemsPerPage = 6;
@@ -51,7 +51,7 @@ export default function StaffAppointments() {
       
       setPendingAppointments(data.filter(app => app.status === 'pending'));
       setConfirmedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled'));
-      setApprovedAppointments(data.filter(app => app.status === 'confirmed' || app.status === 'booked'));
+      setApprovedAppointments(data.filter(app => app.status === 'confirmed' || app.status === 'book'));
       setCanceledAppointments(data.filter(app => ['canceled', 'denied'].includes(app.status)));
       
     } catch (error) {
@@ -114,8 +114,8 @@ export default function StaffAppointments() {
     filtered.sort((a, b) => {
       let valA, valB;
       if (sortConfig.key === 'date') {
-        const dateStrA = activeTab === 'pending' ? a.requestedStartDate : a.appointmentDate;
-        const dateStrB = activeTab === 'pending' ? b.requestedStartDate : b.appointmentDate;
+        const dateStrA = activeTab === 'pending' ? a.submissionDate : a.appointmentDate;
+        const dateStrB = activeTab === 'pending' ? b.submissionDate : b.appointmentDate;
         const dateA = new Date(dateStrA);
         const dateB = new Date(dateStrB);
         valA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
@@ -143,7 +143,7 @@ export default function StaffAppointments() {
   const handleApprove = async (approvedData) => {
     try {
       const selectedDate = approvedData.appointmentDate; 
-      const doctorId = selectedAppointment?.docID || approvedData?.docID;
+      const doctorId = approvedData?.docID || selectedAppointment?.docID;
       
       if (!doctorId) {
         toast.error("You must assign a doctor before approving this date!");
