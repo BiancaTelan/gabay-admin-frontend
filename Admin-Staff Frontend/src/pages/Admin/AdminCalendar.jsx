@@ -88,9 +88,16 @@ export default function AdminCalendar() {
   const getDayData = (day) => {
     const data = appointments.find(a => isSameDay(day, a.date));
     if (!data) return { total: 0, confirmed: 0, canceled: 0, noShow: 0, completed: 0 };
+    
+    const completedCount = data.complete || 0;
+    const confirmedCount = data.confirmed || 0;
+    const canceledCount = data.canceled || 0;
+    const noShowCount = data.noShow || 0;
+
     return {
       ...data,
-      total: data.confirmed + data.canceled + data.noShow + data.completed
+      completed: completedCount,
+      total: confirmedCount + canceledCount + noShowCount + completedCount
     };
   };
 
