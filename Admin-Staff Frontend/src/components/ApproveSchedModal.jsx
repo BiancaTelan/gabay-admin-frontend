@@ -12,6 +12,15 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
   const [selectedBatch, setSelectedBatch] = useState('Morning');
   const [denyReason, setDenyReason] = useState('');
 
+  useEffect(() => {
+    if (isOpen && appointment) {
+      setSelectedDocId(appointment.docID || '');
+      setSelectedDate(null);
+      setDenyReason('');
+      setSelectedBatch('Morning');
+    }
+  }, [appointment, isOpen]);
+
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [secureFileUrl, setSecureFileUrl] = useState(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -42,6 +51,8 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     .then(data => setAllowedDays(data.working_days || []))
     .catch(err => console.error("Failed to fetch working days:", err));
   }, [selectedDocId, token, isOpen]);
+
+
 
   const isWorkingDay = (date) => {
     return allowedDays.includes(date.getDay()); 
