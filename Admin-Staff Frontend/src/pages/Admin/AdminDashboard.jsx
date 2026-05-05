@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [metrics, setMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('month');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -25,12 +26,22 @@ export default function AdminDashboard() {
     const fetchDashboard = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${apiBase}/api/admin/dashboard/summary?period=${filter}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) throw new Error('Failed to fetch dashboard data');
-        const summary = await response.json();
+        const [summaryRes, metricsRes] = await Promise.all([
+          fetch(`${apiBase}/api/admin/dashboard/summary?period=${filter}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${apiBase}/api/admin/system-metrics`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+        
+        if (!summaryRes.ok) throw new Error('Failed to fetch dashboard data');
+        
+        const summary = await summaryRes.json();
+        const metricsData = metricsRes.ok ? await metricsRes.json() : null;
+        
         setData(summary);
+        setMetrics(metricsData);
       } catch (error) {
         toast.error("Could not load dashboard data");
       } finally {
@@ -249,11 +260,16 @@ export default function AdminDashboard() {
 
           {/* QUICK LINKS / PERSONNEL COUNT */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
-            <Activity className="text-gabay-teal mb-3" size={32} />
+            <Activity className={`${metrics?.server_status === 'NORMAL' ? 'text-gabay-teal' : 'text-orange-500'} mb-3`} size={32} />
             <h4 className="font-montserrat text-lg font-bold text-gabay-blue mb-1">Live Monitoring</h4>
-            <p className="text-sm font-poppins text-gray-500 mb-4">The background scheduler is actively protecting system health.</p>
-            <span className="px-4 py-1.5 bg-green-50 text-green-600 font-bold text-xs rounded-full font-poppins uppercase tracking-wide">
-              Systems Optimal
+            <p className="text-sm font-poppins text-gray-500 mb-4">
+              CPU: {metrics?.cpu_percent ?? 0}% | RAM: {metrics?.ram_percent ?? 0}% <br/>
+              Latency: {metrics?.latency ?? 0}ms
+            </p>
+            <span className={`px-4 py-1.5 font-bold text-xs rounded-full font-poppins uppercase tracking-wide ${
+              metrics?.server_status === 'NORMAL' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
+            }`}>
+              {metrics?.server_status === 'NORMAL' ? 'Systems Optimal' : (metrics?.server_status || 'Checking...')}
             </span>
           </div>
 

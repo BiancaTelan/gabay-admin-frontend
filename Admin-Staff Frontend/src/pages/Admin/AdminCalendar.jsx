@@ -106,8 +106,17 @@ export default function AdminCalendar() {
   // Save Event Handler
   const handleSaveEvent = async (formData) => {
     try {
-      const [m, d, y] = formData.date.split('/');
-      const isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      let isoDate = formData.date;
+
+      if (formData.date instanceof Date) {
+        const y = formData.date.getFullYear();
+        const m = String(formData.date.getMonth() + 1).padStart(2, '0');
+        const d = String(formData.date.getDate()).padStart(2, '0');
+        isoDate = `${y}-${m}-${d}`;
+      } else if (typeof formData.date === 'string' && formData.date.includes('/')) {
+        const [m, d, y] = formData.date.split('/');
+        isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
 
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/calendar/events`, {
         method: 'POST',
@@ -123,12 +132,15 @@ export default function AdminCalendar() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) throw new Error("Failed to save to database");
       
       await fetchCalendarData(); 
       setIsEventModalOpen(false);
+      toast.success(`${formData.type === 'HOLIDAY' ? 'Holiday' : 'Event'} saved successfully!`);
+      
     } catch (err) {
-      throw err; 
+      console.error(err);
+      toast.error("Failed to save to the calendar.");
     }
   };
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
-import toast from 'react-hot-toast';
 import ReactDOM from 'react-dom';
 
 export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, defaultType = 'EVENT' }) {
@@ -87,10 +86,8 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
       if (onSave) {
         await onSave(formData);
       }
-      toast.success(`${formData.type === 'EVENT' ? 'Event' : 'Holiday'} added successfully!`);
-      
+      setIsSubmitting(false);
     } catch (err) {
-      toast.error(`Failed to save ${formData.type.toLowerCase()}. Please try again.`);
       setIsSubmitting(false);
     }
   };
@@ -167,6 +164,10 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
                   type="date"
                   className="absolute inset-0 opacity-0 pointer-events-none"
                   onChange={(e) => {
+                    if (!e.target.value) {
+                      setFormData(prev => ({...prev, date: ''}));
+                      return;
+                    }
                     const [y, m, d] = e.target.value.split('-');
                     setFormData(prev => ({...prev, date: `${m}/${d}/${y}`}));
                   }}
