@@ -194,9 +194,9 @@ export default function StaffAppointments() {
 
   // --- HANDLE DENY APPOINTMENT ---
   const handleDeny = async (appointmentId, reason) => {
-    const reasonText = arg2 === undefined ? arg1 : arg2;
-    const targetId = arg2 === undefined ? selectedAppointment?.id : arg1;
-
+    const targetId = appointmentId || selectedAppointment?.id;
+    const reasonText = reason;
+    
     if (!reasonText || typeof reasonText !== 'string' || !reasonText.trim()) {
       toast.error("Please provide a reason for denying this appointment.");
       return;
@@ -492,7 +492,6 @@ export default function StaffAppointments() {
         </>
       )}
 
-      {/* FIX: Add the Fetch callback to automatically reload the page and jump to the approved tab! */}
       {activeTab === 'book' && (
         <BookScheduleForm 
           onSuccess={() => {
