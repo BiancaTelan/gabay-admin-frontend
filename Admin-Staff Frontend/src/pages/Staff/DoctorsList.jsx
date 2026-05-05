@@ -8,24 +8,23 @@ import {
 import Button from '../../components/button';
 import SchedulePickerModal from '../../components/SchedulePickerModal';
 import AddDoctorModal from '../../components/AddDoctorModal';
+import ConfirmationModal from '../../components/confirmModal';
 import { AuthContext } from '../../authContext';
+import toast from 'react-hot-toast'; 
 
 export default function StaffDoctors() {
   const navigate = useNavigate();
   const { token, userRole } = useContext(AuthContext);
   const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
-
   const [doctors, setDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeDropdown, setActiveDropdown] = useState(null);
-
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [doctorToDelete, setDoctorToDelete] = useState(null);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
 
   const itemsPerPage = 10;
 
@@ -42,6 +41,7 @@ export default function StaffDoctors() {
     currentPage * itemsPerPage
   );
 
+  // --- COUNTING ENTRIES FOR PAGINATION DISPLAY ---
   const entryStart = filteredDoctors.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredDoctors.length);
 
@@ -50,8 +50,8 @@ export default function StaffDoctors() {
   const handleUpdateSchedule = async (doctorId, newDays, newTime, existingScheduleId) => {
     try {
       const endpoint = existingScheduleId 
-        ? `/doctors/schedule/${existingScheduleId}` // PUT (Edit)
-        : `/doctors/${doctorId}/schedule/add`;      // POST (Add)
+        ? `/doctors/schedule/${existingScheduleId}` 
+        : `/doctors/${doctorId}/schedule/add`;      
         
       const method = existingScheduleId ? 'PUT' : 'POST';
 
@@ -65,16 +65,27 @@ export default function StaffDoctors() {
       
       fetchDoctors(); 
       setIsScheduleModalOpen(false);
-      setScheduleToEdit(null); // Reset
+      setScheduleToEdit(null);
+      toast.success(existingScheduleId ? "Schedule updated!" : "Schedule added!");
     } catch (error) {
       console.error(error);
-      alert("Failed to update schedule.");
+      toast.error("Failed to update schedule.");
     }
   };
 
+  // REPLACED: window.confirm with Custom Modal
+  const confirmDeleteSchedule = (scheduleId) => {
+    setModalConfig({
+      isOpen: true,
+      type: 'danger',
+      title: 'Delete Schedule Block',
+      message: 'Are you sure you want to delete this specific schedule block? This action cannot be undone.',
+      onConfirm: () => handleDeleteSchedule(scheduleId)
+    });
+  };
+
   const handleDeleteSchedule = async (scheduleId) => {
-    if (!window.confirm("Are you sure you want to delete this specific schedule block?")) return;
-    
+    setModalConfig({ ...modalConfig, isOpen: false }); // Close modal
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/schedule/${scheduleId}`, {
         method: 'DELETE',
@@ -82,11 +93,13 @@ export default function StaffDoctors() {
       });
       if (!response.ok) throw new Error("Failed to delete");
       fetchDoctors();
+      toast.success("Schedule deleted successfully.");
     } catch (error) {
-      alert("Failed to delete schedule.");
+      toast.error("Failed to delete schedule.");
     }
   };
 
+  // --- FETCH DOCTORS ---
   const fetchDoctors = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/list`, {
@@ -101,10 +114,13 @@ export default function StaffDoctors() {
       setIsLoading(false);
     }
   };
+  
+  // --- INITIAL FETCH ---
   useEffect(() => {
     if (token) fetchDoctors();
   }, [token]);
 
+  // --- ADD NEW DOCTOR (LOCAL STATE UPDATE) ---
   const handleAddNewDoctor = (newDoctorData) => {
     const newDoctor = {
       id: Date.now(),
@@ -116,6 +132,7 @@ export default function StaffDoctors() {
     setDoctors([newDoctor, ...doctors]);
   };
 
+  /// --- STATUS CHANGE HANDLER ---
   const handleStatusChange = async (id, newStatus) => {
     setDoctors(prev => prev.map(doc => doc.id === id ? { ...doc, availability: newStatus } : doc));
     setActiveDropdown(null);
@@ -129,13 +146,15 @@ export default function StaffDoctors() {
         },
         body: JSON.stringify({ availability: newStatus })
       });
+      toast.success("Doctor status updated.");
     } catch (error) {
       console.error("Failed to update status:", error);
-      fetchDoctors();
+      toast.error("Failed to update status.");
+      fetchDoctors(); 
     }
   };
 
-
+  /// --- STATUS PICKER COMPONENT ---
   const StatusPicker = ({ doctor }) => {
     const isOpen = activeDropdown === doctor.id;
     const isAvailable = doctor.availability === 'Available';
@@ -172,9 +191,10 @@ export default function StaffDoctors() {
     );
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
-      {/* Title & Breadcrumb */}
+      {/* HEADER & NAVIGATION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gabay-blue px-6 py-6 mb-4 font-poppins">
         <div className="text-left">
           <h1 className="font-montserrat text-3xl font-bold text-white tracking-tight">Doctor List & Schedule</h1>
@@ -191,14 +211,13 @@ export default function StaffDoctors() {
         </button>
       </div>
 
+      {/* DOCTOR LIST */}
       <div className="w-full pb-8">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-visible font-poppins">
 
-          {/* Controls Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-4 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <h2 className="font-montserrat text-2xl font-bold text-gabay-blue text-left">Doctor List</h2>
-
             </div>
             <div className="relative">
               <input
@@ -231,7 +250,6 @@ export default function StaffDoctors() {
                       <div className="text-[10px] text-gray-400 font-normal uppercase">{doctor.role}</div>
                     </td>
 
-                    {/* SCHEDULE COLUMN */}
                     <td className="px-6 py-4 text-gabay-navy font-medium">
                       {doctor.schedules && doctor.schedules.length > 0 ? (
                         <div className="space-y-1">
@@ -252,7 +270,7 @@ export default function StaffDoctors() {
 
                                 <div className="flex gap-3 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                   <button onClick={() => { setSelectedDoctor(doctor); setScheduleToEdit(s); setIsScheduleModalOpen(true); }} className="text-gabay-blue hover:text-gabay-teal"><SquarePen size={16}/></button>
-                                  <button onClick={() => handleDeleteSchedule(s.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                                  <button onClick={() => confirmDeleteSchedule(s.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
                                 </div>
                               </div>
                             ))}
@@ -272,7 +290,6 @@ export default function StaffDoctors() {
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <StatusPicker doctor={doctor} />
-
                       </div>
                     </td>
                   </tr>
@@ -281,7 +298,6 @@ export default function StaffDoctors() {
             </table>
           </div>
 
-          {/* PERSONNEL STYLE PAGINATION FOOTER */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
@@ -318,6 +334,7 @@ export default function StaffDoctors() {
         </div>
       </div>
 
+      {/* SCHEDULE PICKER MODAL */}          
       <SchedulePickerModal
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
@@ -325,6 +342,8 @@ export default function StaffDoctors() {
         editingSchedule={scheduleToEdit}
         onSave={handleUpdateSchedule}
       />
+      {/* CONFIRMATION MODAL */}
+      <ConfirmationModal {...modalConfig} onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} />
     </div>
   );
 }

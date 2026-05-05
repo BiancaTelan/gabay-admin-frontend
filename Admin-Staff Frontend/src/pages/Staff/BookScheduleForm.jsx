@@ -5,7 +5,6 @@ import Button from '../../components/button';
 import { CalendarDays } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
-
 export default function BookScheduleForm({ onSuccess, token }) {
   const [hospitalNo, setHospitalNo] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -13,15 +12,14 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const [email, setEmail] = useState('');
   const [contactNo, setContactNo] = useState('');
   const [address, setAddress] = useState('');
-
   const [departmentId, setDepartmentId] = useState(''); 
   const [doctorId, setDoctorId] = useState(''); 
   const [date, setDate] = useState(null);
   const [batch, setBatch] = useState('Morning');
   const [reason, setReason] = useState('');
-
   const [departments, setDepartments] = useState([]);
 
+  // --- FETCH DEPARTMENTS & DOCTORS ---
   useEffect(() => {
     const fetchDepartments = async () => {
       if (!token) return;
@@ -47,7 +45,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const [loading, setLoading] = useState(false);
   const [allowedDays, setAllowedDays] = useState([]);
 
-
+  // --- FETCH WORKING DAYS FOR SELECTED DOCTOR ---
   useEffect(() => {
     const fetchWorkingDays = async () => {
       if (!doctorId || !token) {
@@ -70,12 +68,13 @@ export default function BookScheduleForm({ onSuccess, token }) {
     setDate(null); 
   }, [doctorId, token]);
 
+  // --- WORKING DAYS FILTER FOR DATEPICKER ---
   const isWorkingDay = (d) => {
     return allowedDays.includes(d.getDay());
   };
-  // ------------------------------------
 
-    const handleDepartmentChange = (e) => {
+  // --- DEPARTMENT CHANGE HANDLER ---
+  const handleDepartmentChange = (e) => {
     setDepartmentId(e.target.value); 
     setDoctorId('');
   };
@@ -83,6 +82,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const selectedDept = departments.find(d => d.id === parseInt(departmentId));
   const doctorOptions = selectedDept ? selectedDept.doctors : [];
 
+  // --- FORM SUBMISSION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!date) {
@@ -133,6 +133,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
     }
   };
 
+  // --- CANCEL HANDLER TO RESET FORM ---
   const handleCancel = () => {
     setHospitalNo(''); setFirstName(''); setLastName('');
     setEmail(''); setContactNo(''); setAddress('');
@@ -140,13 +141,14 @@ export default function BookScheduleForm({ onSuccess, token }) {
     setBatch('Morning'); setReason('');
   };  
 
+  // --- MAIN RENDER ---
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 relative">
       <Toaster />
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* --- Patient Information --- */}
+          {/* PATIENT INFORMATION */}
           <div className="space-y-4">
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Patient Information</h3>
             <div>
@@ -177,7 +179,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
             </div>
           </div>
 
-          {/* --- Schedule Details --- */}
+          {/* SCHEDULE DETAILS */}
           <div className="space-y-5">
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Schedule Details</h3>
 
@@ -250,6 +252,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
           </div>
         </div>
 
+        {/* FORM ACTIONS */}
         <div className="flex justify-center gap-4 mt-10 pt-6 border-t border-gray-100">
           <Button variant="teal" type="submit" disabled={loading} className="py-2 px-10 min-w-[180px]">
             {loading ? 'Processing...' : 'Confirm Appointment'}

@@ -1,24 +1,22 @@
-import { Bell, Calendar, User, Menu } from 'lucide-react'; 
+import { Bell, Calendar, Menu } from 'lucide-react'; 
 import gabayLogo from '../assets/gabayLogo.png';
 import { useState, useContext } from 'react';
 import { AuthContext } from '../authContext';
 import { useNavigate, useLocation } from 'react-router-dom'; 
 
 export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn }) {
-  const { profilePhoto, logout } = useContext(AuthContext);
+  const { profilePhoto, logout, unreadCount, updateUnreadCount } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   
   const getImageUrl = (path) => {
-  if (!path) return "/default-avatar.png";
-  if (path.startsWith("http")) return path; // Fallback for old images
-  return `${import.meta.env.VITE_API_BASE_URL}${path}`;
+    if (!path) return "/default-avatar.png";
+    if (path.startsWith("http")) return path; 
+    return `${import.meta.env.VITE_API_BASE_URL}${path}`;
   };
 
   const isActive = (path) => location.pathname === path;
   
-  
-  const [unreadCount, setUnreadCount] = useState(3);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleNav = (path) => {
@@ -33,7 +31,6 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
   return (
     <header className="h-full px-4 md:px-8 flex items-center justify-between bg-white border-b border-gray-200 transition-all">
       <div className="flex items-center gap-4">
-        {/* Burger Menu */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-2 hover:bg-gray-100 rounded-lg md:hidden text-gray-600 transition-colors"
@@ -53,8 +50,9 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
         </button>
         
         <button 
-          onClick={() => { navigate('/admin/a-notifs');
-            setUnreadCount(0); 
+          onClick={() => { 
+            navigate('/admin/a-notifs');
+            if (updateUnreadCount) updateUnreadCount(0); 
           }} 
           className="p-2 text-gabay-blue hover:bg-blue-50 rounded-lg transition relative">
           <Bell size={23} />
@@ -63,7 +61,6 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
           )}
         </button>
 
-        {/* Account Button with Dropdown */}
         <div className="relative">
           <button 
             onClick={() => setShowDropdown(!showDropdown)}
@@ -76,10 +73,8 @@ export default function AdminHeader({ isCollapsed, setIsCollapsed, isLoggedIn })
             />
           </button>
 
-          {/* Dropdown Menu */}
           {showDropdown && (
             <>
-              {/* Click-outside listener (Invisible overlay) */}
               <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)}></div>
               
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20">

@@ -20,18 +20,15 @@ function timeAgo(dateString) {
   return `${days}d ago`;
 }
 
+// --- MAIN COMPONENT ---
 export default function AdminNotifs() {
   // Grab all the global states from our new AuthContext
   const { notifications, unreadCount, markAllAsRead, lastReadTimestamp } = useContext(AuthContext);
-  
-  // Local state just for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   // --- BADGE & PAGINATION CALCULATIONS ---
-  // Safety check fallback in case context is still booting up
-  const safeNotifications = notifications || [];
-  
+  const safeNotifications = notifications || [];  
   const totalPages = Math.max(1, Math.ceil(safeNotifications.length / itemsPerPage));
   const pagedData = safeNotifications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const entryStart = safeNotifications.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -53,6 +50,7 @@ export default function AdminNotifs() {
     return 'bg-blue-50 border-blue-100';
   };
 
+  // --- RENDER ---
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 font-poppins animate-in fade-in duration-500 pb-20">
       

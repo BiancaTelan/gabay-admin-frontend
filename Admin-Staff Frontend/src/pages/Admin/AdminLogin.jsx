@@ -7,56 +7,107 @@ import { useState, useContext } from 'react';
 import { emailPattern } from '../../utils/constants'; 
 import { AuthContext } from '../../authContext';
 
+// Admin Login Page
 export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('adminRememberMe') === 'true';
+  });
   const [formData, setFormData] = useState({
-    email: '',
+    email: localStorage.getItem('adminRememberedEmail') || '',
     password: ''
   });
-
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
-
   const { login } = useContext(AuthContext);
 
+  // Handle Login Form Submission
   const handleLoginSubmit = async (e) => {
-  e.preventDefault(); 
+    e.preventDefault(); 
+    setErrors({});
+    setServerError('');
 
-  try {
-    const formBody = new URLSearchParams();
-    formBody.append('username', formData.email); 
-    formBody.append('password', formData.password);
-
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
-      body: formBody
-    });
-
-    if (!response.ok) {
-      setServerError("Invalid credentials. Please try again."); 
-      throw new Error("Invalid credentials");
-    }
-    
-    const data = await response.json(); 
-
-    login(data.access_token, data.role); 
-
-    if (data.role.toUpperCase() === 'ADMIN') {
-      navigate('/admin/dashboard');
-    } else if (data.role.toUpperCase() === 'STAFF') {
-      navigate('/staff/dashboard');
-    } else {
-      console.error("Unknown role:", data.role);
+    let newErrors = {};
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!emailPattern.test(formData.email)) {
+      newErrors.email = "Invalid Email Address format";
     }
 
-  } catch (error) {
-    console.error("Login failed:", error);
-  }
-};
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
 
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return; 
+    }
+
+    try {
+      const formBody = new URLSearchParams();
+      formBody.append('username', formData.email); 
+      formBody.append('password', formData.password);
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+        body: formBody
+      });
+
+      const textResponse = await response.text();
+      let data;
+      try {
+        data = textResponse ? JSON.parse(textResponse) : {};
+      } catch (parseError) {
+        throw new Error("The server encountered an error. Please try again later.");
+      }
+
+      if (!response.ok) {
+        const errMsg = data.detail || 'Invalid credentials provided.';
+        
+        const lowerErr = errMsg.toLowerCase();
+        if (lowerErr.includes('email') || lowerErr.includes('user') || lowerErr.includes('find')) {
+          setErrors({ email: errMsg });
+        } else if (lowerErr.includes('password') || lowerErr.includes('incorrect')) {
+          setErrors({ password: errMsg });
+        } else {
+          setErrors({ email: " ", password: errMsg });
+        }
+        return;
+      }
+
+      const userRole = data.role?.toUpperCase();
+      if (userRole === 'PATIENT') {
+        setErrors({ email: " ", password: "Unauthorized: Patients cannot access the personnel portal." });
+        return;
+      }
+
+      if (rememberMe) {
+        localStorage.setItem('adminRememberedEmail', formData.email);
+        localStorage.setItem('adminRememberMe', 'true');
+      } else {
+        localStorage.removeItem('adminRememberedEmail');
+        localStorage.setItem('adminRememberMe', 'false');
+      }
+
+      login(data.access_token, data.role); 
+
+      if (userRole === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (userRole === 'STAFF') {
+        navigate('/staff/dashboard');
+      } else {
+        setServerError("Unknown role classification. Contact IT support.");
+      }
+
+    } catch (error) {
+      console.error("Login failed:", error);
+      setServerError(error.message);
+    }
+  };
+
+  // Main Login Render
   return (
     <div className="relative min-h-screen flex items-center justify-center font-sans animate-in fade-in duration-500 text-left">
       <div 
@@ -64,14 +115,15 @@ export default function AdminLogin() {
         style={{ backgroundImage: `url(${caintaBg})` }}
       />
 
+      {/* LOGO & BACK BUTTON */}
       <div 
         className="absolute top-6 left-6 z-30 cursor-pointer hover:opacity-80 transition"
         onClick={() => navigate('/')}>
         <img src={gabayLogo} alt="GABAY Logo" className="h-10 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" />
       </div>
       
+      {/* LOGIN FORM */}
       <div className="absolute inset-0 z-10 bg-black opacity-60" /> 
-
       <div className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl bg-white shadow-2xl overflow-hidden md:rounded-2sm mx-4 text-left">
         
         <div className="hidden md:flex flex-1 bg-gabay-navy p-12 flex-col justify-center text-white text-left">
@@ -85,7 +137,7 @@ export default function AdminLogin() {
         </div>
 
         <div className="flex-1 p-8 md:p-12 bg-white">
-          <h3 className="font-montserrat text-3xl font-bold text-gabay-navy text-center mb-2">Admin Log In</h3>
+          <h3 className="font-montserrat text-3xl font-bold text-gabay-navy text-center mb-2">Personnel Log In</h3>
           <p className="font-poppins text-gray-500 text-center text-sm mb-8">Login to access your authorized GABAY account.</p>
           
           {serverError && (
@@ -119,6 +171,8 @@ export default function AdminLogin() {
             <div className="flex items-center justify-between mt-1 mb-6">
               <label className="flex items-center cursor-pointer group">
                 <input type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 border-gray-300 rounded text-slate-900 focus:ring-slate-900 cursor-pointer"
                 />
                 <span className="ml-2 text-xs font-poppins text-gray-600 group-hover:text-slate-900 transition-colors">

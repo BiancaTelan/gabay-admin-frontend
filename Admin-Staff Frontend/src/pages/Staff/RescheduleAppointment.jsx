@@ -13,7 +13,15 @@ export default function RescheduleAppointmentPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const rawData = location.state?.appointment || location.state?.patientData;
-  
+  const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const nameParts = appointment?.name?.split(' ') || ['N/A'];
+  const firstName = nameParts[0];
+  const lastName = nameParts.slice(1).join(' ') || '';
+
   const appointment = rawData ? {
     id: rawData.id,
     ...rawData,
@@ -27,22 +35,13 @@ export default function RescheduleAppointmentPage() {
     const parsed = new Date(appointment.appointmentDate);
     return isNaN(parsed.getTime()) ? null : parsed;
   });
-  const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
-  const [reason, setReason] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const nameParts = appointment?.name?.split(' ') || ['N/A'];
-  const firstName = nameParts[0];
-  const lastName = nameParts.slice(1).join(' ') || '';
-
+  // --- FETCH WORKING DAYS FOR THE ASSIGNED DOCTOR ---
   useEffect(() => {
     const fetchWorkingDays = async () => {
       const doctorId = appointment?.docID; 
       if (!doctorId || !token) return;
       
-
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -57,10 +56,12 @@ export default function RescheduleAppointmentPage() {
     fetchWorkingDays();
   }, [appointment?.docID, token]);;
 
+  // --- VALIDATION FUNCTION ---
   const isWorkingDay = (d) => {
     return allowedDays.includes(d.getDay());
   };
 
+  // --- HANDLE RESCHEDULE SUBMISSION ---
   const handleOpenModal = (e) => {
     e.preventDefault();
 
@@ -87,6 +88,7 @@ export default function RescheduleAppointmentPage() {
     setShowConfirmModal(true);
   };
 
+  // --- CONFIRM RESCHEDULE ACTION ---
   const handleConfirm = async () => {
     setLoading(true);
     setError('');
@@ -139,6 +141,7 @@ export default function RescheduleAppointmentPage() {
   const previewTime = selectedBatch === 'Morning' ? '8:00 AM - 12:00 PM' : '1:00 PM - 5:00 PM';
   const dateTimeString = `${formattedPreviewDate || 'No date selected'} (${previewTime})`;
 
+  // --- READ-ONLY FIELD COMPONENT ---
   const ReadOnlyField = ({ label, value }) => (
     <div>
       <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">{label}</label>
@@ -151,6 +154,7 @@ export default function RescheduleAppointmentPage() {
     </div>
   );
 
+  // --- MAIN RENDER ---
   return (
     <>
       <div className="space-y-6">
@@ -163,6 +167,7 @@ export default function RescheduleAppointmentPage() {
           </p>
         </div>
 
+        {/* --- APPOINTMENT DETAILS & RESCHEDULE FORM --- */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
             <form onSubmit={handleOpenModal}>
@@ -260,6 +265,7 @@ export default function RescheduleAppointmentPage() {
         </div>
       </div>
 
+      {/* --- CONFIRM RESCHEDULE MODAL --- */}                
       <ConfirmRescheduleModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}

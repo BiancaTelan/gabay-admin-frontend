@@ -51,7 +51,17 @@ export default function PersonnelAccount() {
         if (!response.ok) throw new Error("Failed to fetch profile data");
         
         const data = await response.json();
-        setLocalUserInfo(prev => ({ ...prev, ...data })); 
+        
+        setLocalUserInfo(prev => ({ 
+          ...prev, 
+          ...data,
+          firstname: data.firstname || prev.firstname,
+          surname: data.surname || prev.surname,
+          suffix: data.suffix || "",
+          contactNumber: data.contactNumber || "",
+          address: data.address || "",
+          gender: data.gender || "Male"
+        })); 
       } catch (error) {
         console.error("Profile Fetch Error:", error);
       }
@@ -76,9 +86,9 @@ export default function PersonnelAccount() {
   };
 
   const getImageUrl = (path) => {
-  if (!path) return "/default-avatar.png";
-  if (path.startsWith("http")) return path; // Fallback for old images
-  return `${import.meta.env.VITE_API_BASE_URL}${path}`;
+    if (!path) return "/default-avatar.png";
+    if (path.startsWith("http")) return path; 
+    return `${import.meta.env.VITE_API_BASE_URL}${path}`;
   };
 
   const handleCalendarChange = (e) => {
@@ -127,13 +137,14 @@ export default function PersonnelAccount() {
     let newErrors = {};
     const today = new Date();
 
-    if (!localUserInfo.firstname.trim()) newErrors.firstname = "First name is required";
+    // BUG FIX: Added optional chaining (?.) to prevent crashes if strings are somehow undefined
+    if (!localUserInfo.firstname?.trim()) newErrors.firstname = "First name is required";
     else if (!namePattern.test(localUserInfo.firstname)) newErrors.firstname = "No numbers/special characters";
 
-    if (!localUserInfo.surname.trim()) newErrors.surname = "Last name is required";
+    if (!localUserInfo.surname?.trim()) newErrors.surname = "Last name is required";
     else if (!namePattern.test(localUserInfo.surname)) newErrors.surname = "No numbers/special characters";
 
-    if (!localUserInfo.dob.trim()) {
+    if (!localUserInfo.dob?.trim()) {
       newErrors.dob = "Date of birth is required";
     } else if (!dobPattern.test(localUserInfo.dob)) {
       newErrors.dob = "Use MM/DD/YYYY format";
@@ -148,7 +159,7 @@ export default function PersonnelAccount() {
       else if (age < 18) newErrors.dob = `MUST BE AT LEAST 18 YEARS OLD`;
     }
 
-    if (!localUserInfo.contactNumber.trim()) newErrors.contactNumber = "Required";
+    if (!localUserInfo.contactNumber?.trim()) newErrors.contactNumber = "Required";
     else if (!/^\d{11}$/.test(localUserInfo.contactNumber)) newErrors.contactNumber = "Must be 11 digits";
 
     setErrors(newErrors);
@@ -294,8 +305,9 @@ export default function PersonnelAccount() {
           <div className="flex flex-col items-center lg:items-start mb-8">
             <div className="relative group w-40 h-40" onClick={isEditing ? handleImageClick : null}>
               <div className={`w-40 h-40 rounded-full bg-gray-200 overflow-hidden border-4 border-white shadow-lg transition-all ${isEditing ? 'cursor-pointer' : ''}`}>
+                
                 <img 
-                  src={getImageUrl(profilePhoto)} 
+                  src={getImageUrl(localUserInfo.profilePhoto || profilePhoto)} 
                   alt="Admin" 
                   className="h-full w-full rounded-full object-cover bg-gray-100" 
                 />

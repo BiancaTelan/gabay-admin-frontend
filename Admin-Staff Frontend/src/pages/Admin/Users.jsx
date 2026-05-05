@@ -12,10 +12,8 @@ export default function Users() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
   const [usersData, setUsersData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -23,6 +21,7 @@ export default function Users() {
     position: 'Nurse', gender: 'Female', contactNumber: ''
   });
 
+  // --- CREATE USER LOGIC ---
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -73,11 +72,13 @@ export default function Users() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
+  // --- EDIT USER LOGIC ---
   const handleOpenEdit = (user) => {
     setEditingUser({...user}); 
     setIsEditModalOpen(true);
   };
 
+  // --- UPDATE USER LOGIC ---
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -108,6 +109,7 @@ export default function Users() {
     }
   };
 
+  // --- DELETE USER LOGIC ---
   const confirmDelete = (rawId, name) => {
     setUserToDelete({ rawId, name });
     setIsDeleteModalOpen(true);
@@ -216,6 +218,7 @@ export default function Users() {
 
   const itemsPerPage = 10;
 
+  // --- FETCH USERS ON MOUNT ---
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -281,10 +284,12 @@ export default function Users() {
     else setSelectedIds([]);
   };
 
+  // --- TOGGLE SELECTION ---
   const toggleSelection = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -469,7 +474,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* NEW USER MODAL */}
+      {/* USER MODAL */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden font-poppins">

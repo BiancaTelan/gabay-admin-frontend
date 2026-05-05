@@ -13,15 +13,16 @@ export default function ContactUs() {
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  // --- HANDLE FORM INPUT CHANGES ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
+  // --- FORM VALIDATION ---
   const validateForm = () => {
     let newErrors = {};
     if (!formData.firstname.trim()) newErrors.firstname = 'First name is required';
@@ -34,6 +35,7 @@ export default function ContactUs() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- HANDLE FORM SUBMISSION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -67,12 +69,15 @@ export default function ContactUs() {
     }
   };
 
+  /// --- MAIN RENDER ---
   return (
     <main className="relative max-w-5xl mx-auto px-4 py-12 font-poppins">
+      {/* PAGE TITLE */}
       <h1 className="text-4xl lg:text-6xl font-montserrat font-bold text-gabay-blue leading-tight text-center mb-12 mt-5">
         Contact Us
       </h1>
 
+      {/* CONTACT INFO CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
             <div className="space-y-4 w-full">
@@ -95,7 +100,8 @@ export default function ContactUs() {
             </div>
           </div>
         </div>
-
+      
+      {/* CONTACT FORM */}
       <div className="bg-white rounded-xl shadow-md p-6 relative z-10">
         <h2 className="font-montserrat text-3xl font-semibold text-gabay-teal mb-8 text-center">
           Send us a Message
@@ -209,6 +215,7 @@ export default function ContactUs() {
         </form>
       </div>
 
+      {/* SUCCESS MODAL */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center animate-in zoom-in-95 duration-200">

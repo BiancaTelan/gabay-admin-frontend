@@ -7,15 +7,14 @@ import { toast } from 'react-hot-toast';
 export default function StaffNoShows() {
   const navigate = useNavigate();
   const { token } = useContext(AuthContext);
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [noShowData, setNoShowData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
+  // --- FETCH NO-SHOW RECORDS ---
   useEffect(() => {
     const fetchNoShows = async () => {
       try {
@@ -38,6 +37,7 @@ export default function StaffNoShows() {
     fetchNoShows();
   }, [token, apiBase]);
 
+  // --- FILTER AND PAGINATION LOGIC ---
   const filteredData = useMemo(() => {
     return noShowData.filter(item => 
       item.patientName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -49,6 +49,7 @@ export default function StaffNoShows() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -68,9 +69,9 @@ export default function StaffNoShows() {
         </button>
       </div>
 
+      {/* NO SHOW LOGS */}
       <div className="w-full pb-8">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-visible font-poppins">
-          
           <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-4 border-b border-gray-100">
             <h2 className="font-montserrat text-2xl font-bold text-gabay-blue">No Show Logs</h2>
             <div className="relative">

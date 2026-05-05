@@ -7,6 +7,7 @@ import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+// --- STATUS BADGE STYLES ---
 const statusStyles = {
   Approved: 'bg-amber-100 text-amber-700',
   Completed: 'bg-green-50 text-gabay-green',
@@ -14,18 +15,16 @@ const statusStyles = {
   Pending: 'bg-gray-100 text-gray-400',
 };
 
+// --- HELPER: TIME AGO CALCULATOR ---
 export default function Appointments() {
   const { token } = useContext(AuthContext);
-
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  
   const [appointmentData, setAppointmentData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
@@ -33,11 +32,9 @@ export default function Appointments() {
     deptTypes: ['General', 'Specialty']
   });
 
-  
-
   const itemsPerPage = 10;
 
-  // --- 1. FETCH DATA ---
+  // --- FETCH APPOINTMENTS ---
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
@@ -60,7 +57,7 @@ export default function Appointments() {
   }, [token]);
 
 
-  // --- 2. LOGIC: FILTERING & SORTING ---
+  // --- FILTERING & SORTING ---
   const filteredData = useMemo(() => {
     let result = appointmentData.filter(item => 
       item.patient.toLowerCase().includes(search.toLowerCase()) || 
@@ -88,7 +85,7 @@ export default function Appointments() {
     return result;
   }, [search, filters, appointmentData]);
 
-  // --- 3. EXPORT TO EXCEL ---
+  // --- EXPORT TO EXCEL ---
   const handleExportExcel = async () => {
     if (filteredData.length === 0) return toast.error("No appointments to export.");
     
@@ -135,7 +132,7 @@ export default function Appointments() {
     toast.success("Excel report generated!");
   };
 
-  // --- 4. LOGIC: PAGINATION & SELECTION ---
+  // --- PAGINATION & SELECTION ---
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
   const pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -144,6 +141,7 @@ export default function Appointments() {
   const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
   const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">

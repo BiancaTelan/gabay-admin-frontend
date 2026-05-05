@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Button from './button'; 
+import toast from 'react-hot-toast'; 
 
 export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, editingSchedule }) {
   const daysOfWeek = [
@@ -8,7 +9,9 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
     { label: 'T', full: 'Tuesday' },
     { label: 'W', full: 'Wednesday' },
     { label: 'TH', full: 'Thursday' },
-    { label: 'F', full: 'Friday' }
+    { label: 'F', full: 'Friday' },
+    { label: 'S', full: 'Saturday' }, 
+    { label: 'SU', full: 'Sunday' }
   ];
 
   const [selectedDays, setSelectedDays] = useState([]);
@@ -18,13 +21,14 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
   useEffect(() => {
     if (isOpen) {
       if (editingSchedule) {
-        const reverseMap = { 'Monday': 'M', 'Tuesday': 'T', 'Wednesday': 'W', 'Thursday': 'TH', 'Friday': 'F' };
+        const reverseMap = { 'Monday': 'M', 'Tuesday': 'T', 'Wednesday': 'W', 'Thursday': 'TH', 'Friday': 'F', 'Saturday': 'S', 'Sunday': 'SU' };
         setSelectedDays([reverseMap[editingSchedule.day] || editingSchedule.day]);
 
         try {
           const [startStr, endStr] = editingSchedule.time.split(" - ");
           
           const convertTo24Hour = (time12h) => {
+            if (!time12h) return "08:00";
             const [time, modifier] = time12h.split(' ');
             let [hours, minutes] = time.split(':');
             if (hours === '12') hours = '00';
@@ -34,7 +38,11 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
           
           setStartTime(convertTo24Hour(startStr));
           setEndTime(convertTo24Hour(endStr));
-        } catch (e) { console.error("Time parse error", e); }
+        } catch (e) { 
+          console.error("Time parse error", e); 
+          setStartTime("08:00");
+          setEndTime("14:00");
+        }
         
       } else {
         setSelectedDays([]);
@@ -55,7 +63,15 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
   };
 
   const handleConfirm = () => {
-    if (selectedDays.length === 0) return alert("Please select a duty day.");
+    if (selectedDays.length === 0) {
+      toast.error("Please select at least one duty day.");
+      return;
+    }
+
+    if (startTime >= endTime) {
+      toast.error("End Time must be later than Start Time.");
+      return;
+    }
 
     const formatTime = (time) => {
       let [h, m] = time.split(':');
@@ -65,7 +81,7 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
     };
 
     const newSchedule = selectedDays.join(', ');
-    const newPeriod = `${formatTime(startTime)} – ${formatTime(endTime)}`;
+    const newPeriod = `${formatTime(startTime)} - ${formatTime(endTime)}`;
     
     onSave(doctor.id, newSchedule, newPeriod, editingSchedule?.id); 
   };
@@ -93,7 +109,7 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
             <label className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-4">
               Select Duty Days
             </label>
-            <div className="flex justify-between">
+            <div className="flex justify-center gap-1 flex-wrap">
               {daysOfWeek.map((day) => (
                 <button
                   key={day.label}
@@ -134,7 +150,7 @@ export default function SchedulePickerModal({ isOpen, onClose, doctor, onSave, e
 
           <div className="pt-2">
             <Button variant="teal" type="button" onClick={handleConfirm} className="w-full py-3 shadow-lg shadow-teal-100">
-              SAVE NEW SCHEDULE
+              {editingSchedule ? "SAVE CHANGES" : "SAVE NEW SCHEDULE"}
             </Button>
           </div>
         </div>

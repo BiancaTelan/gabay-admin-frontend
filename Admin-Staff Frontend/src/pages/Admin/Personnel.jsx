@@ -10,6 +10,7 @@ export default function Personnel() {
   // --- SCHEDULE UI HELPERS ---
   const DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
 
+  // --- GENERATE TIME OPTIONS FROM 6:00 AM TO 8:00 PM ---
   const generateTimeOptions = () => {
     const times = [];
     for (let i = 6; i <= 20; i++) { // From 6:00 AM to 8:00 PM
@@ -30,19 +31,16 @@ export default function Personnel() {
   const [departments, setDepartments] = useState([]);
   const [personnelData, setPersonnelData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // --- EDIT MODAL STATE ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPerson, setEditingPerson] = useState(null);
-
-  // --- ADD DOCTOR MODAL STATE ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newDoctor, setNewDoctor] = useState({
     firstname: '', surname: '', deptID: '',
     schedule: '', time: ''
   });
 
+  // --- ADD DOCTOR HANDLER ---
   const handleAddDoctor = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -76,6 +74,7 @@ export default function Personnel() {
     }
   };
 
+  // --- FILTER DATA FETCHING ---
   const [filters, setFilters] = useState({
     sortKey: 'name',
     sortOrder: 'asc',
@@ -86,7 +85,7 @@ export default function Personnel() {
 
   const itemsPerPage = 10;
 
-  // --- FETCH DATA ---
+  // --- FETCH PERSONNEL & DEPARTMENTS ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -138,6 +137,7 @@ export default function Personnel() {
     setIsEditModalOpen(true);
   };
 
+  // --- UPDATE PERSONNEL ASSIGNMENT ---
   const handleUpdatePersonnel = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -259,6 +259,7 @@ export default function Personnel() {
   const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
   const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">

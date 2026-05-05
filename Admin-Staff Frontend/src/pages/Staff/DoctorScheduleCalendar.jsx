@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Clock, Plus, ChevronLeft as ChevronLeftIcon } from 'lucide-react';
 import { AuthContext } from '../../authContext';
 
+// --- HELPER FUNCTIONS & CONSTANTS ---
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
@@ -26,14 +27,13 @@ export default function DoctorScheduleCalendar() {
   const { token, userRole } = useContext(AuthContext); 
   const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
   const [doctors, setDoctors] = useState([]);
-  
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
-
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
 
+  // --- FETCH DOCTORS ON MOUNT ---
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -49,6 +49,7 @@ export default function DoctorScheduleCalendar() {
     if (token) fetchDoctors();
   }, [token]);
 
+  // --- MONTH NAVIGATION HANDLERS ---
   const prevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -67,6 +68,7 @@ export default function DoctorScheduleCalendar() {
     }
   };
 
+  // --- GET DOCTORS ON DUTY FOR A GIVEN DAY ---
   const getDoctorsForDay = (dayIndex) => {
     const fullDayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const targetDay = fullDayMap[dayIndex];
@@ -90,6 +92,7 @@ export default function DoctorScheduleCalendar() {
     return onDuty;
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6 font-poppins">
       {/* Title & Breadcrumb */}
@@ -109,6 +112,7 @@ export default function DoctorScheduleCalendar() {
         </button>
       </div>
 
+      {/* CALENDAR */}
       <div className="w-full pb-8">
         <div className="bg-white rounded-xl shadow-md p-6 overflow-hidden">
           

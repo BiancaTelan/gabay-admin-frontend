@@ -12,7 +12,6 @@ function timeAgo(dateString) {
   const minutes = Math.round(seconds / 60);
   const hours = Math.round(minutes / 60);
   const days = Math.round(hours / 24);
-
   if (seconds < 60) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
@@ -22,15 +21,15 @@ function timeAgo(dateString) {
 
 export default function StaffNotifs() {
   const { notifications, unreadCount, markAllAsRead, lastReadTimestamp } = useContext(AuthContext);
-  
-  const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // --- AUTO-MARK NOTIFICATION ---
   useEffect(() => {
     if (unreadCount > 0) {
       const timer = setTimeout(() => {
         markAllAsRead();
-      }, 6000); 
+      }, 3000); 
       return () => clearTimeout(timer);
     }
   }, [unreadCount, markAllAsRead]);
@@ -59,6 +58,7 @@ export default function StaffNotifs() {
     return 'bg-gray-50 border-gray-200';
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 font-poppins animate-in fade-in duration-500 pb-20">
       

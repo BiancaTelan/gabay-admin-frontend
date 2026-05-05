@@ -1,39 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { ChevronLeft, ChevronRight, Eye, Plus, X, Check, Edit2 } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays } from 'date-fns';
 import AddEvent from '../../components/AddEvent';
+import { AuthContext } from '../../authContext';
+import toast from 'react-hot-toast';
 
+// Admin Calendar Component
 export default function AdminCalendar() {
+  const { token } = useContext(AuthContext);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dailyCapacity, setDailyCapacity] = useState(25);
+  const [originalCapacity, setOriginalCapacity] = useState(25);
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
-  
   const modalRef = useRef(null);
-
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState('EVENT');
-
   const [appointments, setAppointments] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [events, setEvents] = useState([]);
+  const [jumpText, setJumpText] = useState(format(new Date(), 'MM/yyyy'));
+
+  useEffect(() => {
+    setJumpText(format(currentMonth, 'MM/yyyy'));
+  }, [currentMonth]);
+
+  // Input Handler for Jump to Date field
   const handleInputChange = (e) => {
     let val = e.target.value.replace(/\D/g, "");
     if (val.length > 2) {
       val = val.substring(0, 2) + "/" + val.substring(2, 6);
     }
-    e.target.value = val;
+    setJumpText(val);
   };
 
-  const handleJumpToDate = (e) => {
-    const val = e.target.value;
-    if (!val) {
-      setCurrentMonth(new Date());
-      return;
-    }
-
-  const [month, year] = val.split('/');
+  // Jump to Date Handler
+  const handleJumpToDate = () => {
+    if (!jumpText || jumpText.length < 7) return;
+    const [month, year] = jumpText.split('/');
     if (month && year && year.length === 4) {
       const newDate = new Date(parseInt(year), parseInt(month) - 1);
       if (!isNaN(newDate.getTime())) {
@@ -42,25 +47,44 @@ export default function AdminCalendar() {
     }
   };
 
-  useEffect(() => {
-    // BACKEND DEV: API: GET /api/admin/calendar-data?month=${format(currentMonth, 'yyyy-MM')}
-    fetchDummyData();
-  }, [currentMonth]);
+  //Fetch Calendar Data
+  const fetchCalendarData = async () => {
+    if (!token) return;
+    try {
+      const monthStr = format(currentMonth, 'yyyy-MM');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/calendar?month=${monthStr}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        const parseLocal = (dateStr) => {
+          const [y, m, d] = dateStr.split('-');
+          return new Date(y, m - 1, d);
+        };
 
-  const fetchDummyData = () => {
-    setHolidays([
-      { date: new Date(2026, 3, 2), title: "Maundy Thursday" },
-      { date: new Date(2026, 3, 3), title: "Good Friday" },
-      { date: new Date(2026, 3, 9), title: "Araw ng Kagitingan" },
-    ]);
-    setEvents([{ date: new Date(2026, 3, 7), title: "SYSTEM UPDATE" }]);
-    setAppointments([
-      { date: new Date(2026, 3, 13), confirmed: 3, canceled: 2, noShow: 2, completed: 17 },
-      { date: new Date(2026, 3, 14), confirmed: 2, canceled: 1, noShow: 0, completed: 4 },
-      { date: new Date(2026, 3, 17), confirmed: 5, canceled: 3, noShow: 1, completed: 4 },
-    ]);
+        setAppointments(data.appointments.map(a => ({ ...a, date: parseLocal(a.date) })));
+        
+        const allEvents = data.events || [];
+        setEvents(allEvents.filter(e => e.type === 'EVENT').map(e => ({ ...e, date: parseLocal(e.date) })));
+        setHolidays(allEvents.filter(e => e.type === 'HOLIDAY').map(e => ({ ...e, date: parseLocal(e.date) })));
+        
+        if (data.capacity) {
+            setDailyCapacity(data.capacity);
+            setOriginalCapacity(data.capacity);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load calendar data:", error);
+    }
   };
 
+  useEffect(() => {
+    fetchCalendarData();
+  }, [currentMonth, token]);
+
+  // Get Appointment Data 
   const getDayData = (day) => {
     const data = appointments.find(a => isSameDay(day, a.date));
     if (!data) return { total: 0, confirmed: 0, canceled: 0, noShow: 0, completed: 0 };
@@ -70,34 +94,69 @@ export default function AdminCalendar() {
     };
   };
 
+  // Handlers
   const handleDateClick = (day) => setSelectedDate(day);
   const handleDoubleClick = (day) => { setSelectedDate(day); setIsModalOpen(true); };
-
-  // --- LOGIC: FUNCTIONAL HOLIDAYS & EVENTS ---
-  const handleAddHoliday = () => {
-    const title = prompt("Enter Holiday Name (e.g., Labor Day):");
-    if (title) {
-      const newHoliday = { date: selectedDate, title: title.toUpperCase() };
-      // BACKEND DEV: POST /api/admin/holidays { date: selectedDate, title }
-      setHolidays(prev => [...prev, newHoliday]);
-    }
-  };
-
-  const handleAddEvent = () => {
-    const title = prompt("Enter Event Name (e.g., Blood Drive):");
-    if (title) {
-      const newEvent = { date: selectedDate, title: title.toUpperCase() };
-      // BACKEND DEV: POST /api/admin/events { date: selectedDate, title }
-      setEvents(prev => [...prev, newEvent]);
-    }
-  };
-
   const handleOverlayClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
       setIsModalOpen(false);
     }
   };
 
+  // Save Event Handler
+  const handleSaveEvent = async (formData) => {
+    try {
+      const [m, d, y] = formData.date.split('/');
+      const isoDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/calendar/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          date: isoDate,
+          type: formData.type
+        })
+      });
+
+      if (!res.ok) throw new Error("Failed to save");
+      
+      await fetchCalendarData(); 
+      setIsEventModalOpen(false);
+    } catch (err) {
+      throw err; 
+    }
+  };
+
+  // Capacity Edit Handlers
+  const handleCapacitySave = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/capacity`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ daily_capacity: dailyCapacity })
+      });
+      if (res.ok) {
+        setIsEditingCapacity(false);
+        setOriginalCapacity(dailyCapacity);
+        toast.success("Daily capacity updated successfully!");
+      }
+    } catch (e) {
+      toast.error("Failed to update capacity.");
+    }
+  };
+
+  // Cancel Capacity Edit
+  const cancelCapacityEdit = () => {
+      setDailyCapacity(originalCapacity);
+      setIsEditingCapacity(false);
+  }
+
+  // Render Functions
   const renderHeader = () => (
     <div className="flex items-center justify-center gap-4 md:gap-8 mb-4">
       <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronLeft className="text-gray-400" /></button>
@@ -108,6 +167,7 @@ export default function AdminCalendar() {
     </div>
   );
 
+  // Render Days of the Week
   const renderDays = () => {
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     return (
@@ -121,6 +181,7 @@ export default function AdminCalendar() {
     );
   };
 
+  // Render Calendar Cells
   const renderCells = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
@@ -185,6 +246,7 @@ export default function AdminCalendar() {
   const selectedDayHoliday = holidays.find(h => isSameDay(selectedDate, h.date));
   const selectedDayEvent = events.find(e => isSameDay(selectedDate, e.date));
 
+  // Main Render
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 font-poppins select-none animate-in fade-in duration-500">
       {renderHeader()}
@@ -193,8 +255,6 @@ export default function AdminCalendar() {
 
       {/* FOOTER SECTION */}
       <div className="mt-4 flex flex-row justify-between items-center gap-2">
-        
-        {/* LEFT: Slots */}
         <div className="flex items-center gap-1.5 text-gabay-teal font-semibold text-[10px] sm:text-base md:text-lg">
           <span className="whitespace-nowrap">Daily Capacity:</span>
           <div className="flex items-center gap-1">
@@ -203,38 +263,37 @@ export default function AdminCalendar() {
               disabled={!isEditingCapacity}
               value={dailyCapacity}
               onChange={(e) => setDailyCapacity(Number(e.target.value))}
-              className={`w-8 md:w-10 text-center focus:outline-none transition-all ${
-                isEditingCapacity ? 'border-b border-gabay-teal bg-white font-bold' : 'bg-transparent text-gray-500'
+              className={`w-12 md:w-16 text-center focus:outline-none transition-all ${
+                isEditingCapacity ? 'border-b-2 border-gabay-teal bg-white font-bold' : 'bg-transparent text-gray-500'
               }`}
             />
             {!isEditingCapacity ? (
               <button onClick={() => setIsEditingCapacity(true)} className="text-gabay-teal p-1 border border-gabay-teal rounded hover:bg-teal-50"><Edit2 size={15}/></button>
             ) : (
               <div className="flex gap-1">
-                <button onClick={() => setIsEditingCapacity(false)} className="text-orange-500"><X size={17}/></button>
-                <button onClick={() => setIsEditingCapacity(false)} className="text-green-500"><Check size={17}/></button>
+                <button onClick={cancelCapacityEdit} className="text-orange-500"><X size={17}/></button>
+                <button onClick={handleCapacitySave} className="text-green-500"><Check size={17}/></button>
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT: Go to Month */}
         <div className="flex items-center gap-1.5 text-gray-400 font-semibold text-[10px] sm:text-base md:text-lg">
           <span className="whitespace-nowrap uppercase tracking-tighter">Go to:</span>
           <input 
             type="text" 
             placeholder="MM/YYYY"
             maxLength={7}
-            defaultValue={format(currentMonth, 'MM/yyyy')}
-            key={format(currentMonth, 'MM/yyyy')} 
+            value={jumpText}
             onChange={handleInputChange}
             onBlur={handleJumpToDate}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleJumpToDate(e); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleJumpToDate(); }}
             className="border border-gray-200 rounded-lg px-2 py-1 text-gabay-teal font-medium focus:outline-none focus:border-gabay-teal bg-white w-[85px] md:w-28 text-center"
           />
         </div>
       </div>
 
+      {/* Appointment Details Modal */}
       {isModalOpen && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
@@ -298,12 +357,15 @@ export default function AdminCalendar() {
           </div>
         </div>
       )}
+
+      {/* Add Event Modal */}
       <AddEvent 
-              isOpen={isEventModalOpen} 
-              onClose={() => setIsEventModalOpen(false)} 
-              onSave={(data) => console.log("New Event Data:", data)} 
-              defaultType={modalDefaultType}
-            />
+        isOpen={isEventModalOpen} 
+        onClose={() => setIsEventModalOpen(false)} 
+        onSave={handleSaveEvent} 
+        initialDate={format(selectedDate, 'yyyy-MM-dd')}
+        defaultType={modalDefaultType}
+      />
     </div>
   );
 }

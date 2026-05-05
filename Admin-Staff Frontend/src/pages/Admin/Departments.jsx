@@ -4,31 +4,23 @@ import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+
 export default function Departments() {
   const { token } = useContext(AuthContext);
-
-  // --- STATE ---
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
   const [deptData, setDeptData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // --- MODAL STATES ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [formData, setFormData] = useState({ department: '', type: 'GENERAL', slotCapacity: 25 });
   const [editingDept, setEditingDept] = useState(null);
-  
-  // Secure Delete State
   const [deptToDelete, setDeptToDelete] = useState(null);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
-
   const [filters, setFilters] = useState({
     sortKey: 'name', 
     sortOrder: 'asc',
@@ -37,7 +29,7 @@ export default function Departments() {
 
   const itemsPerPage = 10;
 
-  // --- 1. FETCH DATA ---
+  // --- FETCH DEPARTMENTS ---
   useEffect(() => {
     const fetchDepts = async () => {
       try {
@@ -58,7 +50,7 @@ export default function Departments() {
     if (token) fetchDepts();
   }, [token]);
 
-  // --- 2. CREATE DEPARTMENT ---
+  // --- CREATE DEPARTMENT ---
   const handleAddDept = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -80,12 +72,13 @@ export default function Departments() {
     }
   };
 
-  // --- 3. EDIT DEPARTMENT ---
+  // --- EDIT DEPARTMENT ---
   const handleOpenEdit = (dept) => {
     setEditingDept({...dept, department: dept.name, slotCapacity: dept.totalSlots});
     setIsEditModalOpen(true);
   };
 
+  // --- UPDATE DEPARTMENT & AUTO-ADJUST SCHEDULES ---
   const handleUpdateDept = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -111,13 +104,14 @@ export default function Departments() {
     }
   };
 
-  // --- 4. SECURE DELETE DEPARTMENT ---
+  // --- SECURE DELETE DEPARTMENT ---
   const handleOpenDelete = (dept) => {
     setDeptToDelete(dept);
     setDeleteConfirmationText('');
     setIsDeleteModalOpen(true);
   };
 
+  // --- EXECUTE DELETION ---
   const executeDelete = async () => {
     if (deleteConfirmationText !== deptToDelete.name) return; // Final safety check
     setIsSubmitting(true);
@@ -138,7 +132,7 @@ export default function Departments() {
     }
   };
 
-  // --- LOGIC: FILTERING & SORTING ---
+  // ---FILTERING & SORTING LOGIC ---
   const filteredData = useMemo(() => {
     let result = deptData.filter(item => 
       (item.name && item.name.toLowerCase().includes(search.toLowerCase())) || 
@@ -198,10 +192,10 @@ export default function Departments() {
   const pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
-
   const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
   const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">

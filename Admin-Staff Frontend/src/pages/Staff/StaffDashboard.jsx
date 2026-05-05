@@ -7,21 +7,20 @@ import AppointmentDetailsModal from '../../components/ApptDetailsModal';
 import { AuthContext } from '../../authContext'; 
 import { toast } from 'react-hot-toast';
 
+// Dashboard Page
 export default function StaffDashboard() {
   const navigate = useNavigate();
   const { token } = useContext(AuthContext);
-  
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
-
   const [stats, setStats] = useState({ approved: 0, cancelled: 0, slot: 0, forApproval: 0 });
   const [patients, setPatients] = useState([]);
   const [queueList, setQueueList] = useState([]);
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
 
+  // Fetch dashboard data 
   const fetchDashboardData = async () => {
     try {
       const response = await fetch(`${apiBase}/api/staff/overview`, {
@@ -36,12 +35,13 @@ export default function StaffDashboard() {
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     }
-  };
-
+  }; 
+  
   useEffect(() => {
     fetchDashboardData();
   }, [token]);
 
+  // Handle status updates for queue items and appointments
   const handleUpdateAction = async (patient, actionString, newStatusDisplay) => {
     try {
       const response = await fetch(`${apiBase}/api/staff/queue/${patient.id}?action=${actionString}`, {
@@ -59,28 +59,31 @@ export default function StaffDashboard() {
     }
   };
 
+  // Open modals and handle actions
   const handleQueueItemClick = (patient) => {
     setSelectedPatient(patient);
     setModalOpen(true);
   };
 
+  // Status update handlers
   const handleStatusUpdate = (patient, newStatus) => {
-    const actionMap = { 'serving': 'serving', 'served': 'served' };
-    handleUpdateAction(patient, actionMap[newStatus], newStatus);
+    handleUpdateAction(patient, newStatus, newStatus);
     setModalOpen(false);
   };
 
-
+  // Appointment action handlers
   const handleAddToQueue = (patient) => {
     handleUpdateAction(patient, 'add_to_queue', 'waiting');
     setAppointmentModalOpen(false);
   };
 
+  // Appointment No Show handler
   const handleNoShow = (patient) => {
     handleUpdateAction(patient, 'no_show', 'No Show');
     setAppointmentModalOpen(false);
   };
 
+  // Helper Function for Badge Styling
   const getStatusBadge = (status) => {
     if (status === 'Completed') {
       return { text: 'Completed', className: 'text-green-500 bg-green-100' };
@@ -91,9 +94,10 @@ export default function StaffDashboard() {
     }
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gabay-blue px-6 py-6 mb-4 text-white rounded-xl shadow-sm">
         <div>
           <h1 className="font-montserrat text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -110,6 +114,7 @@ export default function StaffDashboard() {
         </button>
       </div>
 
+      {/* MAIN CONTENT GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-[5fr_2fr] gap-6">
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
@@ -119,6 +124,7 @@ export default function StaffDashboard() {
             <StatCard title="Available Slots" value={stats.slot} icon={CalendarPlus} color="blue" onClick={() => navigate('/staff/no-show-appointments')} />
           </div>
 
+          {/* TODAY'S APPOINTMENTS */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="font-montserrat text-xl font-bold text-gabay-blue mb-6">Today's Scheduled Appointments</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -146,7 +152,8 @@ export default function StaffDashboard() {
             </div>
           </div>
         </div>
-
+        
+        {/* LIVE QUEUE LIST */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Live Queue List</h2>
@@ -179,7 +186,8 @@ export default function StaffDashboard() {
           </div>
         </div>
       </div>
-
+      
+      {/* QUEUE STATUS MODAL */}
       {selectedPatient && (
         <QueueStatusModal
           isOpen={modalOpen}
@@ -188,7 +196,8 @@ export default function StaffDashboard() {
           onUpdate={handleStatusUpdate}
         />
       )}
-
+      
+      {/* APPOINTMENT DETAILS MODAL */}
       {selectedAppointment && (
         <AppointmentDetailsModal
           isOpen={appointmentModalOpen}

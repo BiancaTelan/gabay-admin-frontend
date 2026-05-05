@@ -6,13 +6,14 @@ import {
 import toast from 'react-hot-toast';
 import { AuthContext } from '../../authContext'; 
 
+// --- ADMIN SETTINGS PAGE ---
 export default function AdminSettings() {
   const { token } = useContext(AuthContext);
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
-
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
+
+  // --- SETTINGS STATE ---
   const [settings, setSettings] = useState({
     startTime: "09:00 AM",
     endTime: "05:00 PM",
@@ -29,7 +30,7 @@ export default function AdminSettings() {
   const [tempSettings, setTempSettings] = useState({ ...settings });
   const [errors, setErrors] = useState({});
 
-  // --- NEW: FETCH SETTINGS ON LOAD ---
+  // --- FETCH SETTINGS ON LOAD ---
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -50,6 +51,7 @@ export default function AdminSettings() {
     fetchSettings();
   }, [apiBase, token]);
 
+  // --- VALIDATION LOGIC ---
   const convertTo24Hour = (timeStr) => {
     const [time, modifier] = timeStr.split(' ');
     let [hours, minutes] = time.split(':');
@@ -80,6 +82,7 @@ export default function AdminSettings() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- INPUT CHANGE HANDLER ---
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setTempSettings(prev => ({
@@ -89,6 +92,7 @@ export default function AdminSettings() {
     if (errors) setErrors({});
   };
 
+  // --- EDIT/CANCEL/SAVE HANDLERS ---
   const handleEdit = () => {
     setTempSettings({ ...settings }); 
     setIsEditMode(true);
@@ -129,6 +133,7 @@ export default function AdminSettings() {
     }
   };
 
+  // --- TIME OPTIONS FOR SELECT INPUTS ---
   const timeOptions = [
     "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
     "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM"
@@ -140,12 +145,16 @@ export default function AdminSettings() {
     return `${hour.toString().padStart(2, '0')}:00 ${ampm}`;
   });
 
+  // --- RENDER LOADING STATE ---
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500 font-poppins">Loading system configurations...</div>;
   }
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-8 pb-10 font-poppins">
+
+      {/* HEADER & ACTIONS */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="font-montserrat text-4xl font-bold text-gabay-blue">System Settings</h1>
@@ -177,7 +186,6 @@ export default function AdminSettings() {
           )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* OPERATIONAL HOURS */}

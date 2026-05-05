@@ -4,6 +4,7 @@ import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+// --- ROLE BADGE STYLES ---
 const roleStyles = {
   PATIENT: 'bg-purple-100 text-gabay-violet',
   STAFF: 'bg-teal-100 text-teal-700',
@@ -14,15 +15,12 @@ const roleStyles = {
 
 export default function AuditLogs() {
   const { token } = useContext(AuthContext);
-  
-  // --- STATE ---
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [logsData, setLogsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [filters, setFilters] = useState({
     sortKey: 'date', 
     sortOrder: 'desc', 
@@ -31,6 +29,7 @@ export default function AuditLogs() {
 
   const itemsPerPage = 10;
 
+  // --- FETCH AUDIT LOGS ---
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -56,7 +55,7 @@ export default function AuditLogs() {
     if (token) fetchLogs();
   }, [token]);
 
-  // --- LOGIC: FILTERING & SORTING ---
+  // --- FILTERING & SORTING ---
   const filteredData = useMemo(() => {
     let result = logsData.filter(item => 
       (item.user && item.user.toLowerCase().includes(search.toLowerCase())) || 
@@ -142,7 +141,7 @@ export default function AuditLogs() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
-  // --- LOGIC: SELECTION ---
+  // --- SELECTION LOGIC ---
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedIds(pagedData.map(i => i.id));
@@ -157,6 +156,7 @@ export default function AuditLogs() {
     );
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">

@@ -16,8 +16,6 @@ export default function StaffAppointments() {
   const [modalMode, setModalMode] = useState('approve');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
-  // Filter
   const [tempSortKey, setTempSortKey] = useState('date');
   const [tempSortOrder, setTempSortOrder] = useState('asc');
   const [tempSelectedDoctors, setTempSelectedDoctors] = useState([]);
@@ -26,18 +24,16 @@ export default function StaffAppointments() {
   const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [showNewPatient, setShowNewPatient] = useState(false);
   const itemsPerPage = 6;
-
   const { token, userRole } = useContext(AuthContext);
-
   const [pendingAppointments, setPendingAppointments] = useState([]);
   const [approvedAppointments, setApprovedAppointments] = useState([]);
   const [bookedAppointments, setBookedAppointments] = useState([]);
   const [canceledAppointments, setCanceledAppointments] = useState([]);
   const [confirmedAppointments, setConfirmedAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
 
+  // --- FETCH APPOINTMENTS FUNCTION ---
   const fetchAppointments = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments`, {
@@ -52,8 +48,11 @@ export default function StaffAppointments() {
       const data = await response.json();
       
       setPendingAppointments(data.filter(app => app.status === 'pending'));
-      setApprovedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled'));
-      setConfirmedAppointments(data.filter(app => app.status === 'confirmed'));
+      
+      setConfirmedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled'));
+      
+      setApprovedAppointments(data.filter(app => app.status === 'confirmed' || app.status === 'booked'));
+      
       setCanceledAppointments(data.filter(app => ['canceled', 'denied'].includes(app.status)));
       
     } catch (error) {
@@ -63,41 +62,46 @@ export default function StaffAppointments() {
     }
   };
 
+  // --- FETCH APPOINTMENTS ON COMPONENT ---
   useEffect(() => {
     if (token) fetchAppointments();
   }, [token, apiBase]);
 
-    // Helper functions
+  // --- GET CURRENT TAB DATA FUNCTION ---
   const getCurrentData = () => {
     switch (activeTab) {
       case 'pending': return pendingAppointments;
-      case 'approved': return approvedAppointments;
-      case 'confirmed': return confirmedAppointments;
+      case 'approved': return approvedAppointments; 
+      case 'confirmed': return confirmedAppointments; 
       case 'book': return bookedAppointments;
       case 'canceled': return canceledAppointments;
       default: return [];
     }
   };
 
+  // --- GET UNIQUE DOCTORS FOR FILTERING ---
   const availableDoctors = useMemo(() => {
-  const doctors = new Set();
-  const allData = [...pendingAppointments, ...approvedAppointments, ...canceledAppointments];
-  
-  allData.forEach(a => {
-    if (a.assignedDoctor) doctors.add(a.assignedDoctor);
-  });
-  return Array.from(doctors).sort();
-}, [pendingAppointments, approvedAppointments, canceledAppointments]);
+    const doctors = new Set();
+    const allData = [...pendingAppointments, ...approvedAppointments, ...confirmedAppointments, ...canceledAppointments];
+    
+    allData.forEach(a => {
+      if (a.assignedDoctor) doctors.add(a.assignedDoctor);
+    });
+    return Array.from(doctors).sort();
+  }, [pendingAppointments, approvedAppointments, confirmedAppointments, canceledAppointments]);
 
-useEffect(() => {
-  setSelectedDoctors([]);
-  setShowNewPatient(false);
-  setCurrentPage(1);
-}, [activeTab]);
+  // --- RESET FILTERS WHEN CHANGING TABS ---
+  useEffect(() => {
+    setSelectedDoctors([]);
+    setShowNewPatient(false);
+    setCurrentPage(1);
+  }, [activeTab]);
 
+  // --- GET FILTERED, SORTED, AND PAGINATED APPOINTMENTS ---
   const getFilteredAppointments = () => {
     let filtered = [...getCurrentData()];
-    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'canceled') {
+    
+    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') {
       if (selectedDoctors.length > 0 && !showNewPatient) {
         filtered = filtered.filter(app => selectedDoctors.includes(app.assignedDoctor));
       } else if (selectedDoctors.length === 0 && showNewPatient) {
@@ -138,6 +142,7 @@ useEffect(() => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
+  // --- HANDLE APPROVE APPOINTMENT ---
   const handleApprove = async (approvedData) => {
     try {
       const selectedDate = approvedData.appointmentDate; 
@@ -157,7 +162,7 @@ useEffect(() => {
 
       if (!availability.is_available) {
         toast.error(`Cannot schedule: ${availability.reason || "Slot is full!"}`);
-        return; // 
+        return; 
       }
 
       if (availability.slots_left === 1) {
@@ -191,6 +196,7 @@ useEffect(() => {
     }
   };
 
+  // --- HANDLE DENY APPOINTMENT ---
   const handleDeny = async (appointmentId, reason) => {
     if (!reason.trim()) {
       toast.error("Please provide a reason for denying this appointment.");
@@ -221,6 +227,7 @@ useEffect(() => {
     }
   };
 
+  // --- HANDLE NOTIFY PATIENT ---
   const handleNotifyPatient = async (appointment) => {
     const loadingToast = toast.loading("Sending reminder to patient...");
     try {
@@ -252,7 +259,7 @@ useEffect(() => {
     { id: 'canceled', label: 'CANCELED SCHEDULES' },
   ];
 
-  // Filter
+  // --- FILTER & SORT HANDLERS ---
   const openFilter = () => {
     setTempSortKey(sortConfig.key);
     setTempSortOrder(sortConfig.order);
@@ -260,6 +267,7 @@ useEffect(() => {
     setTempShowNewPatient(showNewPatient);
     setShowFilterDropdown(true);
   };
+
   const applyFilters = () => {
     setSortConfig({ key: tempSortKey, order: tempSortOrder });
     setSelectedDoctors([...tempSelectedDoctors]);
@@ -267,6 +275,7 @@ useEffect(() => {
     setCurrentPage(1);
     setShowFilterDropdown(false);
   };
+
   const resetFilters = () => {
     setTempSortKey('date');
     setTempSortOrder('asc');
@@ -279,6 +288,7 @@ useEffect(() => {
     setShowFilterDropdown(false);
   };
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       {/* Title & Breadcrumb */}
@@ -295,7 +305,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* TABS */}
       <div className="w-full border border-gabay-blue overflow-hidden mb-6">
         <div className="grid grid-cols-5">
           {tabs.map(tab => (
@@ -319,7 +329,8 @@ useEffect(() => {
 
        {activeTab !== 'book' && (
         <>
-          {/* Toolbar */}
+
+          {/* TOOLBAR */}
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
             <div className="relative w-full lg:w-96">
               <input
@@ -336,7 +347,7 @@ useEffect(() => {
             </button>
           </div>
 
-          {/* Filter Dropdown */}
+          {/* FILTER DROPDOWN */}
           {showFilterDropdown && (
             <div className="relative">
               <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
@@ -356,7 +367,7 @@ useEffect(() => {
                 </div>
 
                 {/* Filter by Doctor */}
-                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'canceled') && (
+                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') && (
                   <div>
                     <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Filter by Doctor</p>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
@@ -385,7 +396,7 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Appointments List */}
+          {/* APPOINTMENT LIST */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginated.length === 0 ? (
               <div className="col-span-2 bg-white rounded-md shadow-sm border border-gray-100 p-6 text-center">
@@ -402,17 +413,20 @@ useEffect(() => {
                           <p className="font-poppins text-md text-gabay-navy">{app.hospitalNo}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium font-poppins ${
-                            app.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            app.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800' :
-                            app.status?.toLowerCase() === 'rescheduled' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                            app.status?.toLowerCase() === 'confirmed' ? 'bg-purple-100 text-purple-800' : 
-                            app.status?.toLowerCase() === 'booked' ? 'bg-blue-100 text-blue-800' :
-                            (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+                          
+                          {/* --- COLOR SCHEME --- */}
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
+                            app.status?.toLowerCase() === 'pending' ? 'bg-gray-100 text-gray-600 font-medium' :
+                            app.status?.toLowerCase() === 'approved' ? 'bg-orange-500 text-white font-bold' : 
+                            app.status?.toLowerCase() === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 font-bold border border-yellow-200' :
+                            app.status?.toLowerCase() === 'confirmed' ? 'bg-green-100 text-green-800 font-bold' : 
+                            app.status?.toLowerCase() === 'booked' ? 'bg-blue-100 text-blue-800 font-bold' :
+                            (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800 font-medium' :
+                            'bg-gray-100 text-gray-800 font-medium'
                           }`}>
                             {app.status ? app.status.toUpperCase() : 'UNKNOWN'}
                           </span>
+
                           {activeTab === 'pending' && (
                             <button onClick={() => { setSelectedAppointment(app); setModalMode('approve'); setModalOpen(true); }}
                               className="text-gabay-blue hover:text-gabay-navy transition" title="Approve">
@@ -442,7 +456,8 @@ useEffect(() => {
                         {activeTab === 'pending' && (
                           <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Requested Dates:</span> {app.requestedStartDate} - {app.requestedEndDate}</p>
                         )}
-                        {(activeTab === 'approved' || activeTab === 'canceled') && (
+                        
+                        {(activeTab === 'approved' || activeTab === 'canceled' || activeTab === 'confirmed') && (
                           <>
                             <p className="font-poppins text-sm text-gray-700 mb-2">
                               <span className="font-semibold">Appointment Date:</span>{' '}
@@ -466,7 +481,7 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Pagination */}
+          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center py-5 bg-gray-50 border-t border-gray-200 mt-6">
               <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="p-2 text-gabay-blue hover:bg-gray-200 rounded-full disabled:text-gray-300 disabled:bg-transparent disabled:cursor-not-allowed focus:outline-none transition-all"><ChevronLeft size={20} /></button>

@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 
+// --- FORGOT PASSWORD FLOW ---
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-
   const [formData, setFormData] = useState({
     email: '',
     otp: '',
@@ -22,6 +21,7 @@ const ForgotPassword = () => {
   const [serverError, setServerError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // --- TIMER FOR RESENDING OTP ---
   useEffect(() => {
     let interval;
     if (step === 2 && timer > 0) {
@@ -35,6 +35,7 @@ const ForgotPassword = () => {
     return () => clearInterval(interval);
   }, [step, timer]);
 
+  // --- RESEND OTP FUNCTION ---
   const handleResendOTP = async () => {
     setServerError('');
     try {
@@ -51,6 +52,7 @@ const ForgotPassword = () => {
     }
   };
 
+  // --- HANDLE INPUT CHANGES ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'otp' && !/^\d*$/.test(value)) return;
@@ -58,6 +60,7 @@ const ForgotPassword = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  // --- VALIDATION FUNCTIONS ---
   const validateStep1 = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
@@ -99,11 +102,11 @@ const ForgotPassword = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- HANDLE FORM SUBMISSIONS ---
   const handleNextStep = async (e) => {
     e.preventDefault();
     setServerError('');
     
-    // --- STEP 1: SEND EMAIL, GET OTP ---
     if (step === 1) {
       if (!validateStep1()) return;
       setIsProcessing(true);
@@ -114,15 +117,14 @@ const ForgotPassword = () => {
           body: JSON.stringify({ email: formData.email })
         });
         if (!response.ok) throw new Error("Failed to send OTP.");
-        setStep(2); // Move to OTP screen
+        setStep(2); 
       } catch (err) {
         setServerError(err.message);
       } finally {
         setIsProcessing(false);
       }
     } 
-    
-    // --- STEP 2: VERIFY OTP ---
+
     else if (step === 2) {
       if (!validateStep2()) return;
       setIsProcessing(true);
@@ -135,7 +137,7 @@ const ForgotPassword = () => {
         const data = await response.json();
         
         if (!response.ok) throw new Error(data.detail || "Invalid OTP.");
-        setStep(3); // Move to New Password screen
+        setStep(3); 
       } catch (err) {
         setServerError(err.message);
       } finally {
@@ -144,6 +146,7 @@ const ForgotPassword = () => {
     }
   };
 
+  // --- FINAL SUBMISSION TO RESET PASSWORD ---
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     setServerError('');
@@ -178,6 +181,7 @@ const ForgotPassword = () => {
   const buttonStyle = "bg-gabay-teal hover:bg-gabay-teal2 text-white font-montserrat font-bold py-2 px-12 rounded-full transition-all shadow-sm mt-3 uppercase tracking-wide";
   const errorTextStyle = "text-red-500 text-xs font-poppins mt-1 mb-2 block min-h-[16px]";
 
+  // --- MAIN RENDER ---
   return (
     <div className="h-screen w-screen bg-gabay-bg flex items-center justify-center p-8 overflow-hidden">
       <style>{`

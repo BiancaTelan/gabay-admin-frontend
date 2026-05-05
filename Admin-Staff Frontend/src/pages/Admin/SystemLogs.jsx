@@ -7,6 +7,7 @@ import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+// --- PRIORITY STYLES ---
 const priorityStyles = {
   CRITICAL: 'bg-red-100 text-red-500 border-red-200',
   HIGH: 'bg-orange-50 text-orange-400 border-orange-200',
@@ -16,8 +17,6 @@ const priorityStyles = {
 
 export default function SystemLogs() {
   const { token } = useContext(AuthContext);
-
-  // --- STATES ---
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
@@ -25,10 +24,8 @@ export default function SystemLogs() {
   const [hardware, setHardware] = useState({
     latency: 0, disk_percent: 0, disk_used_gb: 0, disk_total_gb: 0, server_status: 'LOADING...'
   });
-  
   const [systemData, setSystemData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [filters, setFilters] = useState({
     sortKey: 'date',
     sortOrder: 'desc',
@@ -166,6 +163,7 @@ export default function SystemLogs() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
+  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -201,7 +199,7 @@ export default function SystemLogs() {
             {showFilterDropdown && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5 max-h-[500px] overflow-y-auto">
                 
-                {/* 1. SORT BY SECTION */}
+                {/* SORT BY SECTION */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
                   <div className="space-y-3">
@@ -228,7 +226,7 @@ export default function SystemLogs() {
                   </div>
                 </div>
 
-                {/* 2. ISSUE TYPE SECTION */}
+                {/* ISSUE TYPE SECTION */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Issue Type</p>
                   <select 
@@ -245,7 +243,7 @@ export default function SystemLogs() {
                   </select>
                 </div>
 
-                {/* 3. PRIORITY LEVEL SECTION */}
+                {/* PRIORITY LEVEL SECTION */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Priority Level</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -289,7 +287,6 @@ export default function SystemLogs() {
         </div>
       </div>
 
-      {/* DASHBOARD CARDS */}
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatusCard 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Calendar as CalendarIcon, Tag, AlignLeft } from 'lucide-react';
+import { X, Calendar as CalendarIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReactDOM from 'react-dom';
 
@@ -16,6 +16,7 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
 
   const [formData, setFormData] = useState(initialState);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -34,6 +35,7 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
         type: defaultType
       });
       setErrors({});
+      setIsSubmitting(false);
     }
   }, [isOpen, initialDate, defaultType]);
 
@@ -45,7 +47,6 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
     const { name, value } = e.target;
     let finalValue = value;
 
-    // //EDIT: Auto-slash logic for MM/DD/YYYY (Requirement 2)
     if (name === 'date') {
       const digits = value.replace(/\D/g, '').substring(0, 8);
       if (digits.length > 4) {
@@ -65,7 +66,6 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
     let newErrors = {};
     if (!formData.title.trim()) newErrors.title = "Title is required";
     
-    // //EDIT: Validate MM/DD/YYYY format
     const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
     if (!formData.date) {
       newErrors.date = "Date is required";
@@ -77,16 +77,22 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-
-    if (onSave) {
-      onSave(formData);
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (onSave) {
+        await onSave(formData);
+      }
+      toast.success(`${formData.type === 'EVENT' ? 'Event' : 'Holiday'} added successfully!`);
+      
+    } catch (err) {
+      toast.error(`Failed to save ${formData.type.toLowerCase()}. Please try again.`);
+      setIsSubmitting(false);
     }
-
-    toast.success(`${formData.type === 'EVENT' ? 'Event' : 'Holiday'} added successfully!`);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -107,7 +113,7 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
               </h2>
               <p className="text-xs text-gray-400 mt-1 uppercase font-semibold tracking-widest">Calendar Management</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <button onClick={onClose} disabled={isSubmitting} className="text-gray-400 hover:text-gray-600 transition-colors">
               <X size={24} />
             </button>
           </div>
@@ -138,7 +144,6 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
               {errors.title && <p className="text-[10px] text-gabay-red font-bold">{errors.title}</p>}
             </div>
 
-            {/* //EDIT: Requirement 1 & 4 - Custom Icon and Native Picker Overlay */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gabay-blue flex items-center gap-2 uppercase tracking-wide"> Date </label>
               <div className="relative">
@@ -157,7 +162,6 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
                 >
                   <CalendarIcon size={18} />
                 </button>
-                {/* Hidden Native Picker for better placement (Requirement 4) */}
                 <input 
                   ref={nativePickerRef}
                   type="date"
@@ -184,9 +188,13 @@ export default function AddEvent({ isOpen, onClose, onSave, initialDate = null, 
             </div>
 
             <div className="flex gap-3 pt-4">
-              <button type="button" onClick={onClose} className="flex-1 py-2 border-2 border-gray-100 text-gray-400 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-all uppercase">Cancel</button>
-              <button type="submit" className={`flex-[2] py-2 ${themeColor} text-white text-sm font-semibold rounded-lg shadow-lg hover:opacity-90 transition-all uppercase tracking-wider`}>
-                Save {formData.type === 'EVENT' ? 'Event' : 'Holiday'}
+              <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-2 border-2 border-gray-100 text-gray-400 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-all uppercase">Cancel</button>
+              <button type="submit" disabled={isSubmitting} className={`flex-[2] py-2 ${themeColor} text-white text-sm font-semibold rounded-lg shadow-lg hover:opacity-90 transition-all uppercase tracking-wider flex items-center justify-center`}>
+                {isSubmitting ? (
+                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                   `Save ${formData.type === 'EVENT' ? 'Event' : 'Holiday'}`
+                )}
               </button>
             </div>
           </form>

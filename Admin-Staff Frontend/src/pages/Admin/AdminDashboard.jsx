@@ -10,6 +10,7 @@ import StatCard from '../../components/StatCard';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+// ADMIN DASHBOARD
 export default function AdminDashboard() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -17,9 +18,9 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('month');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
+  // Fetch Dashboard Data
   useEffect(() => {
     const fetchDashboard = async () => {
       setIsLoading(true);
@@ -39,6 +40,8 @@ export default function AdminDashboard() {
 
     if (token) fetchDashboard();
   }, [token, apiBase, filter]);
+
+  // Excel Report Generation
   const handleGenerateReport = async () => {
     if (!data) {
       toast.error("No data available to export.");
@@ -106,20 +109,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // --- RENDER ---
   if (isLoading || !data) return <div className="p-12 text-center text-gray-500 font-poppins">Loading Command Center...</div>;
 
+  // Calculation for Slot Capacity Chart
   const capacityPercent = data.total_slots > 0 ? Math.round((data.used_slots / data.total_slots) * 100) : 0;
   const capacityData = [
     { name: 'Used', value: data.used_slots, color: '#0ea5e9' }, 
     { name: 'Available', value: data.total_slots - data.used_slots, color: '#e0f2fe' }
   ];
 
+  // Helper for Filter Button Text
   const getFilterText = () => {
     if (filter === 'week') return 'This Week';
     if (filter === 'year') return 'This Year';
     return 'This Month';
   };
 
+  // Main Dashboard Render
   return (
     <div className="space-y-8 pb-12">
       {/* HEADER */}
@@ -166,7 +173,6 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          
           <button 
             onClick={handleGenerateReport}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-gabay-teal2 transition shadow-md"
@@ -241,7 +247,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* QUICK LINKS / ONLINE STAFF */}
+          {/* QUICK LINKS / PERSONNEL COUNT */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
             <Activity className="text-gabay-teal mb-3" size={32} />
             <h4 className="font-montserrat text-lg font-bold text-gabay-blue mb-1">Live Monitoring</h4>
