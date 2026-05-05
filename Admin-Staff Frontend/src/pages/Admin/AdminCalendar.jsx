@@ -132,30 +132,6 @@ export default function AdminCalendar() {
     }
   };
 
-  // Capacity Edit Handlers
-  const handleCapacitySave = async () => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/capacity`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ daily_capacity: dailyCapacity })
-      });
-      if (res.ok) {
-        setIsEditingCapacity(false);
-        setOriginalCapacity(dailyCapacity);
-        toast.success("Daily capacity updated successfully!");
-      }
-    } catch (e) {
-      toast.error("Failed to update capacity.");
-    }
-  };
-
-  // Cancel Capacity Edit
-  const cancelCapacityEdit = () => {
-      setDailyCapacity(originalCapacity);
-      setIsEditingCapacity(false);
-  }
-
   // Render Functions
   const renderHeader = () => (
     <div className="flex items-center justify-center gap-4 md:gap-8 mb-4">
@@ -255,28 +231,6 @@ export default function AdminCalendar() {
 
       {/* FOOTER SECTION */}
       <div className="mt-4 flex flex-row justify-between items-center gap-2">
-        <div className="flex items-center gap-1.5 text-gabay-teal font-semibold text-[10px] sm:text-base md:text-lg">
-          <span className="whitespace-nowrap">Daily Capacity:</span>
-          <div className="flex items-center gap-1">
-            <input 
-              type="number" 
-              disabled={!isEditingCapacity}
-              value={dailyCapacity}
-              onChange={(e) => setDailyCapacity(Number(e.target.value))}
-              className={`w-12 md:w-16 text-center focus:outline-none transition-all ${
-                isEditingCapacity ? 'border-b-2 border-gabay-teal bg-white font-bold' : 'bg-transparent text-gray-500'
-              }`}
-            />
-            {!isEditingCapacity ? (
-              <button onClick={() => setIsEditingCapacity(true)} className="text-gabay-teal p-1 border border-gabay-teal rounded hover:bg-teal-50"><Edit2 size={15}/></button>
-            ) : (
-              <div className="flex gap-1">
-                <button onClick={cancelCapacityEdit} className="text-orange-500"><X size={17}/></button>
-                <button onClick={handleCapacitySave} className="text-green-500"><Check size={17}/></button>
-              </div>
-            )}
-          </div>
-        </div>
 
         <div className="flex items-center gap-1.5 text-gray-400 font-semibold text-[10px] sm:text-base md:text-lg">
           <span className="whitespace-nowrap uppercase tracking-tighter">Go to:</span>
