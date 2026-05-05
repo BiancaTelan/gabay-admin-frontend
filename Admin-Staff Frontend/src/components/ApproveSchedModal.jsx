@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Button from '../components/button';
 
-export default function ApproveScheduleModal({ isOpen, onClose, appointment, onApprove, token }) {
+export default function ApproveScheduleModal({ isOpen, onClose, appointment, onApprove, token, onDeny }) {
   const [doctors, setDoctors] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState(appointment?.docID || '');
   const [allowedDays, setAllowedDays] = useState([]);
