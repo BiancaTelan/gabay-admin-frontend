@@ -5,7 +5,6 @@ import AddEvent from '../../components/AddEvent';
 import { AuthContext } from '../../authContext';
 import toast from 'react-hot-toast';
 
-// Admin Calendar Component
 export default function AdminCalendar() {
   const { token } = useContext(AuthContext);
   const [currentMonth, setCurrentMonth] = useState(new Date());
