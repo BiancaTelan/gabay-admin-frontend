@@ -11,6 +11,8 @@ import ExcelJS from 'exceljs';
 const statusStyles = {
   Approved: 'bg-amber-100 text-amber-700',
   Completed: 'bg-green-50 text-gabay-green',
+  Confirmed: 'bg-blue-50 text-blue-700',           // ADDED
+  Rescheduled: 'bg-purple-50 text-purple-700',
   Cancelled: 'bg-red-50 text-gabay-red',
   Pending: 'bg-gray-100 text-gray-400',
 };
@@ -28,7 +30,7 @@ export default function Appointments() {
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
-    statuses: ['Pending', 'Approved', 'Completed', 'Cancelled'],
+    statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'],
     deptTypes: ['General', 'Specialty']
   });
 
@@ -204,7 +206,7 @@ export default function Appointments() {
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Status</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['Pending', 'Approved', 'Completed', 'Cancelled'].map(s => (
+                    {['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'].map(s => (
                       <label key={s} className="flex items-center gap-2 text-sm font-poppins cursor-pointer group">
                         <input type="checkbox" checked={filters.statuses.includes(s)} onChange={(e) => {
                           const newStatus = e.target.checked ? [...filters.statuses, s] : filters.statuses.filter(x => x !== s);
