@@ -284,9 +284,15 @@ export default function AdminSettings() {
                       method: 'POST',
                       headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    if (response.ok) toast.success('Backup sequence initiated successfully!');
+                    
+                    if (response.ok) {
+                        toast.success('Backup sequence initiated successfully!');
+                    } else {
+                        const errData = await response.json();
+                        toast.error(errData.detail || 'Backup failed to start.');
+                    }
                   } catch (err) {
-                    toast.error('Backup failed to start.');
+                    toast.error('Network error. Check server logs.');
                   }
                 }}
               >
