@@ -45,14 +45,16 @@ export default function AdminLogin() {
     }
 
     try {
-      const formBody = new URLSearchParams();
-      formBody.append('username', formData.email); 
-      formBody.append('password', formData.password);
+      // 1. Switch from URLSearchParams to standard JSON
+      const payload = {
+        email: formData.email.trim(),
+        password: formData.password
+      };
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
-        body: formBody
+        headers: { 'Content-Type': 'application/json' }, // Unified JSON standard
+        body: JSON.stringify(payload)
       });
 
       const textResponse = await response.text();
@@ -64,9 +66,16 @@ export default function AdminLogin() {
       }
 
       if (!response.ok) {
-        const errMsg = data.detail || 'Invalid credentials provided.';
+        // 2. SAFEGUARD: Safely extract the error message whether it's a String or a 422 Array
+        let errMsg = 'Invalid credentials provided.';
+        if (typeof data.detail === 'string') {
+          errMsg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errMsg = data.detail[0].msg || 'Invalid data format.';
+        }
         
         const lowerErr = errMsg.toLowerCase();
+        
         if (lowerErr.includes('email') || lowerErr.includes('user') || lowerErr.includes('find')) {
           setErrors({ email: errMsg });
         } else if (lowerErr.includes('password') || lowerErr.includes('incorrect')) {
@@ -78,6 +87,8 @@ export default function AdminLogin() {
       }
 
       const userRole = data.role?.toUpperCase();
+      
+      // Prevent patients from logging into the admin portal
       if (userRole === 'PATIENT') {
         setErrors({ email: " ", password: "Unauthorized: Patients cannot access the personnel portal." });
         return;
@@ -106,7 +117,7 @@ export default function AdminLogin() {
       setServerError(error.message);
     }
   };
-
+  
   // Main Login Render
   return (
     <div className="relative min-h-screen flex items-center justify-center font-sans animate-in fade-in duration-500 text-left">

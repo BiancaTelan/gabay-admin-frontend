@@ -13,7 +13,6 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
-  // --- SETTINGS STATE ---
   const [settings, setSettings] = useState({
     startTime: "09:00 AM",
     endTime: "05:00 PM",
