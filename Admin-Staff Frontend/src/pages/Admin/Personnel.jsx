@@ -53,7 +53,7 @@ export default function Personnel() {
         body: JSON.stringify({
           firstname: newDoctor.firstname,
           surname: newDoctor.surname,
-          deptID: newDoctor.deptID,
+          deptIDs: newDoctor.deptIDs || [],
           workingDays: newDoctor.schedule || "Unassigned",
           workingHours: newDoctor.time || "Unassigned"
         })
@@ -131,7 +131,7 @@ export default function Personnel() {
       ...person,
       firstname: fName,
       surname: sName,
-      deptID: person.deptID || '' 
+      deptIDs: person.deptIDs || '' 
     });
     
     setIsEditModalOpen(true);
@@ -148,7 +148,7 @@ export default function Personnel() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           role: editingPerson.role,
-          deptID: editingPerson.deptID ? parseInt(editingPerson.deptID) : null, 
+          deptIDs: editingPerson.deptIDs || [], 
           workingDays: editingPerson.schedule,
           workingHours: editingPerson.time,
           firstname: editingPerson.firstname, 
@@ -335,28 +335,62 @@ export default function Personnel() {
             </div>
           </div>
 
-          {/* DEPARTMENT */}
-          {/* DYNAMIC DEPARTMENT DROPDOWN */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Department</label>
-                <select 
-                  className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" 
-                  
-                  value={editingPerson?.deptID || newDoctor?.deptID || ''} 
-                  onChange={e => {
-                    const val = Number(e.target.value);
-                    if (isEditModalOpen) setEditingPerson({...editingPerson, deptID: val});
-                    if (isAddModalOpen) setNewDoctor({...newDoctor, deptID: val});
-                  }}
-                >
-                  <option value="" disabled>Select a Department...</option>
-                  {departments.map(dept => (
-                    <option key={dept.deptID} value={dept.deptID}>
-                      {dept.department} ({dept.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
+         {/* MULTI-SELECT DEPARTMENT UI */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Departments *</label>
+            <select 
+              className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" 
+              value="" // Keep empty so it acts as a trigger
+              onChange={e => {
+                const val = Number(e.target.value);
+                if (isEditModalOpen) {
+                  setEditingPerson(prev => ({
+                    ...prev,
+                    deptIDs: prev.deptIDs?.includes(val) ? prev.deptIDs : [...(prev.deptIDs || []), val]
+                  }));
+                }
+                if (isAddModalOpen) {
+                  setNewDoctor(prev => ({
+                    ...prev,
+                    deptIDs: prev.deptIDs?.includes(val) ? prev.deptIDs : [...(prev.deptIDs || []), val]
+                  }));
+                }
+              }}
+            >
+              <option value="" disabled>+ Add Department</option>
+              {departments.map(dept => (
+                <option key={dept.deptID} value={dept.deptID}>
+                  {dept.department} ({dept.type})
+                </option>
+              ))}
+            </select>
+
+            {/* Selected Departments Tags / Pills */}
+            <div className="flex flex-wrap gap-2 mt-2">
+              {(isEditModalOpen ? editingPerson?.deptIDs : newDoctor?.deptIDs)?.map(id => {
+                const dept = departments.find(d => d.deptID === id);
+                return dept ? (
+                  <div key={id} className="flex items-center gap-1 bg-teal-50 text-gabay-teal px-3 py-1 rounded-md text-xs font-medium border border-teal-100">
+                    {dept.department}
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (isEditModalOpen) {
+                          setEditingPerson(prev => ({ ...prev, deptIDs: prev.deptIDs.filter(d => d !== id) }));
+                        } else {
+                          setNewDoctor(prev => ({ ...prev, deptIDs: prev.deptIDs.filter(d => d !== id) }));
+                        }
+                      }} 
+                      className="hover:text-red-500 ml-1 transition-colors"
+                    >
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+
 
           {/* ROLES */}
           <div>
