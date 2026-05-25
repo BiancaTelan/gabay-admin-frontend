@@ -466,14 +466,6 @@ export default function Personnel() {
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
-                <th className="px-4 py-4 text-center">
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAll}
-                    checked={selectedIds.length === pagedData.length && pagedData.length > 0}
-                    className="w-4 h-4 bg-gabay-blue"
-                  />
-                </th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Employee ID</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Role</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Name</th>
@@ -491,14 +483,6 @@ export default function Personnel() {
                   className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(person.id) ? 'bg-blue-50/50' : ''}`}
                   onClick={() => toggleSelection(person.id)}
                 >
-                  <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedIds.includes(person.id)}
-                      onChange={() => toggleSelection(person.id)}
-                      className="w-4 h-4 bg-gabay-blue"
-                    />
-                  </td>
                   <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{person.id}</td>
                   <td className="px-4 py-4">
                      <span className={`px-3 py-0.5 rounded-full text-[12px] md:text-[11px] font-poppins font-bold ${
