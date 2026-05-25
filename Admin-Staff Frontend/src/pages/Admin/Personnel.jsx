@@ -263,8 +263,8 @@ export default function Personnel() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue">Personnel List</h1>
-        <p className="text-xs md:text-sm font-poppins text-gray-500">Main Menu &gt; Personnel</p>
+        <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue">Doctor List</h1>
+        <p className="text-xs md:text-sm font-poppins text-gray-500">Main Menu &gt; Doctors</p>
       </div>
 
       {/* TOOLBAR */}
