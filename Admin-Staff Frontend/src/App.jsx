@@ -19,6 +19,7 @@ import StaffNotifs from './pages/Staff/StaffNotifs';
 import AdminLogin from './pages/Admin/AdminLogin';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import Patient from './pages/Admin/Patient';
 import Users from './pages/Admin/Users';
 import Personnel from './pages/Admin/Personnel';
 import Departments from './pages/Admin/Departments';
@@ -121,6 +122,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="patient" element={<Patient />} />
               <Route path="users" element={<Users />} />
               <Route path="personnel" element={<Personnel />} />
               <Route path="departments" element={<Departments />} />
