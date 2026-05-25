@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserRoundCog, Building2, 
   CalendarCheck, Activity, Terminal, FileBarChart, 
-  LogOut, Settings, Menu 
+  LogOut, Settings, Menu, Stethoscope 
 } from 'lucide-react';
 import { AuthContext } from '../authContext';
 import ConfirmationModal from '../components/confirmModal'; 
@@ -21,8 +21,8 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
       title: "MAIN MENU",
       items: [
         { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={22} /> },
-        { name: 'Users', path: '/admin/users', icon: <Users size={22} /> },
-        { name: 'Personnel', path: '/admin/personnel', icon: <UserRoundCog size={22} /> },
+        { name: 'Personnel', path: '/admin/users', icon: <UserRoundCog size={22} /> },
+        { name: 'Doctors', path: '/admin/personnel', icon: <Stethoscope size={22} /> },
         { name: 'Departments', path: '/admin/departments', icon: <Building2 size={22} /> },
         { name: 'Appointments', path: '/admin/appointments', icon: <CalendarCheck size={22} /> },
       ]
