@@ -17,13 +17,20 @@ export default function Users() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newUser, setNewUser] = useState({
-    firstname: '', surname: '', email: '', role: 'Staff', 
+    firstname: '', surname: '', email: '', role: 'Staff', departments: [],
     position: 'Nurse', gender: 'Female', contactNumber: ''
   });
 
   // --- CREATE USER LOGIC ---
   const handleCreateUser = async (e) => {
     e.preventDefault();
+
+    // Fix 2a: Moved validation to the top to block submission early.
+    if (!newUser.departments || newUser.departments.length === 0) {
+      alert("Please assign at least one department before creating an account.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -51,7 +58,7 @@ export default function Users() {
       toast.success(`${newUser.firstname}'s account created! An email with their password has been sent.`);
       
       setIsAddModalOpen(false);
-      setNewUser({ firstname: '', surname: '', email: '', role: 'Staff', position: 'Nurse', gender: 'Female', contactNumber: '' });
+      setNewUser({ firstname: '', surname: '', email: '', role: 'Staff', departments: [], position: 'Nurse', gender: 'Female', contactNumber: '' });
       
       setTimeout(() => {
         window.location.reload(); 
@@ -81,6 +88,13 @@ export default function Users() {
   // --- UPDATE USER LOGIC ---
   const handleUpdateUser = async (e) => {
     e.preventDefault();
+
+    // Fix 2b: Moved validation to the top to block submission early.
+    if (!editingUser.departments || editingUser.departments.length === 0) {
+      alert("Personnel must be assigned to at least one department.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${editingUser.raw_id}`, {
@@ -90,6 +104,7 @@ export default function Users() {
           firstname: editingUser.firstname,
           surname: editingUser.surname,
           role: editingUser.role,
+          departments: editingUser.departments,
           position: editingUser.position,
           gender: editingUser.gender,
           contactNumber: editingUser.phone,
@@ -151,6 +166,7 @@ export default function Users() {
       { header: 'Full Name', key: 'name', width: 25 },
       { header: 'Email Address', key: 'email', width: 30 },
       { header: 'System Role', key: 'role', width: 15 },
+      { header: 'Department/s', key: 'departments', width: 50 },
       { header: 'Job Position', key: 'position', width: 25 },
       { header: 'Gender', key: 'gender', width: 12 },
       { header: 'Contact Number', key: 'phone', width: 20 },
@@ -164,6 +180,8 @@ export default function Users() {
         name: user.name,
         email: user.email,
         role: user.role,
+        // Fix 3: Formatted array to comma-separated text for Excel formatting.
+        departments: (user.departments && user.departments.length > 0) ? user.departments.join(', ') : 'N/A',
         position: user.position,
         gender: user.gender,
         phone: user.phone,
@@ -277,12 +295,6 @@ export default function Users() {
   const pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
-
-  // --- SELECTION LOGIC ---
-  const handleSelectAll = (e) => {
-    if (e.target.checked) setSelectedIds(pagedData.map(i => i.id));
-    else setSelectedIds([]);
-  };
 
   // --- TOGGLE SELECTION ---
   const toggleSelection = (id) => {
@@ -412,52 +424,52 @@ export default function Users() {
             Loading personnel data...
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[1000px]">
-            <thead className="bg-gabay-blue font-poppins text-white select-none">
-              <tr>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Hospital Number</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Name</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Email</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Gender</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Phone Number</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Status</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Join Date</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {pagedData.map((user) => (
-                <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(user.id) ? 'bg-blue-50/50' : ''}`} onClick={() => toggleSelection(user.id)}>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{user.id}</td>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gabay-blue font-medium">{user.name}</td>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.email}</td>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.gender}</td>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.phone}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5 text-[12px] uppercase font-poppins font-medium text-gray-700">
-                      <div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-gabay-green' : user.status === 'Deactivated' ? 'bg-gabay-orange' : user.status === 'Offline' ? 'bg-gray-400' : 'bg-gabay-red'}`} />
-                      {user.status}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.joinDate}</td>
-                  <td className="px-4 py-4 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button onClick={() => handleOpenEdit(user)} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit User">
-                        <Edit3 size={18}/>
-                      </button>
-                      {user.role !== 'Admin' && (
-                        <button onClick={() => confirmDelete(user.raw_id, user.name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors" title="Deactivate User">
-                          <MinusCircle size={18}/>
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[1000px]">
+              <thead className="bg-gabay-blue font-poppins text-white select-none">
+                <tr>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Hospital Number</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Gender</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Phone Number</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Join Date</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table> 
-        </div>)}
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {pagedData.map((user) => (
+                  <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(user.id) ? 'bg-blue-50/50' : ''}`} onClick={() => toggleSelection(user.id)}>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{user.id}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gabay-blue font-medium">{user.name}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.email}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.gender}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.phone}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5 text-[12px] uppercase font-poppins font-medium text-gray-700">
+                        <div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-gabay-green' : user.status === 'Deactivated' ? 'bg-gabay-orange' : user.status === 'Offline' ? 'bg-gray-400' : 'bg-gabay-red'}`} />
+                        {user.status}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.joinDate}</td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleOpenEdit(user)} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit User">
+                          <Edit3 size={18}/>
+                        </button>
+                        {user.role !== 'Admin' && (
+                          <button onClick={() => confirmDelete(user.raw_id, user.name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors" title="Deactivate User">
+                            <MinusCircle size={18}/>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table> 
+          </div>)}
 
         {/* PAGE RESULTS */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -506,6 +518,50 @@ export default function Users() {
                     <option value="Admin">Admin</option>
                   </select>
                 </div>
+                
+                {/* ADD MODAL - DEPARTMENT MULTI-SELECT */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
+                  <select 
+                    className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" 
+                    value="" 
+                    onChange={e => {
+                      const selectedVal = e.target.value;
+                      if (selectedVal && !newUser.departments?.includes(selectedVal)) {
+                        const updatedDeps = [...(newUser.departments || []), selectedVal];
+                        setNewUser({...newUser, departments: updatedDeps});
+                      }
+                    }}
+                  >
+                    <option value="" disabled>+ Add Department</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Dentistry">Dentistry</option>
+                    <option value="Internal Medicine">Internal Medicine</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                  </select>
+
+                  {/* VISUAL DISPLAY FOR ADDED DEPARTMENTS */}
+                  {newUser.departments && newUser.departments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {newUser.departments.map((dep, index) => (
+                        <span key={index} className="inline-flex items-center gap-1 bg-blue-50 text-gabay-blue border border-blue-200 px-2.5 py-1 rounded-md text-xs font-medium">
+                          {dep}
+                          <button 
+                            type="button" 
+                            className="hover:text-red-500 font-bold ml-1 transition"
+                            onClick={() => {
+                              const filteredDeps = newUser.departments.filter(d => d !== dep);
+                              setNewUser({...newUser, departments: filteredDeps});
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Job Position</label>
                   <input type="text" required placeholder="e.g. Head Nurse" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.position} onChange={e => setNewUser({...newUser, position: e.target.value})} />
@@ -567,6 +623,50 @@ export default function Users() {
                     <option value="Admin">Admin</option>
                   </select>
                 </div>
+                
+                {/* EDIT MODAL - DEPARTMENT MULTI-SELECT */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
+                  <select 
+                    className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" 
+                    value="" 
+                    onChange={e => {
+                      const selectedVal = e.target.value;
+                      if (selectedVal && !editingUser.departments?.includes(selectedVal)) {
+                        const updatedDeps = [...(editingUser.departments || []), selectedVal];
+                        setEditingUser({...editingUser, departments: updatedDeps});
+                      }
+                    }}
+                  >
+                    <option value="" disabled>+ Add Department</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Dentistry">Dentistry</option>
+                    <option value="Internal Medicine">Internal Medicine</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                  </select>
+
+                  {/* VISUAL DISPLAY FOR EDITING DEPARTMENTS */}
+                  {editingUser.departments && editingUser.departments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {editingUser.departments.map((dep, index) => (
+                        <span key={index} className="inline-flex items-center gap-1 bg-teal-50 text-gabay-teal border border-teal-200 px-2.5 py-1 rounded-md text-xs font-medium">
+                          {dep}
+                          <button 
+                            type="button" 
+                            className="hover:text-red-500 font-bold ml-1 transition"
+                            onClick={() => {
+                              const filteredDeps = editingUser.departments.filter(d => d !== dep);
+                              setEditingUser({...editingUser, departments: filteredDeps});
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Job Position</label>
                   <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.position} onChange={e => setEditingUser({...editingUser, position: e.target.value})} />
@@ -596,39 +696,44 @@ export default function Users() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* Fix 4: Restored Missing Deactivate Confirmation Modal UI Render markup */}
       {isDeleteModalOpen && userToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden font-poppins text-center">
-            
-            <div className="p-6 pt-8">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                <AlertTriangle size={32} />
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 font-poppins scale-100 animate-fade-in-down">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-3 rounded-full bg-red-100 text-red-600 border border-red-200">
+                <AlertTriangle size={24} strokeWidth={2.5}/>
               </div>
-              
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Are you sure?</h3>
-              <p className="text-sm text-gray-500 px-4">
-                You are about to deactivate <strong className="text-gray-800">{userToDelete.name}</strong>'s account. 
-                They will immediately be logged out and lose access to the GABAY System.
+              <h2 className="text-xl font-bold text-gray-900">Deactivate Personnel?</h2>
+            </div>
+            
+            <div className="space-y-4 mb-8">
+              <p className="text-sm text-gray-600 leading-relaxed">
+                You are about to deactivate the account for <strong className="text-gabay-blue">{userToDelete.name}</strong>.
               </p>
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-red-700 text-xs flex items-start gap-2.5">
+                <AlertTriangle className="flex-shrink-0 mt-0.5" size={16}/>
+                <span>The user will lose all access to the system immediately. This action can be reversed later via the 'Edit' panel.</span>
+              </div>
             </div>
 
-            <div className="flex justify-center gap-3 p-6 pt-2 bg-gray-50 border-t mt-4">
+            <div className="flex gap-3 justify-end">
               <button 
+                type="button" 
                 onClick={() => setIsDeleteModalOpen(false)} 
-                className="px-6 py-2.5 text-sm font-medium text-gray-600 bg-white border hover:bg-gray-50 rounded-lg transition"
+                className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition duration-200"
               >
                 Cancel
               </button>
               <button 
+                type="button" 
                 onClick={executeDelete} 
-                disabled={isSubmitting} 
-                className="px-6 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition disabled:opacity-50"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-gabay-red rounded-lg shadow hover:bg-opacity-90 transition duration-200 disabled:opacity-50"
               >
-                {isSubmitting ? 'Deactivating...' : 'Yes, Deactivate'}
+                {isSubmitting ? 'Deactivating...' : 'Confirm Deactivation'}
               </button>
             </div>
-
           </div>
         </div>
       )}
