@@ -60,7 +60,7 @@ export default function AdminNotifs() {
           <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue flex items-center gap-3">
             System Notifications
             {unreadCount > 0 && (
-              <span className="bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full animate-pulse shadow-sm">
+              <span className="bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm">
                 {unreadCount} New
               </span>
             )}

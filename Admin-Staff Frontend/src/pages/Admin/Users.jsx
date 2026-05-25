@@ -21,13 +21,32 @@ export default function Users() {
     position: 'Nurse', gender: 'Female', contactNumber: ''
   });
 
+  // --- VALIDATION ERROR STATES ---
+  const [addErrors, setAddErrors] = useState({});
+  const [editErrors, setEditErrors] = useState({});
+
+  // --- VALIDATION ENGINE ---
+  const validateUserForm = (userData) => {
+    const errors = {};
+    if (!userData.firstname?.trim()) errors.firstname = "First name is required.";
+    if (!userData.surname?.trim()) errors.surname = "Surname is required.";
+    if (!userData.email?.trim()) errors.email = "Email address is required.";
+    if (!userData.departments || userData.departments.length === 0) {
+      errors.departments = "Personnel must be assigned to at least one department.";
+    }
+    if (!userData.position?.trim()) errors.position = "Job position is required.";
+    return errors;
+  };
+
   // --- CREATE USER LOGIC ---
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    setAddErrors({});
 
-    // Fix 2a: Moved validation to the top to block submission early.
-    if (!newUser.departments || newUser.departments.length === 0) {
-      alert("Please assign at least one department before creating an account.");
+    // Inline validation replaces browser alerts
+    const errors = validateUserForm(newUser);
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
       return;
     }
 
@@ -58,6 +77,7 @@ export default function Users() {
       toast.success(`${newUser.firstname}'s account created! An email with their password has been sent.`);
       
       setIsAddModalOpen(false);
+      setAddErrors({});
       setNewUser({ firstname: '', surname: '', email: '', role: 'Staff', departments: [], position: 'Nurse', gender: 'Female', contactNumber: '' });
       
       setTimeout(() => {
@@ -81,6 +101,7 @@ export default function Users() {
 
   // --- EDIT USER LOGIC ---
   const handleOpenEdit = (user) => {
+    setEditErrors({});
     setEditingUser({...user}); 
     setIsEditModalOpen(true);
   };
@@ -88,10 +109,12 @@ export default function Users() {
   // --- UPDATE USER LOGIC ---
   const handleUpdateUser = async (e) => {
     e.preventDefault();
+    setEditErrors({});
 
-    // Fix 2b: Moved validation to the top to block submission early.
-    if (!editingUser.departments || editingUser.departments.length === 0) {
-      alert("Personnel must be assigned to at least one department.");
+    // Inline validation replaces browser alerts
+    const errors = validateUserForm(editingUser);
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
       return;
     }
 
@@ -116,6 +139,7 @@ export default function Users() {
       
       toast.success('User updated successfully!');
       setIsEditModalOpen(false);
+      setEditErrors({});
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       toast.error(error.message);
@@ -180,7 +204,6 @@ export default function Users() {
         name: user.name,
         email: user.email,
         role: user.role,
-        // Fix 3: Formatted array to comma-separated text for Excel formatting.
         departments: (user.departments && user.departments.length > 0) ? user.departments.join(', ') : 'N/A',
         position: user.position,
         gender: user.gender,
@@ -325,7 +348,7 @@ export default function Users() {
           </div>
           
           <button 
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => { setAddErrors({}); setIsAddModalOpen(true); }}
             className="whitespace-nowrap flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-opacity-90 transition shadow-sm"
           >
             <Plus size={16} /> <span className="hidden sm:inline"> New User</span><span className="sm:hidden">New User</span>
@@ -490,30 +513,48 @@ export default function Users() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden font-poppins">
             <div className="bg-gabay-blue px-6 py-4 flex justify-between items-center text-white">
               <h2 className="text-lg font-bold">Add New Personnel</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="hover:text-gray-300 transition"><X size={20}/></button>
+              <button onClick={() => { setIsAddModalOpen(false); setAddErrors({}); }} className="hover:text-gray-300 transition"><X size={20}/></button>
             </div>
             
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4" noValidate>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.firstname} onChange={e => setNewUser({...newUser, firstname: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${addErrors.firstname ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={newUser.firstname} 
+                    onChange={e => { setNewUser({...newUser, firstname: e.target.value}); setAddErrors(p => ({...p, firstname: null})); }} 
+                  />
+                  {addErrors.firstname && <p className="text-red-500 text-[11px] mt-1 font-medium">{addErrors.firstname}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.surname} onChange={e => setNewUser({...newUser, surname: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${addErrors.surname ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={newUser.surname} 
+                    onChange={e => { setNewUser({...newUser, surname: e.target.value}); setAddErrors(p => ({...p, surname: null})); }} 
+                  />
+                  {addErrors.surname && <p className="text-red-500 text-[11px] mt-1 font-medium">{addErrors.surname}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                  <input type="email" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
+                  <input 
+                    type="email" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${addErrors.email ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={newUser.email} 
+                    onChange={e => { setNewUser({...newUser, email: e.target.value}); setAddErrors(p => ({...p, email: null})); }} 
+                  />
+                  {addErrors.email && <p className="text-red-500 text-[11px] mt-1 font-medium">{addErrors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Number</label>
-                  <input type="text" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.contactNumber} onChange={e => setNewUser({...newUser, contactNumber: e.target.value})} />
+                  <input type="text" className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.contactNumber} onChange={e => setNewUser({...newUser, contactNumber: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
+                  <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
                     <option value="Staff">Staff</option>
                     <option value="Admin">Admin</option>
                   </select>
@@ -523,10 +564,11 @@ export default function Users() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
                   <select 
-                    className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${addErrors.departments ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
                     value="" 
                     onChange={e => {
                       const selectedVal = e.target.value;
+                      setAddErrors(p => ({...p, departments: null}));
                       if (selectedVal && !newUser.departments?.includes(selectedVal)) {
                         const updatedDeps = [...(newUser.departments || []), selectedVal];
                         setNewUser({...newUser, departments: updatedDeps});
@@ -539,6 +581,7 @@ export default function Users() {
                     <option value="Internal Medicine">Internal Medicine</option>
                     <option value="Pediatrics">Pediatrics</option>
                   </select>
+                  {addErrors.departments && <p className="text-red-500 text-[11px] mt-1 font-medium">{addErrors.departments}</p>}
 
                   {/* VISUAL DISPLAY FOR ADDED DEPARTMENTS */}
                   {newUser.departments && newUser.departments.length > 0 && (
@@ -564,11 +607,18 @@ export default function Users() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Job Position</label>
-                  <input type="text" required placeholder="e.g. Head Nurse" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.position} onChange={e => setNewUser({...newUser, position: e.target.value})} />
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Head Nurse" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${addErrors.position ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={newUser.position} 
+                    onChange={e => { setNewUser({...newUser, position: e.target.value}); setAddErrors(p => ({...p, position: null})); }} 
+                  />
+                  {addErrors.position && <p className="text-red-500 text-[11px] mt-1 font-medium">{addErrors.position}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.gender} onChange={e => setNewUser({...newUser, gender: e.target.value})}>
+                  <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" value={newUser.gender} onChange={e => setNewUser({...newUser, gender: e.target.value})}>
                     <option value="Female">Female</option>
                     <option value="Male">Male</option>
                   </select>
@@ -576,7 +626,7 @@ export default function Users() {
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button type="button" onClick={() => { setIsAddModalOpen(false); setAddErrors({}); }} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="px-5 py-2 text-sm font-medium text-white bg-gabay-blue hover:bg-opacity-90 rounded-lg transition disabled:opacity-50">
                   {isSubmitting ? 'Creating...' : 'Create Account'}
                 </button>
@@ -592,33 +642,45 @@ export default function Users() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden font-poppins">
             <div className="bg-gabay-teal px-6 py-4 flex justify-between items-center text-white">
               <h2 className="text-lg font-bold">Edit Personnel Profile</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="hover:text-gray-200 transition"><X size={20}/></button>
+              <button onClick={() => { setIsEditModalOpen(false); setEditErrors({}); }} className="hover:text-gray-200 transition"><X size={20}/></button>
             </div>
             
-            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateUser} className="p-6 space-y-4" noValidate>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.firstname} onChange={e => setEditingUser({...editingUser, firstname: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${editErrors.firstname ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={editingUser.firstname} 
+                    onChange={e => { setEditingUser({...editingUser, firstname: e.target.value}); setEditErrors(p => ({...p, firstname: null})); }} 
+                  />
+                  {editErrors.firstname && <p className="text-red-500 text-[11px] mt-1 font-medium">{editErrors.firstname}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.surname} onChange={e => setEditingUser({...editingUser, surname: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${editErrors.surname ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={editingUser.surname} 
+                    onChange={e => { setEditingUser({...editingUser, surname: e.target.value}); setEditErrors(p => ({...p, surname: null})); }} 
+                  />
+                  {editErrors.surname && <p className="text-red-500 text-[11px] mt-1 font-medium">{editErrors.surname}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Number</label>
-                  <input type="text" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.phone} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} />
+                  <input type="text" className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.phone} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Account Status</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.status} onChange={e => setEditingUser({...editingUser, status: e.target.value})}>
+                  <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.status} onChange={e => setEditingUser({...editingUser, status: e.target.value})}>
                     <option value="Active">Active</option>
                     <option value="Deactivated">Deactivated</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})}>
+                  <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})}>
                     <option value="Staff">Staff</option>
                     <option value="Admin">Admin</option>
                   </select>
@@ -628,10 +690,11 @@ export default function Users() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
                   <select 
-                    className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${editErrors.departments ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
                     value="" 
                     onChange={e => {
                       const selectedVal = e.target.value;
+                      setEditErrors(p => ({...p, departments: null}));
                       if (selectedVal && !editingUser.departments?.includes(selectedVal)) {
                         const updatedDeps = [...(editingUser.departments || []), selectedVal];
                         setEditingUser({...editingUser, departments: updatedDeps});
@@ -644,6 +707,7 @@ export default function Users() {
                     <option value="Internal Medicine">Internal Medicine</option>
                     <option value="Pediatrics">Pediatrics</option>
                   </select>
+                  {editErrors.departments && <p className="text-red-500 text-[11px] mt-1 font-medium">{editErrors.departments}</p>}
 
                   {/* VISUAL DISPLAY FOR EDITING DEPARTMENTS */}
                   {editingUser.departments && editingUser.departments.length > 0 && (
@@ -669,11 +733,17 @@ export default function Users() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Job Position</label>
-                  <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.position} onChange={e => setEditingUser({...editingUser, position: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${editErrors.position ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={editingUser.position} 
+                    onChange={e => { setEditingUser({...editingUser, position: e.target.value}); setEditErrors(p => ({...p, position: null})); }} 
+                  />
+                  {editErrors.position && <p className="text-red-500 text-[11px] mt-1 font-medium">{editErrors.position}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.gender} onChange={e => setEditingUser({...editingUser, gender: e.target.value})}>
+                  <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-teal" value={editingUser.gender} onChange={e => setEditingUser({...editingUser, gender: e.target.value})}>
                     <option value="Female">Female</option>
                     <option value="Male">Male</option>
                     <option value="N/A">N/A</option>
@@ -681,12 +751,12 @@ export default function Users() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1">Email (Cannot be changed)</label>
-                  <input type="text" disabled className="w-full border p-2 rounded-lg text-sm bg-gray-100 text-gray-400" value={editingUser.email} />
+                  <input type="text" disabled className="w-full border p-2 rounded-lg text-sm bg-gray-100 text-gray-400 border-gray-300" value={editingUser.email} />
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button type="button" onClick={() => { setIsEditModalOpen(false); setEditErrors({}); }} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="px-5 py-2 text-sm font-medium text-white bg-gabay-teal hover:bg-opacity-90 rounded-lg transition disabled:opacity-50">
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -696,7 +766,7 @@ export default function Users() {
         </div>
       )}
 
-      {/* Fix 4: Restored Missing Deactivate Confirmation Modal UI Render markup */}
+      {/* DEACTIVATE CONFIRMATION MODAL */}
       {isDeleteModalOpen && userToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 font-poppins scale-100 animate-fade-in-down">
