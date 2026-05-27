@@ -3,8 +3,8 @@ import { Search, Download, Funnel, Plus, Edit3, Eye, CheckCircle2, MinusCircle, 
 import { AuthContext } from '../../authContext'; 
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
-import AddPersonnelModal from './AddPersonnelModal';
-import UserStatusModal from './UserStatusModal';
+import AddPersonnelModal from '../components/AddPersonnelModal';
+import UserStatusModal from '../components/UserStatusModal';
 
 export default function Users() {
   const { token } = useContext(AuthContext);
