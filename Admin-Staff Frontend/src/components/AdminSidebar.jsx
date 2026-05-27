@@ -21,6 +21,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
       title: "MAIN MENU",
       items: [
         { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={22} /> },
+        { name: 'Patient', path: '/admin/patient', icon: <User size={22} /> },
         { name: 'Personnel', path: '/admin/users', icon: <UserRoundCog size={22} /> },
         { name: 'Doctors', path: '/admin/personnel', icon: <Stethoscope size={22} /> },
         { name: 'Departments', path: '/admin/departments', icon: <Building2 size={22} /> },

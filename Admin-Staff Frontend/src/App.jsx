@@ -28,6 +28,7 @@ import SystemLogs from './pages/Admin/SystemLogs';
 import AdminNotifs from './pages/Admin/AdminNotifs';
 import AdminCalendar from './pages/Admin/AdminCalendar';
 import AdminSettings from './pages/Admin/AdminSettings';
+import Patient from './pages/Admin/Patient';
 
 import PersonnelAccount from './pages/Admin/PersonnelAccount';
 
@@ -121,6 +122,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="patients" element={<Patient />} />
               <Route path="users" element={<Users />} />
               <Route path="personnel" element={<Personnel />} />
               <Route path="departments" element={<Departments />} />
