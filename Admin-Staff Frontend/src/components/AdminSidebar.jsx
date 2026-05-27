@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserRoundCog, Building2, 
   CalendarCheck, Activity, Terminal, FileBarChart, 
-  LogOut, Settings, Menu, Stethoscope 
+  LogOut, Settings, Menu, Stethoscope, User
 } from 'lucide-react';
 import { AuthContext } from '../authContext';
 import ConfirmationModal from '../components/confirmModal'; 
