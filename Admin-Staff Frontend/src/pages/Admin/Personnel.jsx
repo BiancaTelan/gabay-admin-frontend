@@ -3,7 +3,7 @@ import { Search, Download, Funnel, Plus, Edit3, Trash2, ChevronLeft, ChevronRigh
 import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
-import AddDoctorModal from '../components/AddDoctorModal';
+import AddDoctorModal from './AddDoctorModal';
 
 export default function Personnel() {
   const { token } = useContext(AuthContext);
