@@ -6,6 +6,7 @@ import {
 import { AuthContext } from '../../authContext'; 
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
+import UserStatusModal from '../../components/UserStatusModal';
 
 export default function Patient() {
   const { token } = useContext(AuthContext);
@@ -17,6 +18,11 @@ export default function Patient() {
   const [patientsData, setPatientsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusModal, setStatusModal] = useState({
+    isOpen: false,
+    patient: null,
+    actionType: ''
+  });
 
   const [filters, setFilters] = useState({
     sortKey: 'name',
