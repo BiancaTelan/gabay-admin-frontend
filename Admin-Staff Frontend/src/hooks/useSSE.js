@@ -5,7 +5,7 @@ export default function useSSE(endpoint, token) {
   const [liveEvent, setLiveEvent] = useState(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!endpoint || !token) return;
 
     const url = `${import.meta.env.VITE_API_BASE_URL}${endpoint}?token=${token}`;
     const eventSource = new EventSource(url);

@@ -16,12 +16,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.getItem('gabay_admin_last_read') || '2000-01-01T00:00:00.000Z'
   );
 
+  const safeRole = userRole ? userRole.toUpperCase() : null;
+
   // --- REAL-TIME SSE CONNECTION ---
-  const sseEndpoint = userRole === 'ADMIN' 
+  const sseEndpoint = safeRole === 'ADMIN' 
     ? '/api/admin/notifications/stream' 
-    : (userRole === 'STAFF' ? '/api/staff/notifications/stream' : null);
-    
-  const liveEvent = useSSE(sseEndpoint, token);
+    : (safeRole === 'STAFF' ? '/api/staff/notifications/stream' : null);
+
+    const liveEvent = useSSE(sseEndpoint, token);
 
   useEffect(() => {
     if (liveEvent) {
@@ -51,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   // --- PROFILE PHOTO SYNC ---
   useEffect(() => {
     if (token && userRole) {
-      const apiBase = userRole === 'ADMIN' ? '/api/admin' : '/api/staff';
+      const apiBase = safeRole === 'ADMIN' ? '/api/admin' : '/api/staff';
       fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -61,7 +63,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(err => console.error("Failed to fetch global profile photo:", err));
     }
-  }, [token, userRole]);
+  }, [token, safeRole]);
 
   // --- ACTIONS ---
   const login = (newToken, role) => {
@@ -85,7 +87,7 @@ export const AuthProvider = ({ children }) => {
 
   const markAllAsRead = () => {
     if (notifications.length > 0) {
-      const newestDate = notifications[0].raw_date || new Date().toISOString();
+      const newestDate = notifications[0]?.raw_date || new Date().toISOString();
       localStorage.setItem('gabay_admin_last_read', newestDate);
       setLastReadTimestamp(newestDate);
       setUnreadCount(0);

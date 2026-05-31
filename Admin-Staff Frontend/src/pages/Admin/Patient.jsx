@@ -26,7 +26,7 @@ export default function Patient() {
   });
 
   const [filters, setFilters] = useState({
-    sortKey: 'name', sortOrder: 'asc', genders: ['Male', 'Female'], statuses: ['Active', 'Deactivated']
+    sortKey: 'name', sortOrder: 'asc', genders: [], statuses: []
   });
 
   const itemsPerPage = 10;
@@ -79,7 +79,7 @@ export default function Patient() {
     return result;
   }, [search, filters, patientsData]); 
 
-  // --- NEW: MODAL TRIGGER & EXECUTION ---
+  // --- MODAL TRIGGER & EXECUTION ---
   const confirmToggleStatus = (rawId, currentStatus, patientName) => {
     setStatusModal({
       isOpen: true,

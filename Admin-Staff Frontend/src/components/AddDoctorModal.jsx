@@ -6,7 +6,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   if (!isOpen) return null;
 
   const isEditing = !!editData;
-  const token = localStorage.getItem('token'); 
+  const token = localStorage.getItem('gabay_admin_token');
 
   const DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
   const TIME_OPTIONS = [];
