@@ -211,9 +211,8 @@ export default function AdminDashboard() {
           <div className="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[300px] flex flex-col">
             <div className="flex justify-between mb-4">
               <h4 className="font-montserrat text-lg font-bold text-gabay-blue flex items-center gap-2">
-                Appointment Timeline <ExternalLink size={16} className="text-gray-400" />
+                Appointment Timeline
               </h4>
-              <span className="text-sm text-gray-400 font-poppins">Filter: This Month</span>
             </div>
             <div className="flex-1 w-full h-full min-h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -237,7 +236,7 @@ export default function AdminDashboard() {
           {/* SLOT CAPACITY CHART */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[200px] flex flex-col">
             <h4 className="font-montserrat text-lg font-bold text-gabay-blue flex items-center gap-2 mb-2">
-              Slot Capacity Today <ExternalLink size={16} className="text-gray-400 cursor-pointer hover:text-gabay-blue transition" />
+              Slot Capacity Today
             </h4>
             <div className="flex items-center justify-between flex-1">
               <div>
@@ -277,7 +276,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
             <div className="flex justify-between items-center mb-6">
               <h4 className="font-montserrat text-lg font-bold text-gabay-blue flex items-center gap-2">
-                Recent Audit Logs <ExternalLink size={16} className="text-gray-400" />
+                Recent Audit Logs 
               </h4>
               <button 
                 onClick={() => navigate('/admin/audit-logs')} 

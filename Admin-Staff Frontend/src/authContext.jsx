@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-
+import useSSE from './hooks/useSSE'; 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -15,6 +15,22 @@ export const AuthProvider = ({ children }) => {
   const [lastReadTimestamp, setLastReadTimestamp] = useState(
     localStorage.getItem('gabay_admin_last_read') || '2000-01-01T00:00:00.000Z'
   );
+
+  const safeRole = userRole ? userRole.toUpperCase() : null;
+
+  // --- REAL-TIME SSE CONNECTION ---
+  const sseEndpoint = safeRole === 'ADMIN' 
+    ? '/api/admin/notifications/stream' 
+    : (safeRole === 'STAFF' ? '/api/staff/notifications/stream' : null);
+
+    const liveEvent = useSSE(sseEndpoint, token);
+
+  useEffect(() => {
+    if (liveEvent) {
+      setNotifications(prev => [liveEvent, ...prev]); 
+      setUnreadCount(prev => prev + 1);              
+    }
+  }, [liveEvent]);
 
   // --- AUTH TOKEN EFFECT ---
   useEffect(() => {
@@ -32,58 +48,12 @@ export const AuthProvider = ({ children }) => {
         logout(); 
       }
     }
-  }, [token]);
+  }, [token, userRole]);
 
-  // --- GLOBAL NOTIFICATION POLLING EFFECT ---
-  useEffect(() => {
-    let interval;
-
-    const fetchGlobalNotifications = async () => {
-      if (!token) return;
-      
-      try {
-        const currentRole = userRole || localStorage.getItem('gabay_admin_role');
-        if (!currentRole) return;
-        
-        const apiBase = currentRole.toLowerCase() === 'admin' ? '/api/admin' : '/api/staff';
-
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/notifications`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.status === 401) {
-          console.warn("Token expired. Stopping polling and logging out.");
-          logout(); 
-          return; 
-        }
-
-        if (!response.ok) throw new Error('Failed to fetch notifications');
-        
-        const data = await response.json();
-        setNotifications(data);
-
-        const count = data.filter(n => new Date(n.raw_date) > new Date(lastReadTimestamp)).length;
-        setUnreadCount(count);
-
-      } catch (error) {
-        console.error("Global notification fetch error:", error);
-      }
-    };
-
-    if (token) {
-      fetchGlobalNotifications(); 
-      interval = setInterval(fetchGlobalNotifications, 10000); 
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [token, lastReadTimestamp]);
-
+  // --- PROFILE PHOTO SYNC ---
   useEffect(() => {
     if (token && userRole) {
-      const apiBase = userRole.toLowerCase() === 'admin' ? '/api/admin' : '/api/staff';
-      
+      const apiBase = safeRole === 'ADMIN' ? '/api/admin' : '/api/staff';
       fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -93,7 +63,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(err => console.error("Failed to fetch global profile photo:", err));
     }
-  }, [token, userRole]);
+  }, [token, safeRole]);
 
   // --- ACTIONS ---
   const login = (newToken, role) => {
@@ -117,7 +87,7 @@ export const AuthProvider = ({ children }) => {
 
   const markAllAsRead = () => {
     if (notifications.length > 0) {
-      const newestDate = notifications[0].raw_date;
+      const newestDate = notifications[0]?.raw_date || new Date().toISOString();
       localStorage.setItem('gabay_admin_last_read', newestDate);
       setLastReadTimestamp(newestDate);
       setUnreadCount(0);
@@ -126,10 +96,19 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ 
-      token, userRole, userInfo, login, logout,
-      // Pass the notification data globally!
-      notifications, unreadCount, markAllAsRead, lastReadTimestamp,
-      profilePhoto, setProfilePhoto 
+      token, 
+      userRole, 
+      userInfo, 
+      profilePhoto,
+      setProfilePhoto,
+      login, 
+      logout,
+      notifications,
+      setNotifications,
+      unreadCount,
+      setUnreadCount,
+      markAllAsRead,
+      lastReadTimestamp
     }}>
       {children}
     </AuthContext.Provider>

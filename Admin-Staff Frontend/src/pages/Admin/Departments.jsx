@@ -283,9 +283,6 @@ export default function Departments() {
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
-                <th className="px-4 py-4 text-center">
-                  <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === pagedData.length && pagedData.length > 0} className="w-4 h-4 bg-gabay-blue" />
-                </th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider">Department ID</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider">Department Name</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Department Type</th>
@@ -298,9 +295,6 @@ export default function Departments() {
             <tbody className="divide-y divide-gray-100">
               {pagedData.map((dept) => (
                 <tr key={dept.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(dept.id) ? 'bg-blue-50/50' : ''}`} onClick={() => toggleSelection(dept.id)}>
-                  <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={selectedIds.includes(dept.id)} onChange={() => toggleSelection(dept.id)} className="w-4 h-4 bg-gabay-blue" />
-                  </td>
                   <td className="px-4 py-4 text-sm text-gray-700 font-medium font-poppins">{dept.id}</td>
                   <td className="px-4 py-4 text-sm font-poppins font-medium text-gabay-blue">{dept.name}</td>
                   <td className="px-4 py-4 text-center">

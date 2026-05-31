@@ -254,14 +254,6 @@ export default function Appointments() {
             <table className="w-full text-left min-w-[1000px]">
               <thead className="bg-gabay-blue font-poppins text-white select-none">
                 <tr>
-                  <th className="px-4 py-4 text-center">
-                    <input 
-                      type="checkbox" 
-                      onChange={handleSelectAll}
-                      checked={selectedIds.length === pagedData.length && pagedData.length > 0}
-                      className="w-4 h-4 bg-gabay-blue"
-                    />
-                  </th>
                   <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Appointment ID</th>
                   <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Hospital #</th>
                   <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Patient Name</th>
@@ -275,10 +267,6 @@ export default function Appointments() {
                 {pagedData.map((app) => (
                   <React.Fragment key={app.id}>
                     <tr className={`hover:bg-gray-50 transition-colors ${expandedId === app.id ? 'bg-blue-50/30' : ''}`}>
-                      <td className="px-4 py-4 text-center"><input 
-                        type="checkbox" checked={selectedIds.includes(app.id)} 
-                        onChange={() => toggleSelection(app.id)} className="w-4 h-4 accent-gabay-blue" />
-                      </td>
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-medium">{app.id}</td>
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-base">{app.hospitalNum}</td>
                       <td className="px-4 py-4 text-sm font-poppins font-medium text-gabay-blue">{app.patient}</td>
