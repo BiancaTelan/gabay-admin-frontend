@@ -253,7 +253,7 @@ export default function Patient() {
               </thead>
               <tbody className="divide-y divide-gray-100 cursor-default">
                 {pagedData.map((patient) => (
-                  <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={patient.patient_id || index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-semibold">{patient.id}</td>
                     <td className="px-4 py-4 text-sm font-poppins text-gabay-blue font-medium">{patient.name}</td>
                     <td className="px-4 py-4 text-sm font-poppins text-gray-600">{patient.email}</td>

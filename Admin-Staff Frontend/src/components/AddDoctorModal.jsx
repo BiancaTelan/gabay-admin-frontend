@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Save } from 'lucide-react';
+import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = null }) {
@@ -19,7 +19,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
 
   const [departmentsList, setDepartmentsList] = useState([]);
   const [formData, setFormData] = useState({
-    firstname: '', surname: '', deptIDs: [], schedule: '', time: ''
+    firstname: '', surname: '', deptID: '', schedule: '', time: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,7 +35,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       setFormData({
         firstname: editData.firstname || '',
         surname: editData.surname || '',
-        deptIDs: editData.deptIDs || [],
+        deptID: editData.deptID || '',
         schedule: editData.schedule && editData.schedule !== 'Unassigned' ? editData.schedule : '',
         time: editData.time && editData.time !== 'Unassigned' ? editData.time : '',
       });
@@ -46,18 +46,18 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
     e.preventDefault();
     setIsSubmitting(true);
     
-    // For Doctors: POST to /doctors, PUT to /personnel/id
     const url = isEditing 
       ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel/${editData.raw_id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors`;
       
     const method = isEditing ? 'PUT' : 'POST';
     
+    // THE FIX: Enforces a singular integer format for the backend
     const payload = {
-      role: 'DOCTOR', // Required for PUT /personnel to map correctly
+      role: 'DOCTOR', 
       firstname: formData.firstname.trim(),
       surname: formData.surname.trim(),
-      deptIDs: formData.deptIDs,
+      deptID: formData.deptID ? parseInt(formData.deptID) : null,
       workingDays: formData.schedule || "Unassigned",
       workingHours: formData.time || "Unassigned"
     };
@@ -104,32 +104,19 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
             </div>
 
             <div className="md:col-span-2 border-t pt-4">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Assign Departments</label>
-              <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value="" 
-                onChange={e => {
-                  const val = Number(e.target.value);
-                  if (val && !formData.deptIDs.includes(val)) {
-                    setFormData({...formData, deptIDs: [...formData.deptIDs, val]});
-                  }
-                }}
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Assign Department</label>
+              <select 
+                required
+                className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" 
+                value={formData.deptID} 
+                onChange={e => setFormData({...formData, deptID: e.target.value})}
               >
-                <option value="" disabled>+ Select Department...</option>
+                <option value="" disabled>Select Department...</option>
                 {departmentsList.map(d => <option key={d.deptID} value={d.deptID}>{d.department} ({d.type})</option>)}
               </select>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {formData.deptIDs.map(id => {
-                  const dept = departmentsList.find(d => d.deptID === id);
-                  return dept ? (
-                    <span key={id} className="inline-flex items-center gap-1 bg-teal-50 text-gabay-teal border border-teal-200 px-3 py-1.5 rounded-md text-xs font-medium">
-                      {dept.department}
-                      <button type="button" className="hover:text-red-500 font-bold ml-1 transition" onClick={() => setFormData({...formData, deptIDs: formData.deptIDs.filter(d => d !== id)})}>×</button>
-                    </span>
-                  ) : null;
-                })}
-              </div>
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-2">Working Days</label>
                 <div className="flex flex-wrap gap-2">
