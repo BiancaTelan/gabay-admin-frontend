@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = null }) {
   if (!isOpen) return null;
 
   const isEditing = !!editData;
-  const token = localStorage.getItem('gabay_admin_token');
+  const token = localStorage.getItem('gabay_admin_token'); 
 
   const DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU'];
   const TIME_OPTIONS = [];
@@ -18,6 +18,8 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   }
 
   const [departmentsList, setDepartmentsList] = useState([]);
+  
+  // THE FIX: State uses singular deptID
   const [formData, setFormData] = useState({
     firstname: '', surname: '', deptID: '', schedule: '', time: ''
   });
@@ -35,7 +37,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       setFormData({
         firstname: editData.firstname || '',
         surname: editData.surname || '',
-        deptID: editData.deptID || '',
+        deptID: editData.deptID || '', 
         schedule: editData.schedule && editData.schedule !== 'Unassigned' ? editData.schedule : '',
         time: editData.time && editData.time !== 'Unassigned' ? editData.time : '',
       });
@@ -52,7 +54,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       
     const method = isEditing ? 'PUT' : 'POST';
     
-    // THE FIX: Enforces a singular integer format for the backend
     const payload = {
       role: 'DOCTOR', 
       firstname: formData.firstname.trim(),
@@ -105,13 +106,15 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
 
             <div className="md:col-span-2 border-t pt-4">
               <label className="block text-xs font-semibold text-gray-600 mb-1">Assign Department</label>
+              
+              {/* THE FIX: Standard Select Dropdown (Strictly 1-to-1) */}
               <select 
                 required
-                className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" 
+                className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" 
                 value={formData.deptID} 
                 onChange={e => setFormData({...formData, deptID: e.target.value})}
               >
-                <option value="" disabled>Select Department...</option>
+                <option value="" disabled>Select a single department...</option>
                 {departmentsList.map(d => <option key={d.deptID} value={d.deptID}>{d.department} ({d.type})</option>)}
               </select>
             </div>
