@@ -294,7 +294,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
             </div>
 
             <div>
-              <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Reason for Booking</label>
+              <label className="block font-poppins font-medium text-gabay-navy text-md mb-2">Reason for Booking</label>
               <textarea 
                 rows="3" 
                 value={reason} 
@@ -305,7 +305,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                 required 
               />
               <div className="flex justify-between mt-1 text-xs">
-                <span className={`${reasonCharCount < MIN_REASON_CHARS ? 'text-yellow-600' : 'text-gray-400'}`}>
+                <span className={`${reasonCharCount < MIN_REASON_CHARS ? 'text-gray-600' : 'text-gray-400'}`}>
                   {reasonCharCount < MIN_REASON_CHARS ? `Minimum ${MIN_REASON_CHARS} characters required.` : ''}
                 </span>
                 <span className={`${reasonCharCount > MAX_REASON_CHARS ? 'text-red-500' : 'text-gray-400'}`}>
