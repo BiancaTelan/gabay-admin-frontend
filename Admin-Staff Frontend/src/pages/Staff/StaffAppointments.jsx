@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, SquarePen, Funnel, Bell } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, SquarePen, Funnel, Bell, Download } from 'lucide-react';
 import ApproveScheduleModal from '../../components/ApproveSchedModal';
 import BookScheduleForm from './BookScheduleForm';
 import ConfirmationModal from '../../components/confirmModal'; 
 import { AuthContext } from '../../authContext';
 import toast from 'react-hot-toast';
+import ExcelJS from 'exceljs';
 
 export default function StaffAppointments() {
   const location = useLocation();
@@ -22,9 +23,11 @@ export default function StaffAppointments() {
   const [tempSortOrder, setTempSortOrder] = useState('desc');
   const [tempSelectedDoctors, setTempSelectedDoctors] = useState([]);
   const [tempShowNewPatient, setTempShowNewPatient] = useState(false);
+  const [tempSelectedDepartments, setTempSelectedDepartments] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'date', order: 'desc' });
   const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [showNewPatient, setShowNewPatient] = useState(false);
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
   const itemsPerPage = 6;
   const { token, userRole } = useContext(AuthContext);
   const [pendingAppointments, setPendingAppointments] = useState([]);
@@ -81,23 +84,37 @@ export default function StaffAppointments() {
   const availableDoctors = useMemo(() => {
     const doctors = new Set();
     const allData = [...pendingAppointments, ...approvedAppointments, ...confirmedAppointments, ...canceledAppointments];
-    
     allData.forEach(a => {
       if (a.assignedDoctor) doctors.add(a.assignedDoctor);
     });
     return Array.from(doctors).sort();
   }, [pendingAppointments, approvedAppointments, confirmedAppointments, canceledAppointments]);
 
+  // --- GET UNIQUE DEPARTMENTS FOR FILTERING ---
+  const availableDepartments = useMemo(() => {
+    const depts = new Set();
+    const allData = [...pendingAppointments, ...approvedAppointments, ...confirmedAppointments, ...canceledAppointments];
+    allData.forEach(a => {
+      if (a.department) depts.add(a.department);
+    });
+    return Array.from(depts).sort();
+  }, [pendingAppointments, approvedAppointments, confirmedAppointments, canceledAppointments]);
+
   // --- RESET FILTERS WHEN CHANGING TABS ---
   useEffect(() => {
     setSelectedDoctors([]);
     setShowNewPatient(false);
+    setSelectedDepartments([]);
     setCurrentPage(1);
   }, [activeTab]);
 
   // --- GET FILTERED, SORTED, AND PAGINATED APPOINTMENTS ---
   const getFilteredAppointments = () => {
     let filtered = [...getCurrentData()];
+    
+    if (selectedDepartments.length > 0) {
+      filtered = filtered.filter(app => selectedDepartments.includes(app.department));
+    }
     
     if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') {
       if (selectedDoctors.length > 0 && !showNewPatient) {
@@ -108,9 +125,11 @@ export default function StaffAppointments() {
         filtered = filtered.filter(app => selectedDoctors.includes(app.assignedDoctor) || !app.assignedDoctor);
       }
     }
+    
     if (searchTerm) {
       filtered = filtered.filter(app => app.name.toLowerCase().includes(searchTerm.toLowerCase()) || app.hospitalNo.includes(searchTerm));
     }
+    
     filtered.sort((a, b) => {
       let valA, valB;
       if (sortConfig.key === 'date') {
@@ -264,6 +283,7 @@ export default function StaffAppointments() {
     setTempSortOrder(sortConfig.order);
     setTempSelectedDoctors([...selectedDoctors]);
     setTempShowNewPatient(showNewPatient);
+    setTempSelectedDepartments([...selectedDepartments]);
     setShowFilterDropdown(true);
   };
 
@@ -271,6 +291,7 @@ export default function StaffAppointments() {
     setSortConfig({ key: tempSortKey, order: tempSortOrder });
     setSelectedDoctors([...tempSelectedDoctors]);
     setShowNewPatient(tempShowNewPatient);
+    setSelectedDepartments([...tempSelectedDepartments]);
     setCurrentPage(1);
     setShowFilterDropdown(false);
   };
@@ -280,11 +301,86 @@ export default function StaffAppointments() {
     setTempSortOrder('asc');
     setTempSelectedDoctors([]);
     setTempShowNewPatient(false);
+    setTempSelectedDepartments([]);
     setSortConfig({ key: 'date', order: 'asc' });
     setSelectedDoctors([]);
     setShowNewPatient(false);
+    setSelectedDepartments([]);
     setCurrentPage(1);
     setShowFilterDropdown(false);
+  };
+
+  // --- EXPORT TO EXCEL ---
+  const exportToExcel = async () => {
+    const dataToExport = getFilteredAppointments();
+    if (dataToExport.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const toastId = toast.loading("Generating Excel report...");
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Appointments');
+
+      worksheet.columns = [
+        { header: 'Patient Name', key: 'name', width: 30 },
+        { header: 'Hospital No.', key: 'hospitalNo', width: 20 },
+        { header: 'Reason', key: 'reason', width: 40 },
+        { header: 'Department', key: 'department', width: 25 },
+        { header: 'Doctor', key: 'assignedDoctor', width: 25 },
+        { header: 'Status', key: 'status', width: 20 },
+        { header: 'Appointment Date', key: 'appointmentDate', width: 25 },
+        { header: 'Batch', key: 'batch', width: 15 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Contact No.', key: 'contactNo', width: 20 },
+      ];
+
+      dataToExport.forEach(app => {
+        worksheet.addRow({
+          name: app.name,
+          hospitalNo: app.hospitalNo,
+          reason: app.reason,
+          department: app.department,
+          assignedDoctor: app.assignedDoctor || 'None',
+          status: app.status,
+          appointmentDate: app.appointmentDate || (app.requestedStartDate ? `${app.requestedStartDate} to ${app.requestedEndDate}` : ''),
+          batch: app.batch || '',
+          email: app.email || '',
+          contactNo: app.contactNo || '',
+        });
+      });
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0b3b60' } };
+
+      worksheet.columns.forEach(col => {
+        let maxLength = col.header.length;
+        col.eachCell({ includeEmpty: true }, cell => {
+          const cellValue = cell.value ? cell.value.toString() : '';
+          maxLength = Math.max(maxLength, cellValue.length);
+        });
+        col.width = Math.min(maxLength + 2, 50);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `appointments_${activeTab}_${new Date().toISOString().slice(0,19)}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Excel report generated successfully!", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not generate the Excel file.", { id: toastId });
+    }
   };
 
   // --- MAIN RENDER ---
@@ -324,7 +420,7 @@ export default function StaffAppointments() {
         </div>
       </div>
 
-       {activeTab !== 'book' && (
+      {activeTab !== 'book' && (
         <>
           <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
             <div className="relative w-full lg:w-96">
@@ -337,14 +433,20 @@ export default function StaffAppointments() {
               />
               <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
             </div>
-            <button onClick={openFilter} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
-              <Funnel size={16} /> Filter & Sort
-            </button>
+            <div className="flex gap-2">
+              <button onClick={openFilter} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
+                <Funnel size={16} /> Filter & Sort
+              </button>
+              <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
+                <Download size={16} /> Export Excel
+              </button>
+            </div>
           </div>
 
           {showFilterDropdown && (
             <div className="relative">
               <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
+                {/* Sort By */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
                   <div className="space-y-3">
@@ -359,6 +461,7 @@ export default function StaffAppointments() {
                   </div>
                 </div>
 
+                {/* Filter by Doctor */}
                 {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') && (
                   <div>
                     <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Filter by Doctor</p>
@@ -380,6 +483,32 @@ export default function StaffAppointments() {
                   </div>
                 )}
 
+                {/* Filter by Department */}
+                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') && (
+                  <div>
+                    <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Filter by Department</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                      {availableDepartments.map(dept => (
+                        <label key={dept} className="flex items-center gap-2 text-sm font-poppins cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={tempSelectedDepartments.includes(dept)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTempSelectedDepartments([...tempSelectedDepartments, dept]);
+                              } else {
+                                setTempSelectedDepartments(tempSelectedDepartments.filter(d => d !== dept));
+                              }
+                            }}
+                            className="w-4 h-4 rounded accent-gabay-blue"
+                          />
+                          <span className="text-gray-600 group-hover:text-gabay-blue transition-colors">{dept}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   <button onClick={resetFilters} className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={applyFilters} className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90 transition-all">Apply</button>
@@ -388,6 +517,7 @@ export default function StaffAppointments() {
             </div>
           )}
 
+          {/* Appointments List (cards) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginated.length === 0 ? (
               <div className="col-span-2 bg-white rounded-md shadow-sm border border-gray-100 p-6 text-center">
@@ -404,7 +534,6 @@ export default function StaffAppointments() {
                           <p className="font-poppins text-md text-gabay-navy">{app.hospitalNo}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
                             app.status?.toLowerCase() === 'pending' ? 'bg-gray-100 text-gray-600 font-medium' :
                             app.status?.toLowerCase() === 'approved' ? 'bg-orange-500 text-white font-bold' : 
@@ -457,7 +586,6 @@ export default function StaffAppointments() {
                         {activeTab === 'pending' && (
                           <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Requested Dates:</span> {app.requestedStartDate} - {app.requestedEndDate}</p>
                         )}
-                        
                         {(activeTab === 'approved' || activeTab === 'canceled' || activeTab === 'confirmed') && (
                           <>
                             <p className="font-poppins text-sm text-gray-700 mb-2">
@@ -482,6 +610,7 @@ export default function StaffAppointments() {
             )}
           </div>
 
+          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center py-5 bg-gray-50 border-t border-gray-200 mt-6">
               <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="p-2 text-gabay-blue hover:bg-gray-200 rounded-full disabled:text-gray-300 disabled:bg-transparent disabled:cursor-not-allowed focus:outline-none transition-all"><ChevronLeft size={20} /></button>
@@ -503,14 +632,15 @@ export default function StaffAppointments() {
         />
       )}
 
-      {selectedAppointment && modalMode === 'approve' && (
+      {selectedAppointment && modalMode === 'appoint' && (
         <ApproveScheduleModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        appointment={selectedAppointment} 
-        onApprove={handleApprove} 
-        onDeny={handleDeny}
-        token={token}/>
+          isOpen={modalOpen} 
+          onClose={() => setModalOpen(false)} 
+          appointment={selectedAppointment} 
+          onApprove={handleApprove} 
+          onDeny={handleDeny}
+          token={token}
+        />
       )}
 
       <ConfirmationModal 
