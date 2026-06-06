@@ -197,7 +197,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
               <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Address</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input type="text" placeholder="House / Block / Lot No." value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
