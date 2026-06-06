@@ -294,7 +294,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
             </div>
 
             <div>
-              <label className="block font-poppins font-medium text-gabay-navy text-md mb-2">Reason for Booking</label>
+              <label className="block font-poppins font-medium text-gabay-navy text-md mt-4 mb-2">Reason for Booking</label>
               <textarea 
                 rows="3" 
                 value={reason} 
