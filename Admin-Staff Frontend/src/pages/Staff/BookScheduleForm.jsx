@@ -233,7 +233,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
           </div>
 
           {/* SCHEDULE DETAILS */}
-          <div className="space-y-5">
+          <div className="space-y-4">
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Schedule Details</h3>
 
             <div>
