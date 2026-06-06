@@ -21,7 +21,11 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const [date, setDate] = useState(null);
   const [batch, setBatch] = useState('Morning');
   const [reason, setReason] = useState('');
+  const [reasonCharCount, setReasonCharCount] = useState(0);
   const [departments, setDepartments] = useState([]);
+
+  const MAX_REASON_CHARS = 500;
+  const MIN_REASON_CHARS = 10;
 
   // --- FETCH DEPARTMENTS & DOCTORS ---
   useEffect(() => {
@@ -86,6 +90,13 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const selectedDept = departments.find(d => d.id === parseInt(departmentId));
   const doctorOptions = selectedDept ? selectedDept.doctors : [];
 
+  // --- REASON FOR BOOKING HANDLER ---
+  const handleReasonChange = (e) => {
+    const text = e.target.value;
+    setReason(text);
+    setReasonCharCount(text.length);
+  };
+
   // --- FORM SUBMISSION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -95,6 +106,18 @@ export default function BookScheduleForm({ onSuccess, token }) {
     }
     if (!doctorId) {
       toast.error('Please select a doctor.');
+      return;
+    }
+    if (!reason.trim()) {
+      toast.error('Please provide a reason for booking.');
+      return;
+    }
+    if (reason.length < MIN_REASON_CHARS) {
+      toast.error(`Reason must be at least ${MIN_REASON_CHARS} characters.`);
+      return;
+    }
+    if (reason.length > MAX_REASON_CHARS) {
+      toast.error(`Reason cannot exceed ${MAX_REASON_CHARS} characters.`);
       return;
     }
 
@@ -155,6 +178,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
     setDate(null);
     setBatch('Morning');
     setReason('');
+    setReasonCharCount(0);
   };  
 
   // --- MAIN RENDER ---
@@ -169,41 +193,41 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Patient Information</h3>
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Hospital Number</label>
-              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">First Name</label>
-                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Middle Name</label>
-                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Last Name</label>
-                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
               </div>
             </div>
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
             </div>
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Contact Number</label>
-              <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Address</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" placeholder="House / Block / Lot No." value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
-                <input type="text" placeholder="Barangay / Subdivision" value={barangay} onChange={(e) => setBarangay(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
-                <input type="text" placeholder="City / Municipality" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
-                <input type="text" placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" placeholder="House / Block / Lot No." value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" placeholder="Barangay / Subdivision" value={barangay} onChange={(e) => setBarangay(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" placeholder="City / Municipality" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
               </div>
             </div>
           </div>
@@ -271,7 +295,23 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Reason for Booking</label>
-              <textarea rows="3" value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+              <textarea 
+                rows="3" 
+                value={reason} 
+                onChange={handleReasonChange} 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all ${
+                  reasonCharCount > 0 && reasonCharCount < MIN_REASON_CHARS ? 'border-yellow-500' : 'border-gray-300'
+                }`}
+                required 
+              />
+              <div className="flex justify-between mt-1 text-xs">
+                <span className={`${reasonCharCount < MIN_REASON_CHARS ? 'text-yellow-600' : 'text-gray-400'}`}>
+                  {reasonCharCount < MIN_REASON_CHARS ? `Minimum ${MIN_REASON_CHARS} characters required.` : ''}
+                </span>
+                <span className={`${reasonCharCount > MAX_REASON_CHARS ? 'text-red-500' : 'text-gray-400'}`}>
+                  {reasonCharCount} / {MAX_REASON_CHARS}
+                </span>
+              </div>
             </div>
           </div>
         </div>
