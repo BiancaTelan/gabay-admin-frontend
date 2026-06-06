@@ -8,12 +8,16 @@ import toast, { Toaster } from 'react-hot-toast';
 export default function BookScheduleForm({ onSuccess, token }) {
   const [hospitalNo, setHospitalNo] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState(''); 
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [contactNo, setContactNo] = useState('');
-  const [address, setAddress] = useState('');
-  const [departmentId, setDepartmentId] = useState(''); 
-  const [doctorId, setDoctorId] = useState(''); 
+  const [houseNumber, setHouseNumber] = useState('');
+  const [barangay, setBarangay] = useState('');
+  const [city, setCity] = useState('');
+  const [province, setProvince] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const [doctorId, setDoctorId] = useState('');
   const [date, setDate] = useState(null);
   const [batch, setBatch] = useState('Morning');
   const [reason, setReason] = useState('');
@@ -101,7 +105,8 @@ export default function BookScheduleForm({ onSuccess, token }) {
     });
 
     const payload = {
-      hospitalNo, firstName, lastName, email, contactNo, address,
+      hospitalNo, firstName, middleName, lastName, email, contactNo,
+      houseNumber, barangay, city, province,                 
       department_id: parseInt(departmentId), 
       doctor_id: parseInt(doctorId), 
       date: formattedDate, reason
@@ -135,10 +140,21 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
   // --- CANCEL HANDLER TO RESET FORM ---
   const handleCancel = () => {
-    setHospitalNo(''); setFirstName(''); setLastName('');
-    setEmail(''); setContactNo(''); setAddress('');
-    setDepartmentId(''); setDoctorId(''); setDate(null);
-    setBatch('Morning'); setReason('');
+    setHospitalNo('');
+    setFirstName('');
+    setMiddleName('');
+    setLastName('');
+    setEmail('');
+    setContactNo('');
+    setHouseNumber('');
+    setBarangay('');
+    setCity('');
+    setProvince('');
+    setDepartmentId('');
+    setDoctorId('');
+    setDate(null);
+    setBatch('Morning');
+    setReason('');
   };  
 
   // --- MAIN RENDER ---
@@ -155,27 +171,40 @@ export default function BookScheduleForm({ onSuccess, token }) {
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Hospital Number</label>
               <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">First Name</label>
                 <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              </div>
+              <div>
+                <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Middle Name</label>
+                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Last Name</label>
                 <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
               </div>
             </div>
+
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
             </div>
+
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Contact Number</label>
               <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
             </div>
-            <div>
+
+            <div className="space-y-3">
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Address</label>
-              <textarea rows="3" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="text" placeholder="House / Block / Lot No." value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" placeholder="Barangay / Subdivision" value={barangay} onChange={(e) => setBarangay(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" placeholder="City / Municipality" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+                <input type="text" placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue" required />
+              </div>
             </div>
           </div>
 
@@ -211,21 +240,16 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   onChange={(d) => setDate(d)}
                   filterDate={isWorkingDay} 
                   minDate={new Date()}
-                  
                   disabled={!doctorId || allowedDays.length === 0} 
-                  
                   dateFormat="MM/dd/yyyy"
                   wrapperClassName="w-full"
-                  
                   className="w-full px-3 py-2 border border-gray-300 rounded-md pr-10 cursor-pointer bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
-                  
                   placeholderText={
                     !doctorId ? "Select a doctor first" : 
                     allowedDays.length === 0 ? "No schedule available" : 
                     "Select a date"
                   }
                 />
-                
                 <CalendarDays 
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" 
                   size={20} 
