@@ -279,12 +279,12 @@ export default function StaffAppointments() {
   ];
 
   const filteredAppointments = useMemo(() => {
-  let result = [...appointments];
+  let result = [...appointment];
 
   if (selectedDoctors.length > 0) {
     result = result.filter(appt => selectedDoctors.includes(appt.docID));
   }
-  
+
   if (selectedDepartments.length > 0) {
     result = result.filter(appt => selectedDepartments.includes(appt.deptID));
   }
@@ -300,7 +300,7 @@ export default function StaffAppointments() {
   });
 
   return result;
-}, [appointments, selectedDoctors, selectedDepartments, searchTerm, sortConfig]);
+}, [appointment, selectedDoctors, selectedDepartments, searchTerm, sortConfig]);
 
   // --- FILTER & SORT HANDLERS ---
   const openFilter = () => {
