@@ -319,17 +319,17 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mt-10 mb-2">Reason for Booking</label>
+              <div className="flex justify-end font-poppins mt-1 text-xs text-gray-400">
+                <span>{reasonCharCount} / {MAX_REASON_CHARS}</span>
+              </div>
               <textarea 
                 rows="4" 
                 value={reason} 
                 onChange={handleReasonChange} 
                 placeholder="Describe your symptoms..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
+                className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                 required 
               />
-              <div className="flex justify-end mt-1 text-xs text-gray-400">
-                <span>{reasonCharCount} / {MAX_REASON_CHARS}</span>
-              </div>
             </div>
           </div>
         </div>
