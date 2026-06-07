@@ -24,8 +24,8 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const [reasonCharCount, setReasonCharCount] = useState(0);
   const [departments, setDepartments] = useState([]);
 
-  const MAX_REASON_CHARS = 500;
-  const MIN_REASON_CHARS = 10;
+  const MAX_REASON_CHARS = 150;   
+  const MIN_REASON_CHARS = 0;
 
   // --- FETCH DEPARTMENTS & DOCTORS ---
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
   // --- REASON FOR BOOKING HANDLER ---
   const handleReasonChange = (e) => {
-    const text = e.target.value;
+    const text = e.target.value.slice(0, MAX_REASON_CHARS);
     setReason(text);
     setReasonCharCount(text.length);
   };
@@ -110,10 +110,6 @@ export default function BookScheduleForm({ onSuccess, token }) {
     }
     if (!reason.trim()) {
       toast.error('Please provide a reason for booking.');
-      return;
-    }
-    if (reason.length < MIN_REASON_CHARS) {
-      toast.error(`Reason must be at least ${MIN_REASON_CHARS} characters.`);
       return;
     }
     if (reason.length > MAX_REASON_CHARS) {
@@ -224,10 +220,38 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <div className="space-y-3">
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Address</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" placeholder="House / Block / Lot No." value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
-                <input type="text" placeholder="Barangay / Subdivision" value={barangay} onChange={(e) => setBarangay(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
-                <input type="text" placeholder="City / Municipality" value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
-                <input type="text" placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input
+                  type="text"
+                  placeholder="House No. / Street / Subdivision"
+                  value={houseNumber}
+                  onChange={(e) => setHouseNumber(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Barangay"
+                  value={barangay}
+                  onChange={(e) => setBarangay(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="City / Municipality"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Province"
+                  value={province}
+                  onChange={(e) => setProvince(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  required
+                />
               </div>
             </div>
           </div>
@@ -296,21 +320,15 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mt-10 mb-2">Reason for Booking</label>
               <textarea 
-                rows="3" 
+                rows="4" 
                 value={reason} 
                 onChange={handleReasonChange} 
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all ${
-                  reasonCharCount > 0 && reasonCharCount < MIN_REASON_CHARS ? 'border-yellow-500' : 'border-gray-300'
-                }`}
+                placeholder="Describe your symptoms..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                 required 
               />
-              <div className="flex justify-between mt-1 text-xs">
-                <span className={`${reasonCharCount < MIN_REASON_CHARS ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {reasonCharCount < MIN_REASON_CHARS ? `Minimum ${MIN_REASON_CHARS} characters required.` : ''}
-                </span>
-                <span className={`${reasonCharCount > MAX_REASON_CHARS ? 'text-red-500' : 'text-gray-400'}`}>
-                  {reasonCharCount} / {MAX_REASON_CHARS}
-                </span>
+              <div className="flex justify-end mt-1 text-xs text-gray-400">
+                <span>{reasonCharCount} / {MAX_REASON_CHARS}</span>
               </div>
             </div>
           </div>
