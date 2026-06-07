@@ -189,32 +189,32 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Patient Information</h3>
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Hospital Number</label>
-              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">First Name</label>
-                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Middle Name</label>
-                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Last Name</label>
-                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
             </div>
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
             </div>
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Contact Number</label>
-              <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2" required />
+              <input type="tel" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
             </div>
 
             <div className="space-y-3">
@@ -225,7 +225,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   placeholder="House No. / Street / Subdivision"
                   value={houseNumber}
                   onChange={(e) => setHouseNumber(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                   required
                 />
                 <input
@@ -233,7 +233,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   placeholder="Barangay"
                   value={barangay}
                   onChange={(e) => setBarangay(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                   required
                 />
                 <input
@@ -241,7 +241,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   placeholder="City / Municipality"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                   required
                 />
                 <input
@@ -249,7 +249,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   placeholder="Province"
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gabay-blue"
+                  className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                   required
                 />
               </div>
@@ -262,7 +262,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Department</label>
-              <select value={departmentId} onChange={handleDepartmentChange} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white" required>
+              <select value={departmentId} onChange={handleDepartmentChange} className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required>
                 <option value="">Select Department</option>
                 {departments.map(dept => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option> 
@@ -272,7 +272,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Assigned Doctor</label>
-              <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)} disabled={!departmentId} className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-50 bg-white" required>
+              <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)} disabled={!departmentId} className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-50 bg-white focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required>
                 <option value="">Select Doctor</option>
                 {doctorOptions.map(doc => (
                   <option key={doc.id} value={doc.id}>{doc.name}</option> 
@@ -291,7 +291,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
                   disabled={!doctorId || allowedDays.length === 0} 
                   dateFormat="MM/dd/yyyy"
                   wrapperClassName="w-full"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md pr-10 cursor-pointer bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+                  className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md pr-10 cursor-pointer bg-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
                   placeholderText={
                     !doctorId ? "Select a doctor first" : 
                     allowedDays.length === 0 ? "No schedule available" : 
@@ -308,18 +308,18 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Batch</label>
               <div className="flex flex-wrap gap-6 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center font-poppins gap-2 cursor-pointer">
                   <input type="radio" name="batch" value="Morning" checked={batch === 'Morning'} onChange={() => setBatch('Morning')} className="w-4 h-4 text-gabay-teal" /> Morning (8:00 - 12:00)
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center font-poppins gap-2 cursor-pointer">
                   <input type="radio" name="batch" value="Afternoon" checked={batch === 'Afternoon'} onChange={() => setBatch('Afternoon')} className="w-4 h-4 text-gabay-teal" /> Afternoon (1:00 - 5:00)
                 </label>
               </div>
             </div>
 
             <div>
-              <label className="block font-poppins font-medium text-gabay-navy text-md mt-10 mb-2">Reason for Booking</label>
-              <div className="flex justify-end font-poppins mt-1 text-xs text-gray-400">
+              <label className="block font-poppins font-medium text-gabay-navy text-md mt-8 mb-2">Reason for Booking</label>
+              <div className="flex justify-end font-poppins text-xs text-gray-400">
                 <span>{reasonCharCount} / {MAX_REASON_CHARS}</span>
               </div>
               <textarea 
