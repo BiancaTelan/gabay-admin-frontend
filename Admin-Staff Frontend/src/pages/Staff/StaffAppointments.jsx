@@ -436,7 +436,7 @@ export default function StaffAppointments() {
             </div>
             <div className="flex gap-2">
               <Button variant="teal-outline" onClick={openFilter} className="px-10 py-2 min-w-[180px]">
-                <Funnel size={16} className="mr-2" /> Filter & Sort
+                <Funnel size={16} className="inline mr-2" /> Filter & Sort
               </Button>
               <Button variant="teal" onClick={exportToExcel} className="py-2 px-8 min-w-[180px]">
                 <Download size={16} className="inline mr-2" /> Export Excel
