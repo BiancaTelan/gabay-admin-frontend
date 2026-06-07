@@ -318,7 +318,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
             </div>
 
             <div className="flex justify-between items-baseline">
-              <label className="block font-poppins font-medium text-gabay-navy text-md mt-4 mb-1">Reason for Booking</label>
+              <label className="block font-poppins font-medium text-gabay-navy text-md mt-4">Reason for Booking</label>
                 <span className="font-poppins text-xs text-gray-400">{reasonCharCount} / {MAX_REASON_CHARS}</span>
             </div>
               <textarea 
