@@ -10,6 +10,19 @@ import StatCard from '../../components/StatCard';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
+// Mock data for This Day Filter
+const mockTimelineDataByDay = [
+  { name: '8:00 AM', appointments: 2 },
+  { name: '9:00 AM', appointments: 5 },
+  { name: '10:00 AM', appointments: 8 },
+  { name: '11:00 AM', appointments: 4 },
+  { name: '12:00 PM', appointments: 1 },
+  { name: '1:00 PM', appointments: 3 },
+  { name: '2:00 PM', appointments: 6 },
+  { name: '3:00 PM', appointments: 4 },
+  { name: '4:00 PM', appointments: 2 },
+];
+
 // ADMIN DASHBOARD
 export default function AdminDashboard() {
   const { token } = useContext(AuthContext);
@@ -17,7 +30,7 @@ export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState('month');
+  const [filter, setFilter] = useState('day');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
@@ -89,8 +102,14 @@ export default function AdminDashboard() {
       if (data.timeline_data && data.timeline_data.length > 0) {
         const timelineSheet = workbook.addWorksheet('Appointment Timeline');
         
+        // DYNAMIC HEADER
+        let periodHeader = 'Period (Week/Month)';
+        if (filter === 'day') periodHeader = 'Time of Day';
+        else if (filter === 'year') periodHeader = 'Period (Month)';
+        else if (filter === 'week') periodHeader = 'Period (Day of Week)';
+
         timelineSheet.columns = [
-          { header: 'Period (Week/Month)', key: 'name', width: 25 },
+          { header: periodHeader, key: 'name', width: 25 },
           { header: 'Appointments Booked', key: 'appointments', width: 25 },
         ];
 
@@ -132,6 +151,7 @@ export default function AdminDashboard() {
 
   // Helper for Filter Button Text
   const getFilterText = () => {
+    if (filter === 'day') return 'This Day';
     if (filter === 'week') return 'This Week';
     if (filter === 'year') return 'This Year';
     return 'This Month';
@@ -163,6 +183,12 @@ export default function AdminDashboard() {
             {/* Dropdown Menu */}
             {showFilterDropdown && (
               <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                <button 
+                  onClick={() => { setFilter('day'); setShowFilterDropdown(false); }} 
+                  className={`w-full text-left px-4 py-2 text-sm font-poppins hover:bg-gray-50 ${filter === 'day' ? 'text-gabay-blue font-bold bg-blue-50/50' : 'text-gray-700'}`}
+                >
+                  This Day
+                </button>
                 <button 
                   onClick={() => { setFilter('week'); setShowFilterDropdown(false); }} 
                   className={`w-full text-left px-4 py-2 text-sm font-poppins hover:bg-gray-50 ${filter === 'week' ? 'text-gabay-blue font-bold bg-blue-50/50' : 'text-gray-700'}`}

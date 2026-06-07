@@ -16,6 +16,7 @@ export default function Personnel() {
   const [personnelData, setPersonnelData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Single modal tracking manager state
   const [doctorModal, setDoctorModal] = useState({
     isOpen: false,
     selectedDoctor: null 
@@ -29,6 +30,7 @@ export default function Personnel() {
 
   const itemsPerPage = 10;
 
+  // --- DATA FETCHING ---
   const fetchPersonnelData = async () => {
     setIsLoading(true);
     try {
@@ -59,6 +61,7 @@ export default function Personnel() {
     if (token) fetchPersonnelData();
   }, [token]);
 
+
   // --- FILTER & SORT LOGIC ---
   const filteredData = useMemo(() => {
     let result = personnelData.filter(item => 
@@ -84,6 +87,7 @@ export default function Personnel() {
     return result;
   }, [search, filters, personnelData]);
 
+
   // --- EXPORT TO EXCEL LOGIC ---
   const handleExportExcel = async () => {
     if (filteredData.length === 0) {
@@ -98,7 +102,8 @@ export default function Personnel() {
       { header: 'Full Name', key: 'name', width: 25 },
       { header: 'Department', key: 'dept', width: 30 },
       { header: 'Schedule', key: 'schedule', width: 20 },
-      { header: 'Working Hours', key: 'time', width: 25 }
+      { header: 'Working Hours', key: 'time', width: 25 },
+      { header: 'License Number', key: 'licenseNumber', width: 25 }
     ];
 
     filteredData.forEach(person => {
@@ -108,7 +113,8 @@ export default function Personnel() {
         name: person.name,
         dept: person.dept,
         schedule: person.schedule,
-        time: person.time
+        time: person.time,
+        licenseNumber: person.licenseNumber || '---' 
       });
     });
 
@@ -137,6 +143,7 @@ export default function Personnel() {
     
     toast.success("Excel report generated successfully!");
   };
+
 
   // --- PAGINATION CALCULATIONS ---
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
@@ -291,6 +298,7 @@ export default function Personnel() {
                   <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Department</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Schedule</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">Time</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">License No.</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider text-center">Actions</th>
                 </tr>
               </thead>
@@ -316,6 +324,9 @@ export default function Personnel() {
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.dept}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.schedule}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{person.time}</td>
+                    <td className="px-4 py-4 text-xs font-mono text-gray-600 font-semibold">
+                      {person.licenseNumber ? `PRC-${person.licenseNumber}` : '---'}
+                    </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-center gap-2">
                         <button 
@@ -370,6 +381,7 @@ export default function Personnel() {
         </div>
       </div>
 
+      {/* MODAL CONFIGURATION BINDING */}
       <DoctorModal 
         isOpen={doctorModal.isOpen}
         selectedDoctor={doctorModal.selectedDoctor}

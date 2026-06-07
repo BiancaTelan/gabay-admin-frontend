@@ -17,7 +17,8 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
     surname: '',
     role: 'DOCTOR',
     status: 'Active',
-    deptIDs: [],
+    deptID: '', 
+    licenseNumber: '',
     schedule: 'Unassigned',
     time: '8:00 AM - 5:00 PM'
   });
@@ -34,7 +35,8 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
           surname: selectedDoctor.surname || nameParts.slice(1).join(' ') || '',
           role: selectedDoctor.role || 'DOCTOR',
           status: selectedDoctor.status || 'Active',
-          deptIDs: selectedDoctor.deptIDs || (selectedDoctor.deptID ? [Number(selectedDoctor.deptID)] : []),
+          deptID: selectedDoctor.deptID || selectedDoctor.department_id || '', 
+          licenseNumber: selectedDoctor.licenseNumber || selectedDoctor.license_number || '', 
           schedule: selectedDoctor.schedule || 'Unassigned',
           time: selectedDoctor.time || '8:00 AM - 5:00 PM'
         });
@@ -44,8 +46,9 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
           surname: '',
           role: 'DOCTOR',
           status: 'Active',
-          deptIDs: [],
-          schedule: '',
+          deptID: '',
+          licenseNumber: '',
+          schedule: 'Unassigned',
           time: '8:00 AM - 5:00 PM'
         });
       }
@@ -64,8 +67,13 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
       return;
     }
 
-    if (editingPerson.deptIDs.length === 0) {
-      toast.error("Please assign at least one department.");
+    if (!editingPerson.deptID) {
+      toast.error("Please assign a valid medical department.");
+      return;
+    }
+
+    if (!editingPerson.licenseNumber) {
+      toast.error("PRC License Number is required to register medical professionals.");
       return;
     }
 
@@ -88,7 +96,8 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
           surname: editingPerson.surname.trim(),
           role: editingPerson.role,
           status: editingPerson.status,
-          deptIDs: editingPerson.deptIDs,
+          deptID: Number(editingPerson.deptID),
+          licenseNumber: editingPerson.licenseNumber.trim(), 
           schedule: editingPerson.schedule || 'Unassigned',
           time: editingPerson.time || 'Unassigned'
         })
@@ -113,7 +122,7 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-fadeIn">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden font-poppins">
         
-        {/* HEADER SECTION (Changes theme color based on Mode dynamically) */}
+        {/* HEADER SECTION */}
         <div className={`px-6 py-4 flex justify-between items-center text-white ${isEditMode ? 'bg-gabay-blue' : 'bg-gabay-teal'}`}>
           <h2 className="text-lg font-bold">
             {isEditMode ? 'Edit Personnel Assignment' : 'Add New Doctor'}
@@ -151,7 +160,7 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
             </div>
           ) : (
             <>
-              {/* STAFF VIEW: Read-Only Header Data Display Box */}
+              {/* STAFF VIEW */}
               <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg flex justify-between items-center mb-2">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Employee</p>
@@ -178,51 +187,50 @@ export default function DoctorModal({ isOpen, selectedDoctor, onClose, onRefresh
             </>
           )}
 
-          {/* MULTI-SELECT DEPARTMENT SELECTION SECTION */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Departments *</label>
-            <select 
-              className={`w-full border p-2 rounded-lg text-sm outline-none bg-white ${isEditMode ? 'focus:border-gabay-blue' : 'focus:border-gabay-teal'}`}
-              value="" 
-              onChange={e => {
-                const val = Number(e.target.value);
-                setEditingPerson(prev => ({
-                  ...prev,
-                  deptIDs: prev.deptIDs?.includes(val) ? prev.deptIDs : [...(prev.deptIDs || []), val]
-                }));
-              }}
-            >
-              <option value="" disabled>+ Add Department</option>
-              {departments.map(dept => {
-                const targetID = dept.deptID || dept.id;
-                const targetName = dept.department || dept.name;
-                const targetType = dept.type || (dept.isSpecialty ? 'Specialty' : 'General');
-                return (
-                  <option key={targetID} value={targetID}>
-                    {targetName} ({targetType})
-                  </option>
-                );
-              })}
-            </select>
+          {/* DEPARTMENT & LICENSE NO. SECTION */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Department *</label>
+              <select 
+                required
+                className={`w-full border p-2 rounded-lg text-sm outline-none bg-white ${isEditMode ? 'focus:border-gabay-blue' : 'focus:border-gabay-teal'}`}
+                value={editingPerson.deptID || ''} 
+                onChange={e => {
+                  const val = e.target.value ? Number(e.target.value) : '';
+                  setEditingPerson(prev => ({
+                    ...prev,
+                    deptID: val
+                  }));
+                }}
+              >
+                <option value="" disabled>-- Select Department --</option>
+                {departments.map(dept => {
+                  const targetID = dept.deptID || dept.id;
+                  const targetName = dept.department || dept.name;
+                  const targetType = dept.type || (dept.isSpecialty ? 'Specialty' : 'General');
+                  return (
+                    <option key={targetID} value={targetID}>
+                      {targetName} ({targetType})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
-            {/* Selected Departments Interactive Pill Tags */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {editingPerson.deptIDs?.map(id => {
-                const dept = departments.find(d => (d.deptID === id || d.id === id));
-                const displayLabel = dept ? (dept.department || dept.name) : `Dept #${id}`;
-                return (
-                  <div key={id} className="flex items-center gap-1 bg-teal-50 text-gabay-teal px-3 py-1 rounded-md text-xs font-medium border border-teal-100">
-                    {displayLabel}
-                    <button 
-                      type="button"
-                      onClick={() => setEditingPerson(prev => ({ ...prev, deptIDs: prev.deptIDs.filter(d => d !== id) }))} 
-                      className="hover:text-red-500 ml-1 transition-colors"
-                    >
-                      <X size={12} strokeWidth={3} />
-                    </button>
-                  </div>
-                );
-              })}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">PRC License No. *</label>
+              <input 
+                type="text"
+                required
+                maxLength={7}
+                placeholder="e.g., 0123456"
+                className={`w-full border p-2 rounded-lg text-sm outline-none bg-white font-mono ${isEditMode ? 'focus:border-gabay-blue' : 'focus:border-gabay-teal'}`}
+                value={editingPerson.licenseNumber || ''} 
+                onChange={e => setEditingPerson(prev => ({ 
+                  ...prev, 
+                  licenseNumber: e.target.value.replace(/\D/g, '')
+                }))} 
+              />
             </div>
           </div>
 
