@@ -133,7 +133,7 @@ export default function Users() {
       toast.success('User updated successfully!');
       setIsEditModalOpen(false);
       setEditErrors({});
-      fetchUsers(); // Pure state update! No hard page refresh.
+      fetchUsers(); 
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -173,7 +173,7 @@ export default function Users() {
       
       toast.success(`${name} ${isDeactivating ? 'deactivated' : 'reactivated'} successfully!`);
       setStatusModal({ isOpen: false, user: null, actionType: '' });
-      fetchUsers(); // Pure state update! No hard page refresh.
+      fetchUsers(); 
     } catch (error) {
       toast.error(error.message);
     } finally {

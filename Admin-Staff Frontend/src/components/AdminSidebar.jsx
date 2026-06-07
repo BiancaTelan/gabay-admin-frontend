@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, UserRoundCog, Building2, 
   CalendarCheck, Activity, Terminal, FileBarChart, 
-  LogOut, Settings, Menu, Stethoscope 
+  LogOut, Settings, Menu, Stethoscope, ChartNoAxesCombined 
 } from 'lucide-react';
 import { AuthContext } from '../authContext';
 import ConfirmationModal from '../components/confirmModal'; 
@@ -33,6 +33,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }) {
       items: [
         { name: 'Audit Logs', path: '/admin/audit-logs', icon: <Activity size={22} /> },
         { name: 'System Logs', path: '/admin/system-logs', icon: <Terminal size={22} /> },
+        { name: 'Analytics', path: '/admin/analytics', icon: <ChartNoAxesCombined size={22} /> },
       ]
     }
   ];
