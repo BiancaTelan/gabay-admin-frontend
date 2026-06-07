@@ -437,9 +437,9 @@ export default function StaffAppointments() {
               <button onClick={openFilter} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
                 <Funnel size={16} /> Filter & Sort
               </button>
-              <button onClick={exportToExcel} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
-                <Download size={16} /> Export Excel
-              </button>
+              <Button variant="teal" onClick={exportToExcel} className="py-2 px-10 min-w-[180px]">
+                <Download size={16} className="inline mr-2" /> Export Excel
+              </Button>
             </div>
           </div>
 
