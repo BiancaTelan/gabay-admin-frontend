@@ -435,9 +435,9 @@ export default function StaffAppointments() {
               <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
             </div>
             <div className="flex gap-2">
-              <button onClick={openFilter} className="flex items-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium">
-                <Funnel size={16} /> Filter & Sort
-              </button>
+              <Button variant="teal-outline" onClick={openFilter} className="px-4 py-2">
+                <Funnel size={16} className="mr-2" /> Filter & Sort
+              </Button>
               <Button variant="teal" onClick={exportToExcel} className="py-2 px-10 min-w-[180px]">
                 <Download size={16} className="inline mr-2" /> Export Excel
               </Button>
