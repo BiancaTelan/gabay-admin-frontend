@@ -90,6 +90,30 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const selectedDept = departments.find(d => d.id === parseInt(departmentId));
   const doctorOptions = selectedDept ? selectedDept.doctors : [];
 
+  const handleHospitalNoBlur = async () => {
+    if (!hospitalNo) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/patient-lookup/${hospitalNo}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error("Patient not found.");
+      
+      const data = await response.json();
+      setFirstName(data.firstName);
+      setMiddleName(data.middleName);
+      setLastName(data.lastName);
+      setEmail(data.email);
+      setContactNo(data.contactNo);
+      setHouseNumber(data.street);
+      setBarangay(data.barangay);
+      setCity(data.city);
+      setProvince(data.province);
+      toast.success("Patient details auto-filled!");
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   // --- REASON FOR BOOKING HANDLER ---
   const handleReasonChange = (e) => {
     const text = e.target.value.slice(0, MAX_REASON_CHARS);
@@ -189,7 +213,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Patient Information</h3>
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Hospital Number</label>
-              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
+              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} onBlur={handleHospitalNoBlur} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

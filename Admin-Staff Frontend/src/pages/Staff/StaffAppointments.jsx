@@ -278,6 +278,30 @@ export default function StaffAppointments() {
     { id: 'canceled', label: 'CANCELED SCHEDULES' },
   ];
 
+  const filteredAppointments = useMemo(() => {
+  let result = [...appointments];
+
+  if (selectedDoctors.length > 0) {
+    result = result.filter(appt => selectedDoctors.includes(appt.docID));
+  }
+  
+  if (selectedDepartments.length > 0) {
+    result = result.filter(appt => selectedDepartments.includes(appt.deptID));
+  }
+
+  if (searchTerm) {
+    result = result.filter(appt => 
+      appt.patientName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+  result.sort((a, b) => {
+    const order = sortConfig.order === 'asc' ? 1 : -1;
+    return a[sortConfig.key] > b[sortConfig.key] ? order : -order;
+  });
+
+  return result;
+}, [appointments, selectedDoctors, selectedDepartments, searchTerm, sortConfig]);
+
   // --- FILTER & SORT HANDLERS ---
   const openFilter = () => {
     setTempSortKey(sortConfig.key);
