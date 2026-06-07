@@ -8,6 +8,30 @@ import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import AddPersonnelModal from './AddPersonnelModal';
 
+function UserStatusModal({ isOpen, user, actionType, isSubmitting, onClose, onConfirm }) {
+  if (!isOpen) return null;
+  const isDeactivating = actionType === 'deactivate';
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-xl p-6 shadow-2xl w-full max-w-sm space-y-4 font-poppins">
+        <div className="flex items-center gap-3 text-amber-500">
+          <AlertTriangle size={24} />
+          <h3 className="text-base font-bold text-gray-800">Confirm Action</h3>
+        </div>
+        <p className="text-xs text-gray-600">
+          Are you sure you want to {actionType} the access directory status parameters for <strong>{user?.name}</strong>?
+        </p>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button type="button" onClick={onConfirm} disabled={isSubmitting} className={`px-4 py-2 text-xs font-medium text-white rounded-lg transition ${isDeactivating ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+            {isSubmitting ? 'Processing...' : isDeactivating ? 'Deactivate' : 'Reactivate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Users() {
   // --- CONTEXT & STYLES ---
   const { token } = useContext(AuthContext);
@@ -31,8 +55,8 @@ export default function Users() {
   // --- UNIFIED STATUS CHANGE MODAL STATE ---
   const [statusModal, setStatusModal] = useState({
     isOpen: false,
-    user: null,        // Stores { rawId, name }
-    actionType: ''     // Stores 'deactivate' or 'reactivate'
+    user: null,       
+    actionType: ''  
   });
 
   // --- FILTER CONFIGURATION STATE ---
@@ -77,68 +101,13 @@ export default function Users() {
 
   // --- DUAL-MODE MODAL TRIGGERS ---
   const handleOpenAddModal = () => {
-    setSelectedPersonnel(null); // Clear out previous profile reference
+    setSelectedPersonnel(null); 
     setIsAddModalOpen(true);
   };
 
   const handleOpenEditModal = (user) => {
-    setSelectedPersonnel(user); // Load target context profile
+    setSelectedPersonnel(user); 
     setIsAddModalOpen(true);
-  };
-
-  // --- EDIT USER INTERACTION LOGIC ---
-  const handleOpenEdit = (user) => {
-    setEditErrors({});
-    setEditingUser({...user}); 
-    setIsEditModalOpen(true);
-  };
-
-  // --- UPDATE USER LOGIC ---
-  const handleUpdateUser = async (e) => {
-    e.preventDefault();
-    setEditErrors({});
-
-    const errors = {};
-    if (!editingUser.firstname?.trim()) errors.firstname = "First name is required.";
-    if (!editingUser.surname?.trim()) errors.surname = "Surname is required.";
-    if (!editingUser.email?.trim()) errors.email = "Email address is required.";
-    if (!editingUser.departments || editingUser.departments.length === 0) {
-      errors.departments = "Personnel must be assigned to at least one department.";
-    }
-    if (!editingUser.position?.trim()) errors.position = "Job position is required.";
-
-    if (Object.keys(errors).length > 0) {
-      setEditErrors(errors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${editingUser.raw_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          firstname: editingUser.firstname,
-          surname: editingUser.surname,
-          role: editingUser.role,
-          departments: editingUser.departments,
-          position: editingUser.position,
-          contactNumber: editingUser.phone,
-          status: editingUser.status
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to update user');
-      
-      toast.success('User updated successfully!');
-      setIsEditModalOpen(false);
-      setEditErrors({});
-      fetchUsers(); 
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // --- STATUS CHANGE LOGIC (Deactivate & Reactivate) ---
@@ -193,21 +162,28 @@ export default function Users() {
     worksheet.columns = [
       { header: 'Employee ID', key: 'id', width: 18 },
       { header: 'Full Name', key: 'name', width: 25 },
+      { header: 'System Role', key: 'role', width: 15 },
+      { header: 'License No.', key: 'licenseNumber', width: 18 },
       { header: 'Department/s', key: 'departments', width: 35 },
       { header: 'Email Address', key: 'email', width: 30 },
-      { header: 'System Role', key: 'role', width: 15 },
       { header: 'Job Position', key: 'position', width: 25 },
       { header: 'Contact Number', key: 'phone', width: 20 },
       { header: 'Account Status', key: 'status', width: 18 }
     ];
 
     filteredData.forEach(user => {
+      const cleanRole = String(user.role || '').toUpperCase();
+      const formattedLicense = cleanRole === 'STAFF' && (user.licenseNumber || user.license_number)
+        ? `PRC-${user.licenseNumber || user.license_number}`
+        : 'N/A';
+
       worksheet.addRow({
         id: user.id,
         name: user.name,
+        role: user.role,
+        licenseNumber: formattedLicense, 
         departments: (user.departments && user.departments.length > 0) ? user.departments.join(', ') : 'N/A',
         email: user.email,
-        role: user.role,
         position: user.position,
         phone: user.phone,
         status: user.status
@@ -296,7 +272,6 @@ export default function Users() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
-  // --- TOGGLE SELECTION ---
   const toggleSelection = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
@@ -310,7 +285,6 @@ export default function Users() {
 
       {/* TOOLBAR */}
       <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
-        {/* LEFT GROUP */}
         <div className="flex flex-row items-center gap-3 w-full lg:w-auto">
           <div className="relative flex-1 lg:w-96">
             <input 
@@ -331,7 +305,6 @@ export default function Users() {
           </button>
         </div>
 
-        {/* RIGHT GROUP */}
         <div className="flex flex-row gap-2 w-full lg:w-auto">
           <button 
             onClick={handleExportExcel}
@@ -379,7 +352,7 @@ export default function Users() {
                     type="text"
                     placeholder="e.g. Pediatrics, ER..."
                     value={filters.deptSearch}
-                    className="w-full text-xs font-poppins border rounded-lg p-2 outline-none focus:ring-1 focus:ring-gabay-blue"
+                    className="w-full text-xs font-poppins border rounded-lg p-2 outline-none"
                     onChange={(e) => setFilters({...filters, deptSearch: e.target.value})}
                   />
                 </div>
@@ -420,9 +393,7 @@ export default function Users() {
                 </div>
 
                 <div className="pt-2 flex gap-2"> 
-                  <button onClick={() => 
-                    setFilters({ sortKey: 'name', sortOrder: 'asc', deptSearch: '', statuses: [], roles: [] })} 
-                    className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500">Reset All</button>
+                  <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', deptSearch: '', statuses: [], roles: [] })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium hover:bg-opacity-90">Apply</button>
                 </div>
               </div>
@@ -431,20 +402,19 @@ export default function Users() {
         </div>
       </div>
 
-      {/* TABLE */}
+      {/* DATA TABLE CONTAINER */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-gray-500 font-poppins">
-            Loading personnel data...
-          </div>
+          <div className="p-12 text-center text-gray-500 font-poppins">Loading personnel data...</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[1100px]">
+            <table className="w-full text-left min-w-[1200px]">
               <thead className="bg-gabay-blue font-poppins text-white select-none">
                 <tr>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Employee ID</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Name</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Role</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">License No.</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Departments</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Email</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Phone Number</th>
@@ -477,6 +447,20 @@ export default function Users() {
                           <span className="inline-block px-5 py-1 text-center text-xs font-bold font-poppins tracking-wider rounded-full bg-[#dcfce7] text-[#157154]">
                             STAFF
                           </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 text-xs md:text-sm font-poppins">
+                        {cleanRole === 'STAFF' ? (
+                          (user.licenseNumber || user.license_number) ? (
+                            <span className="font-mono text-gray-800 bg-gray-100 px-2 py-1 rounded-md font-bold">
+                              PRC-{user.licenseNumber || user.license_number}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic">Unassigned</span>
+                          )
+                        ) : (
+                          <span className="text-gray-400 font-medium select-none">N/A</span>
                         )}
                       </td>
 
@@ -531,7 +515,8 @@ export default function Users() {
                 })}
               </tbody>
             </table> 
-          </div>)}
+          </div>
+        )}
 
         {/* PAGE RESULTS */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">

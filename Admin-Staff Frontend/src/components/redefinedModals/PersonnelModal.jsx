@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
   if (!isOpen) return null;
 
-  const isEditing = !!editData; // True if editData is provided, otherwise False
+  const isEditing = !!editData; 
 
   // --- INITIAL STATE CONFIGURATION ---
   const initialFormState = {
@@ -13,6 +13,7 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
     surname: '', 
     email: '', 
     role: 'Staff', 
+    licenseNumber: '',
     departments: [],
     position: 'Nurse', 
     contactNumber: '',
@@ -24,7 +25,7 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sync state when entering edit mode or when editData changes
+
   useEffect(() => {
     if (isEditing && editData) {
       setFormData({
@@ -32,10 +33,10 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
         surname: editData.surname || '',
         email: editData.email || '',
         role: editData.role || 'Staff',
-        // Fallback to empty array if data structure varies
+        licenseNumber: editData.licenseNumber || editData.license_number || '',
         departments: editData.departments || [], 
         position: editData.position || 'Nurse',
-        contactNumber: editData.contactNumber || '',
+        contactNumber: editData.contactNumber || editData.phone || '', 
         gender: editData.gender || 'Female'
       });
     } else {
@@ -67,6 +68,10 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
       validationErrors.departments = "Personnel must be assigned to at least one department.";
     }
     if (!formData.position?.trim()) validationErrors.position = "Job position is required.";
+    
+    if (formData.role === 'Staff' && !formData.licenseNumber?.trim()) {
+      validationErrors.licenseNumber = "PRC License number is required for staff members.";
+    }
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -75,12 +80,16 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
 
     setIsSubmitting(true);
 
-    // Dynamic endpoint & configuration properties depending on the mode
     const url = isEditing 
-      ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/updateuser/${editData._id || editData.id}`
+      ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/updateuser/${editData._id || editData.id || editData.raw_id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/addusers`;
       
     const method = isEditing ? 'PUT' : 'POST';
+
+    const submissionPayload = { ...formData };
+    if (submissionPayload.role !== 'Staff') {
+      submissionPayload.licenseNumber = '';
+    }
 
     try {
       const response = await fetch(url, {
@@ -89,7 +98,7 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submissionPayload)
       });
 
       if (!response.ok) {
@@ -103,7 +112,6 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
         throw new Error(errorMessage);
       }
 
-      // Dynamic Success feedback notifications
       if (isEditing) {
         toast.success(`Account details for ${formData.firstname} updated successfully!`);
       } else {
@@ -185,17 +193,48 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
               />
             </div>
 
-            {/* System Role */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
-              <select 
-                className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" 
-                value={formData.role} 
-                onChange={e => setFormData({...formData, role: e.target.value})}
-              >
-                <option value="Staff">Staff</option>
-                <option value="Admin">Admin</option>
-              </select>
+            <div className={`col-span-1 md:col-span-2 grid grid-cols-1 ${formData.role === 'Staff' ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4`}>
+              {/* System Role */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
+                <select 
+                  className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" 
+                  value={formData.role} 
+                  onChange={e => {
+                    const nextRole = e.target.value;
+                    setFormData(prev => ({
+                      ...prev, 
+                      role: nextRole,
+                      licenseNumber: nextRole === 'Staff' ? prev.licenseNumber : ''
+                    }));
+                    if (nextRole !== 'Staff') {
+                      setErrors(p => ({ ...p, licenseNumber: null }));
+                    }
+                  }}
+                >
+                  <option value="Staff">Staff</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+
+              {/* License Number (Only for STAFF role) */}
+              {formData.role === 'Staff' && (
+                <div className="transition-all duration-200">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">PRC License No.</label>
+                  <input 
+                    type="text"
+                    maxLength={15}
+                    placeholder="e.g. 0123456"
+                    className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.licenseNumber ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                    value={formData.licenseNumber}
+                    onChange={e => {
+                      setFormData({ ...formData, licenseNumber: e.target.value });
+                      setErrors(p => ({ ...p, licenseNumber: null }));
+                    }}
+                  />
+                  {errors.licenseNumber && <p className="text-red-500 text-[11px] mt-1 font-medium">{errors.licenseNumber}</p>}
+                </div>
+              )}
             </div>
             
             {/* Department Multi-Select */}
@@ -221,11 +260,10 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
               </select>
               {errors.departments && <p className="text-red-500 text-[11px] mt-1 font-medium">{errors.departments}</p>}
 
-              {/* Visual Chips for Added Departments */}
               {formData.departments && formData.departments.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                <div className="flex flex-wrap gap-1.5 mt-2 max-h-[75px] overflow-y-auto pt-0.5">
                   {formData.departments.map((dep, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 bg-blue-50 text-gabay-blue border border-blue-200 px-2.5 py-1 rounded-md text-xs font-medium">
+                    <span key={index} className="inline-flex items-center gap-1 bg-blue-50 text-gabay-blue border border-blue-200 px-2.5 py-1 rounded-md text-xs font-medium animate-fadeIn">
                       {dep}
                       <button 
                         type="button" 
