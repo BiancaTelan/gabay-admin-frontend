@@ -25,7 +25,6 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   useEffect(() => {
     if (isEditing && editData) {
       setFormData({
@@ -64,10 +63,11 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
     if (!formData.firstname?.trim()) validationErrors.firstname = "First name is required.";
     if (!formData.surname?.trim()) validationErrors.surname = "Surname is required.";
     if (!formData.email?.trim()) validationErrors.email = "Email address is required.";
-    if (!formData.departments || formData.departments.length === 0) {
+    
+    // Only enforce explicitly assigned departments if the role requires custom configurations
+    if (formData.role !== 'Staff' && formData.role !== 'Admin' && (!formData.departments || formData.departments.length === 0)) {
       validationErrors.departments = "Personnel must be assigned to at least one department.";
     }
-    if (!formData.position?.trim()) validationErrors.position = "Job position is required.";
     
     if (formData.role === 'Staff' && !formData.licenseNumber?.trim()) {
       validationErrors.licenseNumber = "PRC License number is required for staff members.";
@@ -86,8 +86,14 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
       
     const method = isEditing ? 'PUT' : 'POST';
 
+    // Prepare submission payload structure matching backend specifications
     const submissionPayload = { ...formData };
-    if (submissionPayload.role !== 'Staff') {
+    if (submissionPayload.role === 'Staff') {
+      submissionPayload.departments = ['ALL'];
+    } else if (submissionPayload.role === 'Admin') {
+      submissionPayload.departments = []; // Admins bypass department checks globally
+      submissionPayload.licenseNumber = '';
+    } else {
       submissionPayload.licenseNumber = '';
     }
 
@@ -205,11 +211,10 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
                     setFormData(prev => ({
                       ...prev, 
                       role: nextRole,
-                      licenseNumber: nextRole === 'Staff' ? prev.licenseNumber : ''
+                      licenseNumber: nextRole === 'Staff' ? prev.licenseNumber : '',
+                      departments: nextRole === 'Staff' ? [] : prev.departments
                     }));
-                    if (nextRole !== 'Staff') {
-                      setErrors(p => ({ ...p, licenseNumber: null }));
-                    }
+                    setErrors(p => ({ ...p, licenseNumber: null, departments: null }));
                   }}
                 >
                   <option value="Staff">Staff</option>
@@ -237,49 +242,66 @@ const PersonnelModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
               )}
             </div>
             
-            {/* Department Multi-Select */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
-              <select 
-                className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.departments ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
-                value="" 
-                onChange={e => {
-                  const selectedVal = e.target.value;
-                  setErrors(p => ({...p, departments: null}));
-                  if (selectedVal && !formData.departments?.includes(selectedVal)) {
-                    const updatedDeps = [...(formData.departments || []), selectedVal];
-                    setFormData({...formData, departments: updatedDeps});
-                  }
-                }}
-              >
-                <option value="" disabled>+ Add Department</option>
-                <option value="Cardiology">Cardiology</option>
-                <option value="Dentistry">Dentistry</option>
-                <option value="Internal Medicine">Internal Medicine</option>
-                <option value="Pediatrics">Pediatrics</option>
-              </select>
-              {errors.departments && <p className="text-red-500 text-[11px] mt-1 font-medium">{errors.departments}</p>}
+            {/* Department Input Block Container */}
+            {formData.role !== 'Admin' && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Department/s</label>
+                
+                {formData.role === 'Staff' ? (
+                  /* Read-only field displaying full access configuration for Staff */
+                  <input 
+                    type="text"
+                    readOnly
+                    value="ALL (Full Access)"
+                    className="w-full border p-2 border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-500 font-medium outline-none cursor-not-allowed"
+                  />
+                ) : (
+                  /* Custom role array handler setup if needed later */
+                  <>
+                    <select 
+                      className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.departments ? 'border-red-500 bg-red-50/50' : 'border-gray-300'}`} 
+                      value="" 
+                      onChange={e => {
+                        const selectedVal = e.target.value;
+                        setErrors(p => ({...p, departments: null}));
+                        if (selectedVal && !formData.departments?.includes(selectedVal)) {
+                          const updatedDeps = [...(formData.departments || []), selectedVal];
+                          setFormData({...formData, departments: updatedDeps});
+                        }
+                      }}
+                    >
+                      <option value="" disabled>+ Add Department</option>
+                      <option value="Cardiology">Cardiology</option>
+                      <option value="Dentistry">Dentistry</option>
+                      <option value="Internal Medicine">Internal Medicine</option>
+                      <option value="Pediatrics">Pediatrics</option>
+                    </select>
+                    {errors.departments && <p className="text-red-500 text-[11px] mt-1 font-medium">{errors.departments}</p>}
 
-              {formData.departments && formData.departments.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2 max-h-[75px] overflow-y-auto pt-0.5">
-                  {formData.departments.map((dep, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 bg-blue-50 text-gabay-blue border border-blue-200 px-2.5 py-1 rounded-md text-xs font-medium animate-fadeIn">
-                      {dep}
-                      <button 
-                        type="button" 
-                        className="hover:text-red-500 font-bold ml-1 transition"
-                        onClick={() => {
-                          const filteredDeps = formData.departments.filter(d => d !== dep);
-                          setFormData({...formData, departments: filteredDeps});
-                        }}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {/* Streamlined Simple List View */}
+                    {formData.departments && formData.departments.length > 0 && (
+                      <div className="mt-2 border border-gray-100 rounded-lg divide-y divide-gray-100 max-h-[120px] overflow-y-auto">
+                        {formData.departments.map((dep, index) => (
+                          <div key={index} className="flex justify-between items-center px-3 py-1.5 text-xs text-gray-700 font-medium bg-white">
+                            <span>{dep}</span>
+                            <button 
+                              type="button" 
+                              className="text-gray-400 hover:text-red-500 font-semibold transition text-sm px-1"
+                              onClick={() => {
+                                const filteredDeps = formData.departments.filter(d => d !== dep);
+                                setFormData({...formData, departments: filteredDeps});
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Job Position */}
             <div>

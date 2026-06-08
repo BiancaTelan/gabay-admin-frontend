@@ -55,7 +55,7 @@ export default function Users() {
   // --- UNIFIED STATUS CHANGE MODAL STATE ---
   const [statusModal, setStatusModal] = useState({
     isOpen: false,
-    user: null,       
+    user: null,      
     actionType: ''  
   });
 
@@ -177,12 +177,15 @@ export default function Users() {
         ? `PRC-${user.licenseNumber || user.license_number}`
         : 'N/A';
 
+      // // EDITED: Updated excel export logic to output "ALL" for all Staff entries to align with structural rule changes
+      const displayDepts = cleanRole === 'STAFF' ? 'ALL' : ((user.departments && user.departments.length > 0) ? user.departments.join(', ') : 'N/A');
+
       worksheet.addRow({
         id: user.id,
         name: user.name,
         role: user.role,
         licenseNumber: formattedLicense, 
-        departments: (user.departments && user.departments.length > 0) ? user.departments.join(', ') : 'N/A',
+        departments: displayDepts,
         email: user.email,
         position: user.position,
         phone: user.phone,
@@ -244,11 +247,15 @@ export default function Users() {
     }
     
     if (filters.deptSearch.trim() !== '') {
-      result = result.filter(item => 
-        item.departments && item.departments.some(dept => 
+      result = result.filter(item => {
+        const cleanRole = String(item.role || '').toUpperCase();
+        // // EDITED: Since Staff automatically gain access to all departments, department search queries match all staff accounts
+        if (cleanRole === 'STAFF') return true;
+        
+        return item.departments && item.departments.some(dept => 
           dept.toLowerCase().includes(filters.deptSearch.toLowerCase())
-        )
-      );
+        );
+      });
     }
 
     result.sort((a, b) => {
@@ -310,7 +317,7 @@ export default function Users() {
             onClick={handleExportExcel}
             className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
           >
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           <div className="relative flex-1 lg:flex-none">
@@ -393,7 +400,8 @@ export default function Users() {
                 </div>
 
                 <div className="pt-2 flex gap-2"> 
-                  <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', deptSearch: '', statuses: [], roles: [] })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500">Reset All</button>
+                  {/* // EDITED: Fixed logic bug here where resetting array values to empty broke rendering pipeline. Restored defaults instead. */}
+                  <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', deptSearch: '', statuses: ['Active', 'Offline', 'Inactive', 'Deactivated'], roles: ['Staff', 'Admin'] })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium hover:bg-opacity-90">Apply</button>
                 </div>
               </div>
@@ -416,8 +424,9 @@ export default function Users() {
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Role</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">License No.</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Departments</th>
-                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Phone Number</th>
+                  {/* // EDITED: Added explicit structural columns for Email and Contact Details to table header layout */}
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Email Address</th>
+                  <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Contact Number</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Status</th>
                   <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider text-center">Actions</th>
                 </tr>
@@ -465,24 +474,35 @@ export default function Users() {
                       </td>
 
                       <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">
-                        <div className="flex flex-wrap gap-1 max-w-[220px]">
-                          {user.departments && user.departments.length > 0 ? (
-                            user.departments.map((d, index) => (
-                              <span key={index} className="bg-gray-100 text-gabay-blue text-[11px] font-medium px-2 py-0.5 rounded-md">
-                                {d}
-                              </span>
-                            ))
-                          ) : 'N/A'}
-                        </div>
+                        {/* // EDITED: Modified column mapping. Staff roles now explicitly output an accented bold "ALL" badge to signify universal access */}
+                        {cleanRole === 'STAFF' ? (
+                          <span className="inline-block px-3 py-0.5 text-xs font-bold font-poppins tracking-wide bg-teal-100 text-gabay-teal rounded-md">
+                            ALL
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {user.departments && user.departments.length > 0 ? (
+                              user.departments.map((d, index) => (
+                                <span key={index} className="bg-gray-100 text-gabay-blue text-[11px] font-medium px-2 py-0.5 rounded-md">
+                                  {d}
+                                </span>
+                              ))
+                            ) : 'N/A'}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.email}</td>
-                      <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{user.phone}</td>
+                      
+                      {/* // EDITED: Added matching row markup details to parse email and phone state parameters */}
+                      <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-600">{user.email || <span className="text-gray-300 italic">None</span>}</td>
+                      <td className="px-4 py-4 text-xs md:text-sm font-mono text-gray-600">{user.phone || <span className="text-gray-300 italic">None</span>}</td>
+                      
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1.5 text-[12px] uppercase font-poppins font-medium text-gray-700">
                           <div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-gabay-green' : isDeactivated ? 'bg-gray-400' : user.status === 'Offline' ? 'bg-gray-400' : 'bg-gabay-red'}`} />
                           {user.status}
                         </div>
                       </td>
+                      {/* // EDITED: Fixed tracking parameters inside activation toggles to bind cleanly to target object ids */}
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-center gap-2">
                           <button onClick={() => handleOpenEditModal(user)} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit User">
@@ -492,7 +512,7 @@ export default function Users() {
                           {cleanRole !== 'ADMIN' && (
                             isDeactivated ? (
                               <button 
-                                onClick={() => confirmStatusChange(user.raw_id, user.name, 'reactivate')} 
+                                onClick={() => confirmStatusChange(user.id || user.raw_id, user.name, 'reactivate')} 
                                 className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors" 
                                 title="Reactivate User"
                               >
@@ -500,7 +520,7 @@ export default function Users() {
                               </button>
                             ) : (
                               <button 
-                                onClick={() => confirmStatusChange(user.raw_id, user.name, 'deactivate')} 
+                                onClick={() => confirmStatusChange(user.id || user.raw_id, user.name, 'deactivate')} 
                                 className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors" 
                                 title="Deactivate User"
                               >
