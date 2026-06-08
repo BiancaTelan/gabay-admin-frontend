@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect, useContext } from 'react';
-import { Search, Download, Funnel, Plus, Edit3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Download, Funnel, Plus, Edit3, ChevronLeft, ChevronRight, CircleMinus, CircleCheckBig } from 'lucide-react';
 import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import DoctorModal from './DoctorModal';
+import UserStatusModal from './UserStatusModal';
 
 export default function Personnel() {
   const { token } = useContext(AuthContext);
@@ -15,17 +16,25 @@ export default function Personnel() {
   const [departments, setDepartments] = useState([]);
   const [personnelData, setPersonnelData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Single modal tracking manager state
   const [doctorModal, setDoctorModal] = useState({
     isOpen: false,
     selectedDoctor: null 
+  });
+  
+  // --- UNIFIED STATUS CHANGE MODAL STATE ---
+  const [statusModal, setStatusModal] = useState({
+    isOpen: false,
+    user: null,      
+    actionType: ''  
   });
 
   const [filters, setFilters] = useState({
     sortKey: 'name',
     sortOrder: 'asc',
-    deptType: ['General', 'Specialty']
+    deptType: ['General', 'Specialty'],
+    deptFilter: '' 
   });
 
   const itemsPerPage = 10;
@@ -62,6 +71,7 @@ export default function Personnel() {
   }, [token]);
 
 
+
   // --- FILTER & SORT LOGIC ---
   const filteredData = useMemo(() => {
     let result = personnelData.filter(item => 
@@ -75,6 +85,10 @@ export default function Personnel() {
         const type = i.isSpecialty ? 'Specialty' : 'General';
         return filters.deptType.includes(type);
       });
+    }
+
+    if (filters.deptFilter) {
+      result = result.filter(item => item.dept === filters.deptFilter);
     }
 
     result.sort((a, b) => {
@@ -144,6 +158,35 @@ export default function Personnel() {
     toast.success("Excel report generated successfully!");
   };
 
+  const executeStatusChange = async () => {
+    if (!statusModal.user) return;
+    setIsSubmitting(true);
+    try {
+      const updatedStatus = statusModal.actionType === 'deactivate' ? 'Inactive' : 'Active';
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          id: statusModal.user.id, 
+          status: updatedStatus 
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update status');
+
+      toast.success(`Account successfully ${statusModal.actionType}d!`);
+      fetchPersonnelData(); // Refresh table records
+      setStatusModal({ isOpen: false, user: null, actionType: '' });
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // --- PAGINATION CALCULATIONS ---
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
@@ -186,7 +229,7 @@ export default function Personnel() {
             onClick={handleExportExcel}
             className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
           >
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           {/* MULTI-FILTER DROPDOWN */}
@@ -195,7 +238,7 @@ export default function Personnel() {
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
             >
-              <Funnel size={16} /> Filter ({filters.deptType.length})
+              <Funnel size={16} /> Filter ({filters.deptType.length + (filters.deptFilter ? 1 : 0)})
             </button>
             
             {showFilterDropdown && (
@@ -229,14 +272,24 @@ export default function Personnel() {
 
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-1">Department reference</p>
+
                   <select 
+                    value={filters.deptFilter}
                     className="w-full text-sm font-poppins border border-gray-200 rounded-lg p-2 mt-1 outline-none focus:ring-2 focus:ring-gabay-blue/10"
-                    defaultValue=""
+                    onChange={(e) => {
+                      setFilters({...filters, deptFilter: e.target.value});
+                      setCurrentPage(1);
+                    }}
                   >
-                    <option value="" disabled>Choose Department</option>
-                    {departments.map(d => (
-                      <option key={d.deptID || d.id} value={d.deptID || d.id}>{d.department || d.name}</option>
-                    ))}
+                    <option value="">All Departments</option>
+                    {departments.map(d => {
+                      const deptName = d.department || d.name;
+                      return (
+                        <option key={d.deptID || d.id} value={deptName}>
+                          {deptName}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -263,7 +316,8 @@ export default function Personnel() {
 
                 <div className="pt-2 flex gap-2">
                   <button 
-                    onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', deptType: [] })}
+                    // CORRECTION: Appended `deptFilter: ''` to wipe custom options alongside primary checks during table resets.
+                    onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', deptType: ['General', 'Specialty'], deptFilter: '' })}
                     className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
                   >
                     Reset All
@@ -303,42 +357,69 @@ export default function Personnel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {pagedData.map((person) => (
-                  <tr 
-                    key={person.id} 
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{person.id}</td>
-                    <td className="px-4 py-4">
-                      {person.isSpecialty ? (
-                        <span className="px-3 py-0.5 rounded-full text-[12px] md:text-[11px] font-poppins font-bold bg-orange-100 text-gabay-orange">
-                          SPECIALTY
-                        </span>
-                      ) : (
-                        <span className="px-3 py-0.5 rounded-full text-[12px] md:text-[11px] font-poppins font-bold bg-blue-100 text-blue-700">
-                          GENERAL
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{person.name}</td>
-                    <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.dept}</td>
-                    <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.schedule}</td>
-                    <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{person.time}</td>
-                    <td className="px-4 py-4 text-xs font-mono text-gray-600 font-semibold">
-                      {person.licenseNumber ? `PRC-${person.licenseNumber}` : '---'}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button 
-                          onClick={() => setDoctorModal({ isOpen: true, selectedDoctor: person })} 
-                          className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors"
-                        >
-                          <Edit3 size={18}/>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {pagedData.map((person) => {
+                  const isDeactivated = person.status === 'Inactive' || person.isActive === false;
+
+                  return (
+                    <tr 
+                      key={person.id} 
+                      className={`transition-colors ${isDeactivated ? 'opacity-50 bg-gray-50/75' : 'hover:bg-gray-50'}`}
+                    >
+                      <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{person.id}</td>
+                      <td className="px-4 py-4">
+                        {person.isSpecialty ? (
+                          <span className="px-3 py-0.5 rounded-full text-[12px] md:text-[11px] font-poppins font-bold bg-orange-100 text-gabay-orange">
+                            SPECIALTY
+                          </span>
+                        ) : (
+                          <span className="px-3 py-0.5 rounded-full text-[12px] md:text-[11px] font-poppins font-bold bg-blue-100 text-blue-700">
+                            GENERAL
+                          </span>
+                        )
+                        }
+                      </td>
+                      <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{person.name}</td>
+                      <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.dept}</td>
+                      <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{person.schedule}</td>
+                      <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{person.time}</td>
+                      <td className="px-4 py-4 text-xs font-mono text-gray-600 font-semibold">
+                        {person.licenseNumber ? `PRC-${person.licenseNumber}` : '---'}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex justify-center gap-2">
+                          {/* Edit Personnel Button */}
+                          <button 
+                            onClick={() => setDoctorModal({ isOpen: true, selectedDoctor: person })} 
+                            className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors"
+                            title="Edit Personnel Details"
+                            disabled={isDeactivated} 
+                          >
+                            <Edit3 size={18}/>
+                          </button>
+
+                          {/* Dynamic Deactivate/Reactivate Button */}
+                          {isDeactivated ? (
+                            <button 
+                              onClick={() => setStatusModal({ isOpen: true, user: person, actionType: 'activate' })} 
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Activate Account"
+                            >
+                              <CircleCheckBig size={18}/>
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => setStatusModal({ isOpen: true, user: person, actionType: 'deactivate' })} 
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Deactivate Account"
+                            >
+                              <CircleMinus size={18}/>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -390,6 +471,15 @@ export default function Personnel() {
         token={token}
         departments={departments}
       />
+
+      <UserStatusModal
+        isOpen={statusModal.isOpen}
+        user={statusModal.user}
+        actionType={statusModal.actionType}
+        isSubmitting={isSubmitting}
+        onClose={() => setStatusModal({ isOpen: false, user: null, actionType: '' })}
+        onConfirm={executeStatusChange}
+       />
     </div>
   );
 }
