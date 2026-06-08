@@ -116,10 +116,56 @@ export default function StaffAppointments() {
   }, [activeTab]);
 
   // --- HANDLE APPROVE ---
-  const handleApprove = (appointment) => {
-    fetchAppointments();
-    setModalOpen(false);
-    toast.success('Appointment approved!');
+  const handleApprove = async (appointment) => {
+    try {
+      const selectedDate = approvedData.appointmentDate; 
+      const doctorId = approvedData?.docID || selectedAppointment?.docID;
+      
+      if (!doctorId) {
+        toast.error("You must assign a doctor before approving this date!");
+        return; 
+      }
+
+      const checkRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/check-availability?doctor_id=${doctorId}&date=${selectedDate}`, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      const availability = await checkRes.json();
+
+      if (!availability.is_available) {
+        toast.error(`Cannot schedule: ${availability.reason || "Slot is full!"}`);
+        return; 
+      }
+
+      if (availability.slots_left === 1) {
+        toast.success("Warning: This is the last available slot for this day!");
+      }
+
+      const payload = {
+        assigned_date: selectedDate, 
+        assigned_doctor_id: doctorId
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${approvedData.id}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload) 
+      });
+
+      if (!response.ok) throw new Error("Failed to approve appointment");
+
+      await fetchAppointments(); 
+      setModalOpen(false);
+      toast.success("Appointment successfully approved & scheduled!");
+
+    } catch (error) {
+      console.error("Approval error:", error);
+      toast.error("Failed to approve appointment.");
+    }
   };
 
   // --- HANDLE DENY ---
