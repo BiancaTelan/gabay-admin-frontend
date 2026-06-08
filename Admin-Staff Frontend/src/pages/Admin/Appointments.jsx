@@ -11,7 +11,6 @@ import ExcelJS from 'exceljs';
 const statusStyles = {
   Approved: 'bg-amber-100 text-amber-700',
   Completed: 'bg-green-50 text-gabay-green',
-  Confirmed: 'bg-blue-50 text-blue-700',
   Rescheduled: 'bg-purple-50 text-purple-700',
   Cancelled: 'bg-red-50 text-gabay-red',
   Pending: 'bg-gray-100 text-gray-400',
@@ -31,7 +30,7 @@ export default function Appointments() {
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
-    statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'],
+    statuses: ['Pending', 'Approved', 'Rescheduled', 'Completed', 'Cancelled'],
     deptTypes: ['General', 'Specialty'],
     timeline: 'All'
   });
@@ -260,7 +259,7 @@ export default function Appointments() {
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Status</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'].map(s => (
+                    {['Pending', 'Approved', 'Rescheduled', 'Completed', 'Cancelled'].map(s => (
                       <label key={s} className="flex items-center gap-2 text-sm font-poppins cursor-pointer group">
                         <input type="checkbox" checked={filters.statuses.includes(s)} onChange={(e) => {
                           const newStatus = e.target.checked ? [...filters.statuses, s] : filters.statuses.filter(x => x !== s);
@@ -288,7 +287,7 @@ export default function Appointments() {
                 </div>
 
                 <div className="pt-2 flex gap-2">
-                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'], deptTypes: ['General', 'Specialty'], timeline: 'All' })} 
+                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: ['Pending', 'Approved', 'Rescheduled', 'Completed', 'Cancelled'], deptTypes: ['General', 'Specialty'], timeline: 'All' })} 
                   className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} 
                   className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90 transition-all">Apply</button>
