@@ -134,8 +134,8 @@ export default function StaffAppointments() {
     filtered.sort((a, b) => {
       let valA, valB;
       if (sortConfig.key === 'date') {
-        const dateStrA = activeTab === 'pending' ? a.submissionDate : a.appointmentDate;
-        const dateStrB = activeTab === 'pending' ? b.submissionDate : b.appointmentDate;
+        const dateStrA = activeTab === 'pending' ? a.requestedStartDate : a.appointmentDate;
+        const dateStrB = activeTab === 'pending' ? b.requestedStartDate : b.appointmentDate;
         const dateA = new Date(dateStrA);
         const dateB = new Date(dateStrB);
         valA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
@@ -633,7 +633,7 @@ export default function StaffAppointments() {
         />
       )}
 
-      {selectedAppointment && modalMode === 'appoint' && (
+      {selectedAppointment && modalMode === 'approve' && (
         <ApproveScheduleModal 
           isOpen={modalOpen} 
           onClose={() => setModalOpen(false)} 
