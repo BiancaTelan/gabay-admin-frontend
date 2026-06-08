@@ -11,13 +11,12 @@ import ExcelJS from 'exceljs';
 const statusStyles = {
   Approved: 'bg-amber-100 text-amber-700',
   Completed: 'bg-green-50 text-gabay-green',
-  Confirmed: 'bg-blue-50 text-blue-700',           // ADDED
+  Confirmed: 'bg-blue-50 text-blue-700',
   Rescheduled: 'bg-purple-50 text-purple-700',
   Cancelled: 'bg-red-50 text-gabay-red',
   Pending: 'bg-gray-100 text-gray-400',
 };
 
-// --- HELPER: TIME AGO CALCULATOR ---
 export default function Appointments() {
   const { token } = useContext(AuthContext);
   const [search, setSearch] = useState('');
@@ -27,11 +26,14 @@ export default function Appointments() {
   const [expandedId, setExpandedId] = useState(null);
   const [appointmentData, setAppointmentData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // --- STATE FOR FILTERS (Updated with timeline track) ---
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
     statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'],
-    deptTypes: ['General', 'Specialty']
+    deptTypes: ['General', 'Specialty'],
+    timeline: 'All'
   });
 
   const itemsPerPage = 10;
@@ -58,7 +60,6 @@ export default function Appointments() {
     if (token) fetchAppointments();
   }, [token]);
 
-
   // --- FILTERING & SORTING ---
   const filteredData = useMemo(() => {
     let result = appointmentData.filter(item => 
@@ -77,7 +78,46 @@ export default function Appointments() {
       });
     }
 
+    // 1. Timeline Filtering Logic (Uses app.lastUpdate to determine structural system record boundaries)
+    if (filters.timeline !== 'All') {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      result = result.filter(item => {
+        if (!item.lastUpdate) return false;
+
+        const recordDate = new Date(item.lastUpdate);
+        if (isNaN(recordDate.getTime())) return false;
+
+        if (filters.timeline === 'This Day') {
+          return recordDate >= todayStart;
+        }
+        if (filters.timeline === 'This Week') {
+          const currentDay = now.getDay();
+          const sundayStart = new Date(todayStart);
+          sundayStart.setDate(todayStart.getDate() - currentDay);
+          return recordDate >= sundayStart;
+        }
+        if (filters.timeline === 'This Month') {
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          return recordDate >= monthStart;
+        }
+        if (filters.timeline === 'This Year') {
+          const yearStart = new Date(now.getFullYear(), 0, 1);
+          return recordDate >= yearStart;
+        }
+        return true;
+      });
+    }
+
     result.sort((a, b) => {
+      if (filters.sortKey === 'lastUpdate' || filters.sortKey === 'date') {
+        // Fallback checks safely handling records based on when it was created (lastUpdate)
+        const dateA = new Date(a.lastUpdate || a.date || 0);
+        const dateB = new Date(b.lastUpdate || b.date || 0);
+        return filters.sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+
       const valA = String(a[filters.sortKey] || '');
       const valB = String(b[filters.sortKey] || '');
       const comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
@@ -140,10 +180,8 @@ export default function Appointments() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
-  const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
   const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
-  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -167,7 +205,7 @@ export default function Appointments() {
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
           <button onClick={handleExportExcel} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           <div className="relative flex-1 lg:flex-none">
@@ -190,7 +228,7 @@ export default function Appointments() {
                     >
                       <option value="id">Appointment ID</option>
                       <option value="dept">Department</option>
-                      <option value="date">Date</option>
+                      <option value="lastUpdate">Date Created</option> 
                     </select>
                     <select 
                       value={filters.sortOrder}
@@ -201,6 +239,22 @@ export default function Appointments() {
                       <option value="desc">Descending (Z-A)</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Timeline Sort */}
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Timeline</p>
+                  <select 
+                    value={filters.timeline}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue"
+                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
+                  >
+                    <option value="All">All Time</option>
+                    <option value="This Day">This Day</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                    <option value="This Year">This Year</option>
+                  </select>
                 </div>
 
                 <div>
@@ -234,7 +288,7 @@ export default function Appointments() {
                 </div>
 
                 <div className="pt-2 flex gap-2">
-                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: [], deptTypes: [] })} 
+                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'], deptTypes: ['General', 'Specialty'], timeline: 'All' })} 
                   className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} 
                   className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90 transition-all">Apply</button>

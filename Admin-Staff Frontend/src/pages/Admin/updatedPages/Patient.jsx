@@ -229,7 +229,7 @@ export default function Patient() {
             onClick={handleExportExcel}
             className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
           >
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           {/* CUSTOM MULTI-FILTER DROPDOWN */}
