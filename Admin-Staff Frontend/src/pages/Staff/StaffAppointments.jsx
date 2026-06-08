@@ -349,14 +349,17 @@ export default function StaffAppointments() {
       ) : (
         <>
           {/* TABS */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="grid grid-cols-5">
             {tabs.map(tab => (
               <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-6 py-3 rounded-lg font-poppins font-medium text-sm whitespace-nowrap transition-all ${
-                  activeTab === tab.key
-                    ? 'bg-gabay-blue text-white shadow-md'
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`py-2 text-md font-poppins font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-gabay-blue text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
