@@ -54,7 +54,7 @@ export default function StaffAppointments() {
       // Updated status filtering for new workflow
       setPendingAppointments(data.filter(app => app.status === 'pending'));
       
-      // CHANGED: "approved" is now the final status (no separate "confirmed" or "book" states)
+      //"approved" is now the final status (no separate "confirmed" or "book" states)
       setApprovedAppointments(data.filter(app => app.status === 'approved'));
       
       // Rescheduled appointments
@@ -119,7 +119,7 @@ export default function StaffAppointments() {
   const handleApprove = (appointment) => {
     fetchAppointments();
     setModalOpen(false);
-    toast.success('Appointment approved and confirmed successfully!');
+    toast.success('Appointment approved!');
   };
 
   // --- HANDLE DENY ---
@@ -270,7 +270,7 @@ export default function StaffAppointments() {
   // --- TAB CONFIGURATION ---
   const tabs = [
     { key: 'pending', label: 'Pending Approval', count: pendingAppointments.length, color: 'text-gray-600' },
-    { key: 'approved', label: 'Confirmed', count: approvedAppointments.length, color: 'text-green-600' },
+    { key: 'approved', label: 'Approved', count: approvedAppointments.length, color: 'text-green-600' },
     { key: 'rescheduled', label: 'Rescheduled', count: rescheduledAppointments.length, color: 'text-yellow-600' },
     { key: 'canceled', label: 'Canceled/Denied', count: canceledAppointments.length, color: 'text-red-600' }
   ];
