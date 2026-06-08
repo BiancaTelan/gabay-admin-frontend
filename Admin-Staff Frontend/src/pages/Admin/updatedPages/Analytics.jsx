@@ -141,7 +141,7 @@ export default function Analytics() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gabay-blue tracking-tight">GABAY Analytics</h1>
-          <p className="text-xs md:text-sm text-gray-500 font-medium mt-0.5">Main Menu &gt; Analytics</p>
+          <p className="text-xs md:text-sm text-gray-500 font-medium mt-0.5">System &gt; Analytics</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto relative">

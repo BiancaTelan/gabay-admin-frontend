@@ -21,10 +21,14 @@ export default function AuditLogs() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [logsData, setLogsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // --- STATE FOR FILTERS ---
   const [filters, setFilters] = useState({
     sortKey: 'date', 
     sortOrder: 'desc', 
-    roles: ['PATIENT', 'STAFF', 'DOCTOR', 'ADMIN', 'SYSTEM']
+    roles: ['STAFF', 'ADMIN'], 
+    timeline: 'All',           
+    actionType: 'All'          
   });
 
   const itemsPerPage = 10;
@@ -55,17 +59,52 @@ export default function AuditLogs() {
     if (token) fetchLogs();
   }, [token]);
 
-  // --- FILTERING & SORTING ---
+  // --- FILTERING & SORTING LOGIC ---
   const filteredData = useMemo(() => {
     let result = logsData.filter(item => 
       (item.user && item.user.toLowerCase().includes(search.toLowerCase())) || 
-      (item.ip && item.ip.toLowerCase().includes(search.toLowerCase())) ||
+      (item.target && item.target.toLowerCase().includes(search.toLowerCase())) || 
       (item.action && item.action.toLowerCase().includes(search.toLowerCase())) ||
       (item.date && item.date.includes(search))
     );
 
+    // Filter by Roles
     if (filters.roles.length > 0) {
       result = result.filter(i => filters.roles.includes(i.role));
+    }
+
+    if (filters.actionType !== 'All') {
+      result = result.filter(i => i.action && i.action.toLowerCase() === filters.actionType.toLowerCase());
+    }
+
+    if (filters.timeline !== 'All') {
+      const now = new Date();
+      
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      result = result.filter(item => {
+        if (!item.date) return false;
+        const logDate = new Date(`${item.date} ${item.time || '00:00:00'}`);
+        
+        if (filters.timeline === 'This Day') {
+          return logDate >= todayStart;
+        }
+        if (filters.timeline === 'This Week') {
+          const currentDay = now.getDay();
+          const sundayStart = new Date(todayStart);
+          sundayStart.setDate(todayStart.getDate() - currentDay); 
+          return logDate >= sundayStart;
+        }
+        if (filters.timeline === 'This Month') {
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          return logDate >= monthStart;
+        }
+        if (filters.timeline === 'This Year') {
+          const yearStart = new Date(now.getFullYear(), 0, 1);
+          return logDate >= yearStart;
+        }
+        return true;
+      });
     }
 
     result.sort((a, b) => {
@@ -93,7 +132,7 @@ export default function AuditLogs() {
     }
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('System Audit Logs');
+    const worksheet = workbook.addWorksheet('Personnel Audit Logs');
 
     worksheet.columns = [
       { header: 'Date', key: 'date', width: 15 },
@@ -101,8 +140,8 @@ export default function AuditLogs() {
       { header: 'User', key: 'user', width: 25 },
       { header: 'Role', key: 'role', width: 12 },
       { header: 'Action', key: 'action', width: 20 },
-      { header: 'Description', key: 'description', width: 40 },
-      { header: 'IP Address', key: 'ip', width: 18 }
+      { header: 'Target', key: 'target', width: 25 }, 
+      { header: 'Description', key: 'description', width: 40 }
     ];
 
     filteredData.forEach(log => {
@@ -112,8 +151,8 @@ export default function AuditLogs() {
         user: log.user,
         role: log.role,
         action: log.action,
-        description: log.description,
-        ip: log.ip
+        target: log.target || 'N/A', // Bind target property context to row instances
+        description: log.description
       });
     });
 
@@ -132,7 +171,7 @@ export default function AuditLogs() {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    toast.success("Audit Log report generated!");
+    toast.success("Personnel Audit Log report generated!");
   };
 
   // --- PAGINATION LOGIC ---
@@ -142,25 +181,16 @@ export default function AuditLogs() {
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
   // --- SELECTION LOGIC ---
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(pagedData.map(i => i.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
   const toggleSelection = (id) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
-  // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue tracking-tight">Audit Logs</h1>
+        <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue tracking-tight">Personnel Audit Logs</h1>
         <p className="text-xs md:text-sm font-poppins text-gray-500">System &gt; Audit Logs</p>
       </div>
 
@@ -192,13 +222,13 @@ export default function AuditLogs() {
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
             >
-              <Funnel size={16} /> Filter ({filters.roles.length})
+              <Funnel size={16} /> Filter
             </button>
             
             {showFilterDropdown && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Sort Order</p>
                   <select 
                     value={filters.sortOrder}
                     className="w-full text-sm font-poppins border rounded-lg p-2 outline-none"
@@ -209,10 +239,47 @@ export default function AuditLogs() {
                   </select>
                 </div>
 
+                {/* Timeline Sort */}
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Timeline</p>
+                  <select 
+                    value={filters.timeline}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none"
+                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
+                  >
+                    <option value="All">All Time</option>
+                    <option value="This Day">This Day</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                    <option value="This Year">This Year</option>
+                  </select>
+                </div>
+
+                {/* Action Type */}
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Action Type</p>
+                  <select 
+                    value={filters.actionType}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none"
+                    onChange={(e) => setFilters({...filters, actionType: e.target.value})}
+                  >
+                    <option value="All">All Actions</option>
+                    <option value="Update">Update</option>
+                    <option value="Delete">Delete</option>
+                    <option value="Deactivate">Deactivate</option>
+                    <option value="Insert">Insert</option>
+                    <option value="Approve">Approve</option>
+                    <option value="Resched">Resched</option>
+                    <option value="Cancel">Cancel</option>
+                    <option value="Book">Book</option>
+                    <option value="Deny">Deny</option>
+                  </select>
+                </div>
+
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">User Role</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['PATIENT', 'STAFF', 'DOCTOR', 'ADMIN', 'SYSTEM'].map(role => (
+                    {['STAFF', 'ADMIN'].map(role => (
                       <label key={role} className="flex items-center gap-2 text-sm font-poppins text-gray-600 cursor-pointer">
                         <input 
                           type="checkbox" 
@@ -229,10 +296,18 @@ export default function AuditLogs() {
                 </div>
 
                 <div className="pt-2 flex gap-2">
-                  <button onClick={() => setFilters({ sortKey: 'date', sortOrder: 'desc', roles: [] })} 
-                  className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset</button>
-                  <button onClick={() => setShowFilterDropdown(false)} 
-                  className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90">Apply</button>
+                  <button 
+                    onClick={() => setFilters({ sortKey: 'date', sortOrder: 'desc', roles: ['STAFF', 'ADMIN'], timeline: 'All', actionType: 'All' })} 
+                    className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button 
+                    onClick={() => setShowFilterDropdown(false)} 
+                    className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90"
+                  >
+                    Apply
+                  </button>
                 </div>
               </div>
             )}
@@ -251,13 +326,12 @@ export default function AuditLogs() {
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
-
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Date</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">User</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-center">Role</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Action</th>
+                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Target</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Description</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">IP Address</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -273,8 +347,16 @@ export default function AuditLogs() {
                     </span>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-700 font-poppins">{log.action}</td>
+                  
+                  {/* 2. TARGET COLUMN DATA INTERACTION 
+                     BACKEND DEVELOPER NOTE: Please update the backend log data structures to include a explicit string field named `target`. 
+                     - If action === 'UPDATE' / 'DEACTIVATE' -> `target` value should hold the impacted Patient or User account name.
+                     - If action === 'APPROVE' / 'RESCHED' / 'CANCEL' -> `target` value should state the specific target Appointment ID or reference sequence.
+                     - If action === 'INSERT' -> `target` value should be the designated target Doctor / Personnel entity name created.
+                  */}
+                  <td className="px-4 py-4 text-sm text-gray-700 font-poppins font-medium">{log.target || '—'}</td>
+                  
                   <td className="px-4 py-4 text-sm text-gray-500 font-poppins italic">{log.description}</td>
-                  <td className="px-4 py-4 text-sm text-gray-400 font-poppins">{log.ip}</td>
                 </tr>
               ))}
             </tbody>
