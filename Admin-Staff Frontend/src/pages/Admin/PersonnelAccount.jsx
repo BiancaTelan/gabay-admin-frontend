@@ -18,6 +18,7 @@ export default function PersonnelAccount() {
 
   const [localUserInfo, setLocalUserInfo] = useState({
     firstname: "",
+    middlename: "",
     surname: "",
     suffix: "",
     role: currentRole?.toUpperCase() || "STAFF",
@@ -25,7 +26,10 @@ export default function PersonnelAccount() {
     contactNumber: "",
     dob: "",
     gender: "Male",
-    address: "",
+    street: "",  
+    barangay: "", 
+    city: "",     
+    province: "",
     profilePhoto: null
   });
 
@@ -51,15 +55,21 @@ export default function PersonnelAccount() {
         if (!response.ok) throw new Error("Failed to fetch profile data");
         
         const data = await response.json();
+        const addressStr = data.address || "";
+        const [street = "", barangay = "", city = "", province = ""] = addressStr.split(" | ");
         
         setLocalUserInfo(prev => ({ 
           ...prev, 
           ...data,
           firstname: data.firstname || prev.firstname,
           surname: data.surname || prev.surname,
+          middlename: data.middlename || "",
           suffix: data.suffix || "",
           contactNumber: data.contactNumber || "",
-          address: data.address || "",
+          street: street,
+          barangay: barangay,
+          city: city,
+          province: province,
           gender: data.gender || "Male"
         })); 
       } catch (error) {
@@ -137,12 +147,12 @@ export default function PersonnelAccount() {
     let newErrors = {};
     const today = new Date();
 
-    // BUG FIX: Added optional chaining (?.) to prevent crashes if strings are somehow undefined
     if (!localUserInfo.firstname?.trim()) newErrors.firstname = "First name is required";
     else if (!namePattern.test(localUserInfo.firstname)) newErrors.firstname = "No numbers/special characters";
 
     if (!localUserInfo.surname?.trim()) newErrors.surname = "Last name is required";
     else if (!namePattern.test(localUserInfo.surname)) newErrors.surname = "No numbers/special characters";
+
 
     if (!localUserInfo.dob?.trim()) {
       newErrors.dob = "Date of birth is required";
@@ -158,6 +168,11 @@ export default function PersonnelAccount() {
       if (birthDate > today) newErrors.dob = "Date cannot be in the future";
       else if (age < 18) newErrors.dob = `MUST BE AT LEAST 18 YEARS OLD`;
     }
+
+    if (!localUserInfo.street.trim()) newErrors.street = "Required";
+    if (!localUserInfo.barangay.trim()) newErrors.barangay = "Required";
+    if (!localUserInfo.city.trim()) newErrors.city = "Required";
+    if (!localUserInfo.province.trim()) newErrors.province = "Required";
 
     if (!localUserInfo.contactNumber?.trim()) newErrors.contactNumber = "Required";
     else if (!/^\d{11}$/.test(localUserInfo.contactNumber)) newErrors.contactNumber = "Must be 11 digits";
@@ -198,8 +213,8 @@ export default function PersonnelAccount() {
   };
 
   const getFullDisplayName = () => {
-    const { firstname,  surname, suffix } = localUserInfo;
-    return `${firstname} ${surname} ${suffix}`.replace(/\s+/g, ' ').trim();
+    const { firstname, middlename, surname, suffix } = localUserInfo;
+    return `${firstname} ${middlename} ${surname} ${suffix}`.replace(/\s+/g, ' ').trim();
   };
 
   return (
@@ -236,16 +251,17 @@ export default function PersonnelAccount() {
 
             {isEditing ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-12 gap-4">
-                  <div className="col-span-8 md:col-span-10">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-4">
                     <Input label="First Name" name="firstname" value={localUserInfo.firstname} onChange={handleInputChange} error={errors.firstname} isEditing={true} required />
                   </div>
-                </div>
-                <div className="grid grid-cols-12 gap-4">
-                  <div className="col-span-8 md:col-span-9">
+                  <div className="md:col-span-3">
+                    <Input label="Middle Name" name="middlename" value={localUserInfo.middlename} onChange={handleInputChange} isEditing={true} />
+                  </div>
+                  <div className="md:col-span-3">
                     <Input label="Last Name" name="surname" value={localUserInfo.surname} onChange={handleInputChange} error={errors.surname} isEditing={true} required />
                   </div>
-                  <div className="col-span-4 md:col-span-3">
+                  <div className="md:col-span-2">
                     <label className="text-sm font-medium text-gabay-navy mb-1 block">Suffix</label>
                     <select name="suffix" value={localUserInfo.suffix} onChange={handleInputChange} className="w-full h-[42px] px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gabay-teal/20 focus:border-gabay-teal transition-all bg-white text-sm">
                       <option value="">None</option> <option value="Jr.">Jr.</option> <option value="Sr.">Sr.</option> <option value="I">I</option> 
@@ -287,8 +303,23 @@ export default function PersonnelAccount() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
               <Input label="Email Address" value={localUserInfo.email} readOnly noHover className="bg-gray-50"/>
               <Input label="Contact Number" name="contactNumber" value={localUserInfo.contactNumber} onChange={handleInputChange} error={errors.contactNumber} readOnly={!isEditing} isEditing={isEditing} required maxLength={11} placeholder="09XXXXXXXXX" />
-              <div className="md:col-span-2">
-                <Input label="Home Address" name="address" value={localUserInfo.address} onChange={handleInputChange} readOnly={!isEditing} isEditing={isEditing} placeholder="Enter your home address" />
+              <div className="md:col-span-2 border-t border-gray-100 pt-5 mt-3">
+                <h4 className="text-sm font-bold text-gabay-navy tracking-wider uppercase mb-4">Complete Address</h4>
+                {isEditing ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                     <Input label="House No./Block/Lot/Street" name="street" value={localUserInfo.street} onChange={handleInputChange} isEditing={true} required error={errors.street} />
+                     <Input label="Barangay" name="barangay" value={localUserInfo.barangay} onChange={handleInputChange} isEditing={true} required error={errors.barangay}/>
+                     <Input label="City" name="city" value={localUserInfo.city} onChange={handleInputChange} isEditing={true} required error={errors.city}/>
+                     <Input label="Province" name="province" value={localUserInfo.province} onChange={handleInputChange} isEditing={true} required error={errors.province}/>
+                  </div>
+                ) : (
+                  <Input 
+                    label="Address" 
+                    value={[localUserInfo.street, localUserInfo.barangay, localUserInfo.city, localUserInfo.province].filter(Boolean).join(', ')} 
+                    readOnly 
+                    noHover 
+                  />
+                )}
               </div>
             </div>
           </section>
