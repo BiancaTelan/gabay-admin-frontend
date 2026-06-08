@@ -9,12 +9,17 @@ YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 // ==========================================
 
 const mockSummaryData = {
+  thisDay: { topDoc: "Dr. Ester German", topDept: "General Dentistry", activeStaff: "Bianca Telan", docAppts: 2, deptReservations: 3, staffActions: 2 },
   thisWeek: { topDoc: "Dr. Ester German", topDept: "General Dentistry", activeStaff: "Rachel Mawac", docAppts: 4, deptReservations: 12, staffActions: 6 },
   thisMonth: { topDoc: "Dr. Ester German", topDept: "Internal Medicine", activeStaff: "Rachel Mawac", docAppts: 14, deptReservations: 41, staffActions: 18 },
   thisYear: { topDoc: "Dr. Ester German", topDept: "Internal Medicine", activeStaff: "Rachel Mawac", docAppts: 168, deptReservations: 512, staffActions: 210 }
 };
 
 const mockGraphData = {
+  thisDay: [
+    { name: 'Morning (AM)', General: 2, Specialty: 1 },
+    { name: 'Afternoon (PM)', General: 1, Specialty: 2 },
+  ],
   thisWeek: [
     { name: 'Week 1', General: 11, Specialty: 10 },
   ],
@@ -34,6 +39,10 @@ const mockGraphData = {
 };
 
 const mockTopDepartments = {
+  thisDay: [
+    { name: 'General Dentistry', appointments: 2 },
+    { name: 'General Internal Medicine', appointments: 1 },
+  ],
   thisWeek: [
     { name: 'General Internal Medicine', appointments: 4 },
     { name: 'General Surgery', appointments: 3 },
@@ -53,6 +62,10 @@ const mockTopDepartments = {
 };
 
 const mockDoctors = {
+  thisDay: [
+    { name: "Ester German", Department: "General Dentistry", completed: 2, maxSlots: 25, activeSlots: 23 },
+    { name: "Adelina Paule", Department: "IM - Vascular Cardiology", completed: 1, maxSlots: 25, activeSlots: 24 },
+  ],
   thisWeek: [
     { name: "Ester German", Department: "General Dentistry", completed: 4, maxSlots: 25, activeSlots: 25 },
   ],
@@ -69,6 +82,9 @@ const mockDoctors = {
 };
 
 const mockStaff = {
+  thisDay: [
+    { name: "Bianca Telan", approved: 2, canceled: 0, rescheduled: 0, profileUrl: null, isActive: true, lastActionTime: "2026-06-08" },
+  ],
   thisWeek: [
     { name: "Bianca Telan", approved: 2, canceled: 0, rescheduled: 1, profileUrl: null, isActive: true, lastActionTime: "2026-06-07" },
   ],
@@ -107,11 +123,6 @@ export default function Analytics() {
 
   const handleExport = (type) => {
     alert(`Generating excel report for: ${type.toUpperCase()} with filter range: ${timeFilter}`);
-    /* // BACKEND DEVELOPER NOTE:
-      // Send Axios or Fetch call to API endpoint:
-      // Axios.get(`/api/analytics/export?type=${type}&range=${timeFilter}`, { responseType: 'blob' })
-      // .then(res => downloadFileBlob(res.data))
-    */
   };
 
   const activeSummary = mockSummaryData[timeFilter] || mockSummaryData.thisMonth;
@@ -119,10 +130,8 @@ export default function Analytics() {
   const activeTopDepts = mockTopDepartments[timeFilter] || mockTopDepartments.thisMonth;
   const activeDocs = mockDoctors[timeFilter] || mockDoctors.thisMonth;
   
-  // Doctors: Sort from highest to lowest number of completed appointments
   const sortedDocs = [...activeDocs].sort((a, b) => b.completed - a.completed);
   
-  // Staff: Sort dynamically from most recent timeline action event tracking stamp
   const activeStaffList = mockStaff[timeFilter] || mockStaff.thisMonth;
   const sortedStaff = [...activeStaffList].sort((a, b) => new Date(b.lastActionTime) - new Date(a.lastActionTime));
 
@@ -143,6 +152,7 @@ export default function Analytics() {
               className="w-full flex items-center justify-between px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-semibold hover:bg-teal-50/50 transition-colors shadow-sm"
             >
               <span>
+                {timeFilter === 'thisDay' && 'Filter By: This Day'}
                 {timeFilter === 'thisWeek' && 'Filter By: This Week'}
                 {timeFilter === 'thisMonth' && 'Filter By: This Month'}
                 {timeFilter === 'thisYear' && 'Filter By: This Year'}
@@ -152,6 +162,7 @@ export default function Analytics() {
             
             {isFilterDropdownOpen && (
               <div className="absolute right-0 mt-1.5 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-1 duration-150">
+                <button onClick={() => { setTimeFilter('thisDay'); setIsFilterDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 text-gray-700 transition-colors">This Day</button>
                 <button onClick={() => { setTimeFilter('thisWeek'); setIsFilterDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 text-gray-700 transition-colors">This Week</button>
                 <button onClick={() => { setTimeFilter('thisMonth'); setIsFilterDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 text-gray-700 transition-colors">This Month</button>
                 <button onClick={() => { setTimeFilter('thisYear'); setIsFilterDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 text-gray-700 transition-colors">This Year</button>
@@ -180,9 +191,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* BACKEND DEVELOPER NOTE: Aggregates can be calculated dynamically inside SQL with COUNT() groupings relative to your ranges */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        
         {/* TOP DOCTOR */}
         <div className="p-4 bg-white border border-gray-100 rounded-xl flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
           <div className="space-y-1">
@@ -220,9 +229,8 @@ export default function Analytics() {
         </div>
       </div>
 
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-        {/* VERTICAL CHART - BACKEND DEVELOPER NOTE: Formulate your data payload arrays formatted to map out keys: name, General, Specialty */}
+        {/* VERTICAL CHART */}
         <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-5 shadow-sm lg:col-span-7 flex flex-col justify-between">
           <div>
             <h3 className="text-lg font-bold text-gabay-blue font-poppins">Department Overview</h3>
@@ -263,7 +271,6 @@ export default function Analytics() {
                       }}
                     />
                     
-                    {/* Floating Labels */}
                     <span className="relative z-10 text-xs font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] truncate max-w-[70%]">
                       {dept.name}
                     </span>
@@ -282,10 +289,8 @@ export default function Analytics() {
         </div>
       </div>
 
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* DOCTOR OVERVIIEW - BACKEND DEVELOPER NOTE: Run internal sorting logic query `ORDER BY completed_appointments DESC` */}
+        {/* DOCTOR OVERVIEW */}
         <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-5 shadow-sm">
           <div className="mb-3">
             <h3 className="text-lg font-bold text-gabay-blue">Doctor Overview</h3>
@@ -297,7 +302,6 @@ export default function Analytics() {
           <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
             {sortedDocs.map((doc, idx) => (
               <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50/80 border border-transparent hover:border-gray-100 transition-all">
-                {/* Dynamically Generated Initials Avatar Block Container */}
                 <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 text-gabay-blue flex items-center justify-center font-bold text-sm tracking-wide shrink-0">
                   {getInitials(doc.name)}
                 </div>
@@ -307,13 +311,11 @@ export default function Analytics() {
                   <p className="text-xs text-gray-400 font-medium truncate">{doc.department}</p>
                 </div>
 
-                {/* Right Metrics Layout Data Matrix Block */}
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-md min-w-[32px] text-center shadow-xs">
                     {doc.completed}
                   </span>
                   
-                  {/* Fixed Static Capacity Display Progress Track Bar Indicators */}
                   <div className="w-20 md:w-24 bg-gray-100 rounded-full h-6 relative overflow-hidden border border-gray-200/60 hidden sm:flex items-center justify-center">
                     <div 
                       className="absolute left-0 top-0 h-full bg-gray-400/40 transition-all duration-300"
@@ -330,8 +332,7 @@ export default function Analytics() {
           </div>
         </div>
 
-
-        {/* STAFF OVERVIEW - BACKEND DEVELOPER NOTE: Query your tracking logs filtering `ORDER BY action_timestamp DESC` */}
+        {/* STAFF OVERVIEW */}
         <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-5 shadow-sm">
           <div className="mb-3">
             <h3 className="text-lg font-bold text-gabay-blue">Staff Overview</h3>
@@ -344,7 +345,6 @@ export default function Analytics() {
             {sortedStaff.map((staff, idx) => (
               <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50/80 border border-transparent hover:border-gray-100 transition-all">
                 
-                {/* Fallback Verified Avatar Element Layer Holder */}
                 <div className="relative shrink-0">
                   {staff.profileUrl ? (
                     <img src={staff.profileUrl} alt={staff.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
@@ -353,7 +353,6 @@ export default function Analytics() {
                       {getInitials(staff.name)}
                     </div>
                   )}
-                  {/* Status Dot */}
                   {staff.isActive && (
                     <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white animate-pulse" />
                   )}
@@ -389,7 +388,6 @@ export default function Analytics() {
         </div>
 
       </div>
-
     </div>
   );
 }
