@@ -516,78 +516,102 @@ export default function StaffAppointments() {
           )}
 
           {/* Appointments List (cards) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {paginated.length === 0 ? (
-              <div className="col-span-2 bg-white rounded-md shadow-sm border border-gray-100 p-6 text-center">
-                <p className="font-poppins text-gray-500">No appointments found.</p>
-              </div>
-            ) : (
-              paginated.map(app => (
-                <div key={app.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
-                  <div className="flex flex-col md:flex-row justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-montserrat text-xl font-semibold text-gabay-navy">{app.name}</p>
-                          <p className="font-poppins text-md text-gabay-navy">{app.hospitalNo}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {paginated.length === 0 ? (
+                <div className="col-span-2 bg-white rounded-md shadow-sm border border-gray-100 p-6 text-center">
+                  <p className="font-poppins text-gray-500">No appointments found.</p>
+                </div>
+              ) : (
+                paginated.map(app => (
+                  <div key={app.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
+                    <div className="flex flex-col md:flex-row justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-montserrat text-xl font-semibold text-gabay-navy">{app.name}</p>
+                            <p className="font-poppins text-md text-gabay-navy">{app.hospitalNo}</p>
+                            <p className="font-poppins text-sm text-gray-500">{app.department}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
+                              app.status?.toLowerCase() === 'pending' ? 'bg-gray-100 text-gray-600 font-medium' :
+                              app.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800 font-bold' : 
+                              app.status?.toLowerCase() === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 font-bold border border-yellow-200' :
+                              (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800 font-medium' :
+                              'bg-gray-100 text-gray-800 font-medium'
+                            }`}>
+                              {app.status ? app.status.toUpperCase() : 'UNKNOWN'}
+                            </span>
+  
+                            {activeTab === 'pending' && (
+                              <button onClick={() => { setSelectedAppointment(app); setModalMode('approve'); setModalOpen(true); }}
+                                className="text-gabay-blue hover:text-gabay-navy transition" title="Approve">
+                                <SquarePen size={24} />
+                              </button>
+                            )}
+  
+                            {activeTab === 'approved' && (
+                              <button onClick={() => {
+                                navigate('/staff/reschedule', { state: { appointment: app } });
+                              }}
+                                className="text-gabay-blue hover:text-gabay-navy transition" title="Reschedule">
+                                <SquarePen size={24} />
+                              </button>
+                            )}
+  
+                            {activeTab === 'rescheduled' && (
+                              <button onClick={() => {
+                                  setConfirmConfig({
+                                    isOpen: true,
+                                    type: 'info',
+                                    title: 'Send Patient Reminder',
+                                    message: `Send a reminder email to ${app.name} about their rescheduled appointment?`,
+                                    onConfirm: () => {
+                                      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                                      handleNotifyPatient(app);
+                                    }
+                                  });
+                                }}
+                                className="text-orange-500 hover:text-orange-700 transition" title="Send Reminder to Patient">
+                                <Bell size={24} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
-                            app.status?.toLowerCase() === 'pending' ? 'bg-gray-100 text-gray-600 font-medium' :
-                            app.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800 font-bold' : 
-                            app.status?.toLowerCase() === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 font-bold border border-yellow-200' :
-                            app.status?.toLowerCase() === 'booked' ? 'bg-blue-100 text-blue-800 font-bold' :
-                            (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800 font-medium' :
-                            'bg-gray-100 text-gray-800 font-medium'
-                          }`}>
-                            {app.status ? app.status.toUpperCase() : 'UNKNOWN'}
-                          </span>
-
+                        <div className="mt-3">
+                          <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Reason:</span> {app.reason}</p>
                           {activeTab === 'pending' && (
-                            <button onClick={() => { setSelectedAppointment(app); setModalMode('approve'); setModalOpen(true); }}
-                              className="text-gabay-blue hover:text-gabay-navy transition" title="Approve">
-                              <SquarePen size={24} />
-                            </button>
+                            <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Requested Dates:</span> {app.requestedStartDate} - {app.requestedEndDate}</p>
                           )}
-
-                          {activeTab === 'approved' && (
-                            <button onClick={() => {
-                              navigate('/staff/reschedule', { state: { appointment: app } });
-                            }}
-                              className="text-gabay-blue hover:text-gabay-navy transition" title="Reschedule">
-                              <SquarePen size={24} />
-                            </button>
+                          {(activeTab === 'approved' || activeTab === 'rescheduled' || activeTab === 'canceled') && (
+                            <>
+                              <p className="font-poppins text-sm text-gray-700 mb-2">
+                                <span className="font-semibold">Appointment Date:</span>{' '}
+                                {app.appointmentDate
+                                  ? typeof app.appointmentDate === 'string'
+                                    ? app.appointmentDate
+                                    : app.appointmentDate.toLocaleDateString()
+                                  : 'Not set'}
+                              </p>
+                              <p className="font-poppins text-sm text-gray-700 mb-2">
+                                <span className="font-semibold">Batch Time:</span> {app.batch}
+                              </p>
+                              {/* UPDATED: Show approving staff name for validated appointments */}
+                              {app.approvingStaffName && (
+                                <p className="font-poppins text-sm text-gabay-teal border-t pt-2 mt-2">
+                                  <span className="font-semibold">Approved by:</span> {app.approvingStaffName}
+                                </p>
+                              )}
+                            </>
                           )}
+                          {app.assignedDoctor && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Doctor:</span> {app.assignedDoctor}</p>}
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Reason:</span> {app.reason}</p>
-                        {activeTab === 'pending' && (
-                          <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Requested Dates:</span> {app.requestedStartDate} - {app.requestedEndDate}</p>
-                        )}
-                        {(activeTab === 'approved' || activeTab === 'canceled') && (
-                          <>
-                            <p className="font-poppins text-sm text-gray-700 mb-2">
-                              <span className="font-semibold">Appointment Date:</span>{' '}
-                              {app.appointmentDate
-                                ? typeof app.appointmentDate === 'string'
-                                  ? app.appointmentDate
-                                  : app.appointmentDate.toLocaleDateString()
-                                : 'Not set'}
-                            </p>
-                            <p className="font-poppins text-sm text-gray-700 mb-2">
-                              <span className="font-semibold">Batch:</span> {app.batch}
-                            </p>
-                          </>
-                        )}
-                        {app.assignedDoctor && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Doctor:</span> {app.assignedDoctor}</p>}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </div>        
 
           {/* Pagination */}
           {totalPages > 1 && (
