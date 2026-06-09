@@ -189,7 +189,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
       if (onSuccess) onSuccess();
 
     } catch (error) {
-      toast.error(error.detail || "An unexpected error occurred.");
+      toast.error(error.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
