@@ -605,6 +605,7 @@ export default function StaffAppointments() {
                             </>
                           )}
                           {app.assignedDoctor && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Doctor:</span> {app.assignedDoctor}</p>}
+                          {app.department && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Department:</span> {app.department}</p>}
                         </div>
                       </div>
                     </div>
