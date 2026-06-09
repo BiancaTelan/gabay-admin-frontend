@@ -349,24 +349,26 @@ export default function StaffAppointments() {
       ) : (
         <>
           {/* TABS */}
-          <div className="grid grid-cols-5">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setCurrentPage(1);
-                }}
-                className={`py-2 text-md font-poppins font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-gabay-blue text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tab.label}
-                <span className={`ml-2 font-bold ${tab.color}`}>({tab.count})</span>
-              </button>
-            ))}
+          <div className="w-full border border-gabay-blue overflow-hidden mb-6">
+            <div className="grid grid-cols-5">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`py-2 text-md font-poppins font-medium transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-gabay-blue text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`ml-2 font-bold ${tab.color}`}>({tab.count})</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* SEARCH & FILTER */}
