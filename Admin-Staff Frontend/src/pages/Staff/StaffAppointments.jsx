@@ -516,7 +516,7 @@ export default function StaffAppointments() {
           )}
 
           {/* Appointments List (cards) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {paginated.length === 0 ? (
                 <div className="col-span-2 bg-white rounded-md shadow-sm border border-gray-100 p-6 text-center">
                   <p className="font-poppins text-gray-500">No appointments found.</p>
