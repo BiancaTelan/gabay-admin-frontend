@@ -290,10 +290,10 @@ export default function StaffDoctors() {
                               </td>
                               <td className="p-4">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-poppins font-medium ${
-                                  doc.isActive ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                  doc.isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                                 }`}>
                                   <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${doc.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                  {doc.isActive ? 'Active' : 'Inactive'}
+                                  {doc.isAvailable ? 'Active' : 'Inactive'}
                                 </span>
                               </td>
                               <td className="p-4 flex items-center justify-center gap-2">
