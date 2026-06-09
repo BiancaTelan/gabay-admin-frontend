@@ -98,6 +98,22 @@ export default function StaffDoctors() {
       toast.error("Failed to delete schedule.");
     }
   };
+  
+
+  const paginated = useMemo(() => {
+    const startIndex = (currentPage - 1) * 5;
+    const endIndex = startIndex + 5;
+    return filteredDoctors.slice(startIndex, endIndex);
+  }, [filteredDoctors, currentPage]);
+
+  const groupedDoctors = useMemo(() => {
+    return paginated.reduce((groups, doctor) => {
+      const dept = doctor.department || 'Uncategorized';
+      if (!groups[dept]) groups[dept] = [];
+      groups[dept].push(doctor);
+      return groups;
+    }, {});
+  }, [paginated]);
 
   // --- FETCH DOCTORS ---
   const fetchDoctors = async () => {
@@ -194,6 +210,7 @@ export default function StaffDoctors() {
   // --- MAIN RENDER ---
   return (
     <div className="space-y-6">
+      
       {/* HEADER & NAVIGATION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gabay-blue px-6 py-6 mb-4 font-poppins">
         <div className="text-left">
@@ -231,72 +248,95 @@ export default function StaffDoctors() {
             </div>
           </div>
 
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-            <table className="w-full text-left">
-              <thead className='sticky top-0 z-10 bg-gray-50'>
-                <tr className="text-gabay-teal font-bold border-b border-gray-100 text-sm uppercase tracking-wider">
-                  <th className="px-6 py-5">Name</th>
-                  <th className="px-6 py-5">Schedule</th>
-                  <th className="px-6 py-5">Time Period</th>
-                  <th className="px-6 py-5">Department</th>
-                  <th className="px-6 py-5 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {paginatedDoctors.map((doctor) => (
-                  <tr key={doctor.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-gabay-navy">{doctor.name}</div>
-                      <div className="text-[10px] text-gray-400 font-normal uppercase">{doctor.role}</div>
-                    </td>
-
-                    <td className="px-6 py-4 text-gabay-navy font-medium">
-                      {doctor.schedules && doctor.schedules.length > 0 ? (
-                        <div className="space-y-1">
-                          {doctor.schedules.map((s) => (
-                            <div key={s.id} className="whitespace-nowrap h-8 flex items-center">{s.day}</div>
+          {/* CATEGORIZED DOCTORS LIST */}
+            <div className="space-y-6 mb-6">
+              {Object.keys(groupedDoctors).length > 0 ? (
+                Object.entries(groupedDoctors).map(([departmentName, departmentDoctors]) => (
+                  <div key={departmentName} className="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    
+                    {/* Department Header */}
+                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+                      <h3 className="text-sm font-bold text-gabay-navy uppercase tracking-widest">
+                        {departmentName}
+                      </h3>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-white border-b border-gray-100">
+                          <tr>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Doctor Name</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Specialization</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Contact No.</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Email</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {departmentDoctors.map((doc, index) => (
+                            <tr key={doc.id || index} className="border-b border-gray-50 hover:bg-gray-50/50 transition relative">
+                              <td className="p-4 font-poppins text-sm text-gabay-navy font-semibold whitespace-nowrap">
+                                {doc.name}
+                              </td>
+                              <td className="p-4 font-poppins text-sm text-gray-600 hidden md:table-cell">
+                                {doc.specialization}
+                              </td>
+                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
+                                {doc.contactNumber}
+                              </td>
+                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
+                                {doc.email}
+                              </td>
+                              <td className="p-4">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-poppins font-medium ${
+                                  doc.isActive ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${doc.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                  {doc.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="p-4 flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => { setSelectedDoctor(doc); setIsScheduleModalOpen(true); }}
+                                  className="p-1.5 text-gabay-blue hover:bg-blue-50 rounded-md transition-colors"
+                                  title="Manage Schedule"
+                                >
+                                  <CalendarDays size={18} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setModalConfig({
+                                      isOpen: true,
+                                      type: doc.isActive ? 'danger' : 'info',
+                                      title: doc.isActive ? 'Deactivate Doctor' : 'Activate Doctor',
+                                      message: `Are you sure you want to ${doc.isActive ? 'deactivate' : 'activate'} Dr. ${doc.name}?`,
+                                      onConfirm: () => handleToggleStatus(doc.id, doc.isActive)
+                                    });
+                                  }}
+                                  className={`p-1.5 rounded-md transition-colors ${doc.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'}`}
+                                  title={doc.isActive ? "Deactivate" : "Activate"}
+                                >
+                                  {doc.isActive ? <Trash2 size={18} /> : <Check size={18} />}
+                                </button>
+                              </td>
+                            </tr>
                           ))}
-                        </div>
-                      ) : ( <span className="text-gray-400 italic">No schedule set</span> )}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex items-start justify-between text-gabay-navy font-medium">
-                        {doctor.schedules && doctor.schedules.length > 0 ? (
-                          <div className="space-y-1 w-full pr-4">
-                            {doctor.schedules.map((s) => (
-                              <div key={s.id} className="whitespace-nowrap h-8 flex items-center justify-between group/item">
-                                <span>{s.time}</span>
-
-                                <div className="flex gap-3 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                  <button onClick={() => { setSelectedDoctor(doctor); setScheduleToEdit(s); setIsScheduleModalOpen(true); }} className="text-gabay-blue hover:text-gabay-teal"><SquarePen size={16}/></button>
-                                  <button onClick={() => confirmDeleteSchedule(s.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : ( <span className="text-gray-400 italic">TBD</span> )}
-                        
-                        <button 
-                          onClick={() => { setSelectedDoctor(doctor); setScheduleToEdit(null); setIsScheduleModalOpen(true); }}
-                          className="p-1 text-gabay-teal opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shrink-0"
-                          title="Add New Schedule Block"
-                        >
-                          <PlusCircle size={22} /> 
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-bold text-gabay-navy">{doctor.department}</td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <StatusPicker doctor={doctor} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                    <Search className="text-gray-300" size={32} />
+                  </div>
+                  <p className="font-poppins text-gabay-navy font-semibold text-lg">No doctors found</p>
+                  <p className="font-poppins text-gray-500 text-sm mt-1">Try adjusting your search or filters.</p>
+                </div>
+              )}
+            </div>
 
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">

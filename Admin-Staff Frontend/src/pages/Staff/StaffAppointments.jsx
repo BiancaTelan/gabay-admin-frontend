@@ -530,7 +530,9 @@ export default function StaffAppointments() {
                           <div>
                             <p className="font-montserrat text-xl font-semibold text-gabay-navy">{app.name}</p>
                             <p className="font-poppins text-md text-gabay-navy">{app.hospitalNo}</p>
-                            <p className="font-poppins text-sm text-gray-500">{app.department}</p>
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-gabay-blue/10 text-gabay-blue text-xs font-bold uppercase tracking-wider rounded">
+                              {app.department || 'General'}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
@@ -605,7 +607,6 @@ export default function StaffAppointments() {
                             </>
                           )}
                           {app.assignedDoctor && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Doctor:</span> {app.assignedDoctor}</p>}
-                          {app.department && <p className="font-poppins text-sm text-gray-700"><span className="font-semibold">Department:</span> {app.department}</p>}
                         </div>
                       </div>
                     </div>
