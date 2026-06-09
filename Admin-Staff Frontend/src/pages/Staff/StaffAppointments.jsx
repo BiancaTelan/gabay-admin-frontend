@@ -54,8 +54,7 @@ export default function StaffAppointments() {
       const data = await response.json();
       
       setPendingAppointments(data.filter(app => app.status === 'pending'));
-      setConfirmedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled'));
-      setApprovedAppointments(data.filter(app => app.status === 'confirmed' || app.status === 'book'));
+      setApprovedAppointments(data.filter(app => app.status === 'approved' || app.status === 'rescheduled' || app.status === 'book'));
       setCanceledAppointments(data.filter(app => ['canceled', 'denied'].includes(app.status)));
       
     } catch (error) {
@@ -73,8 +72,7 @@ export default function StaffAppointments() {
   const getCurrentData = () => {
     switch (activeTab) {
       case 'pending': return pendingAppointments;
-      case 'approved': return approvedAppointments; 
-      case 'confirmed': return confirmedAppointments; 
+      case 'approved': return approvedAppointments;  
       case 'book': return bookedAppointments;
       case 'canceled': return canceledAppointments;
       default: return [];
@@ -117,7 +115,7 @@ export default function StaffAppointments() {
       filtered = filtered.filter(app => selectedDepartments.includes(app.department));
     }
     
-    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') {
+    if (activeTab === 'pending' || activeTab === 'approved' || activeTab === 'canceled') {
       if (selectedDoctors.length > 0 && !showNewPatient) {
         filtered = filtered.filter(app => selectedDoctors.includes(app.assignedDoctor));
       } else if (selectedDoctors.length === 0 && showNewPatient) {
@@ -204,7 +202,7 @@ export default function StaffAppointments() {
 
       await fetchAppointments(); 
       setModalOpen(false);
-      toast.success("Appointment successfully approved & scheduled!");
+      toast.success("Appointment successfully!");
 
     } catch (error) {
       console.error("Approval error:", error);
@@ -272,7 +270,6 @@ export default function StaffAppointments() {
 
   const tabs = [
     { id: 'pending', label: 'PENDING APPROVAL' },
-    { id: 'confirmed', label: 'AWAITING PATIENT' },
     { id: 'approved', label: 'APPROVED SCHEDULES' },
     { id: 'book', label: 'BOOK SCHEDULES' },
     { id: 'canceled', label: 'CANCELED SCHEDULES' },
@@ -401,7 +398,7 @@ export default function StaffAppointments() {
       </div>
 
       <div className="w-full border border-gabay-blue overflow-hidden mb-6">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-4">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -463,7 +460,7 @@ export default function StaffAppointments() {
                 </div>
 
                 {/* Filter by Doctor */}
-                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') && (
+                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'canceled') && (
                   <div>
                     <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Filter by Doctor</p>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
@@ -485,7 +482,7 @@ export default function StaffAppointments() {
                 )}
 
                 {/* Filter by Department */}
-                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'confirmed' || activeTab === 'canceled') && (
+                {(activeTab === 'pending' || activeTab === 'approved' || activeTab === 'canceled') && (
                   <div>
                     <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Filter by Department</p>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
@@ -537,9 +534,8 @@ export default function StaffAppointments() {
                         <div className="flex items-center gap-2">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-poppins tracking-wide ${
                             app.status?.toLowerCase() === 'pending' ? 'bg-gray-100 text-gray-600 font-medium' :
-                            app.status?.toLowerCase() === 'approved' ? 'bg-orange-500 text-white font-bold' : 
+                            app.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800 font-bold' : 
                             app.status?.toLowerCase() === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 font-bold border border-yellow-200' :
-                            app.status?.toLowerCase() === 'confirmed' ? 'bg-green-100 text-green-800 font-bold' : 
                             app.status?.toLowerCase() === 'booked' ? 'bg-blue-100 text-blue-800 font-bold' :
                             (app.status?.toLowerCase() === 'canceled' || app.status?.toLowerCase() === 'denied') ? 'bg-red-100 text-red-800 font-medium' :
                             'bg-gray-100 text-gray-800 font-medium'
@@ -562,24 +558,6 @@ export default function StaffAppointments() {
                               <SquarePen size={24} />
                             </button>
                           )}
-
-                          {activeTab === 'confirmed' && (
-                            <button onClick={() => {
-                                setConfirmConfig({
-                                  isOpen: true,
-                                  type: 'info',
-                                  title: 'Send Patient Reminder',
-                                  message: `Are you sure you want to send a reminder email to ${app.name}? This will remind them to confirm their appointment.`,
-                                  onConfirm: () => {
-                                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
-                                    handleNotifyPatient(app);
-                                  }
-                                });
-                              }}
-                              className="text-orange-500 hover:text-orange-700 transition" title="Send Reminder to Patient">
-                              <Bell size={24} />
-                            </button>
-                          )}
                         </div>
                       </div>
                       <div className="mt-3">
@@ -587,7 +565,7 @@ export default function StaffAppointments() {
                         {activeTab === 'pending' && (
                           <p className="font-poppins text-sm text-gray-700 mb-2"><span className="font-semibold">Requested Dates:</span> {app.requestedStartDate} - {app.requestedEndDate}</p>
                         )}
-                        {(activeTab === 'approved' || activeTab === 'canceled' || activeTab === 'confirmed') && (
+                        {(activeTab === 'approved' || activeTab === 'canceled') && (
                           <>
                             <p className="font-poppins text-sm text-gray-700 mb-2">
                               <span className="font-semibold">Appointment Date:</span>{' '}
