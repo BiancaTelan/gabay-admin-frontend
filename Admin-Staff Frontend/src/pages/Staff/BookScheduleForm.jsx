@@ -6,10 +6,10 @@ import { CalendarDays } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function BookScheduleForm({ onSuccess, token }) {
-  const [hospitalNo, setHospitalNo] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [middleName, setMiddleName] = useState(''); 
-  const [lastName, setLastName] = useState('');
+  const [hospital_num, setHospitalNo] = useState('');
+  const [firstname, setFirstName] = useState('');
+  const [middlename, setMiddleName] = useState(''); 
+  const [surname, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [contactNo, setContactNo] = useState('');
   const [street, setStreet] = useState('');
@@ -91,17 +91,17 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const doctorOptions = selectedDept ? selectedDept.doctors : [];
 
   const handleHospitalNoBlur = async () => {
-    if (!hospitalNo) return;
+    if (!hospital_num) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/patient-lookup/${hospitalNo}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/patient-lookup/${hospital_num}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error("Patient not found.");
       
       const data = await response.json();
-      setFirstName(data.firstName);
-      setMiddleName(data.middleName);
-      setLastName(data.lastName);
+      setFirstName(data.firstname);
+      setMiddleName(data.middlename);
+      setLastName(data.surname);
       setEmail(data.email);
       setContactNo(data.contactNo);
       setStreet(data.street);
@@ -148,11 +148,11 @@ export default function BookScheduleForm({ onSuccess, token }) {
     });
 
     const payload = {
-      hospitalNo, firstName, middleName, lastName, email, contactNo,
+      hospital_num, firstname, middlename, surname, email, contactNo,
       street, barangay, city, province,                 
-      department_id: parseInt(departmentId), 
-      doctor_id: parseInt(doctorId), 
-      date: formattedDate, reason
+      departmentId: departmentId ? parseInt(departmentId) : null,
+      doctorId: doctorId ? parseInt(doctorId) : null,
+      date: date ? date.toISOString().split('T')[0] : null, reason
     };
 
     try {
@@ -216,21 +216,21 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <h3 className="font-montserrat text-lg font-semibold text-gabay-teal mb-4 uppercase tracking-wide">Patient Information</h3>
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Hospital Number</label>
-              <input type="text" value={hospitalNo} onChange={(e) => setHospitalNo(e.target.value)} onBlur={handleHospitalNoBlur} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
+              <input type="text" value={hospital_num} onChange={(e) => setHospitalNo(e.target.value)} onBlur={handleHospitalNoBlur} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">First Name</label>
-                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
+                <input type="text" value={firstname} onChange={(e) => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Middle Name</label>
-                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
+                <input type="text" value={middlename} onChange={(e) => setMiddleName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
               <div>
                 <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Last Name</label>
-                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
+                <input type="text" value={surname} onChange={(e) => setLastName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all" required />
               </div>
             </div>
 
