@@ -12,7 +12,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [contactNo, setContactNo] = useState('');
-  const [houseNumber, setHouseNumber] = useState('');
+  const [street, setStreet] = useState('');
   const [barangay, setBarangay] = useState('');
   const [city, setCity] = useState('');
   const [province, setProvince] = useState('');
@@ -104,7 +104,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
       setLastName(data.lastName);
       setEmail(data.email);
       setContactNo(data.contactNo);
-      setHouseNumber(data.street);
+      setStreet(data.street);
       setBarangay(data.barangay);
       setCity(data.city);
       setProvince(data.province);
@@ -149,33 +149,36 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
     const payload = {
       hospitalNo, firstName, middleName, lastName, email, contactNo,
-      houseNumber, barangay, city, province,                 
+      street, barangay, city, province,                 
       department_id: parseInt(departmentId), 
       doctor_id: parseInt(doctorId), 
       date: formattedDate, reason
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/staff-book`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/book`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
+      const data = await response.json();
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to book appointment');
+        const errorMessage = typeof data.detail === 'string' 
+          ? data.detail 
+          : JSON.stringify(data.detail);
+        
+        throw new Error(errorMessage || "Failed to book appointment.");
       }
 
-      toast.success('Appointment Booked & Email Sent!', { duration: 4000 });
-      handleCancel();
+      toast.success("Appointment successfully booked!");
       if (onSuccess) onSuccess();
 
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -189,7 +192,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
     setLastName('');
     setEmail('');
     setContactNo('');
-    setHouseNumber('');
+    setStreet('');
     setBarangay('');
     setCity('');
     setProvince('');
@@ -247,8 +250,8 @@ export default function BookScheduleForm({ onSuccess, token }) {
                 <input
                   type="text"
                   placeholder="House No. / Street / Subdivision"
-                  value={houseNumber}
-                  onChange={(e) => setHouseNumber(e.target.value)}
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
                   className="w-full font-poppins px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gabay-blue transition-all"
                   required
                 />
