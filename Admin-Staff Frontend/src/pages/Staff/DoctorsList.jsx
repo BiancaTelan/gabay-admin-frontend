@@ -266,7 +266,7 @@ export default function StaffDoctors() {
                         <thead className="bg-white border-b border-gray-100">
                           <tr>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Doctor Name</th>
-                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Specialization</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Schedule</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Contact No.</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Email</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
@@ -280,7 +280,7 @@ export default function StaffDoctors() {
                                 {doc.name}
                               </td>
                               <td className="p-4 font-poppins text-sm text-gray-600 hidden md:table-cell">
-                                {doc.specialization}
+                                {doc.schedule && doc.timePeriod ? `${doc.schedule} (${doc.timePeriod})` : 'TBD'}
                               </td>
                               <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
                                 {doc.contactNumber}
