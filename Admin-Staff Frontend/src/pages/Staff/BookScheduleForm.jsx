@@ -140,6 +140,11 @@ export default function BookScheduleForm({ onSuccess, token }) {
       toast.error(`Reason cannot exceed ${MAX_REASON_CHARS} characters.`);
       return;
     }
+    if (!date) {
+      toast.error("Please select an appointment date.");
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -148,11 +153,17 @@ export default function BookScheduleForm({ onSuccess, token }) {
     });
 
     const payload = {
-      hospital_num, firstname, middlename, surname, email, contactNo,
+      hospital_num, 
+      firstname, 
+      middlename, 
+      surname, 
+      email, 
+      contactNo,
       street, barangay, city, province,                 
-      departmentId: departmentId ? parseInt(departmentId) : null,
-      doctorId: doctorId ? parseInt(doctorId) : null,
-      date: date ? date.toISOString().split('T')[0] : null, reason
+      department_id: departmentId ? parseInt(departmentId) : null, 
+      doctor_id: doctorId ? parseInt(doctorId) : null,
+      date: date ? date.toISOString().split('T')[0] : null, 
+      reason
     };
 
     try {
@@ -178,7 +189,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
       if (onSuccess) onSuccess();
 
     } catch (error) {
-      toast.error(error.message || "An unexpected error occurred.");
+      toast.error(error.detail || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
