@@ -156,7 +156,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/book`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/staff-book`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
