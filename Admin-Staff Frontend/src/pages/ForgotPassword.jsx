@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiErrorMessage, parseJsonResponse, showValidationError } from '../utils/apiError';
 
 // --- FORGOT PASSWORD FLOW ---
 const ForgotPassword = () => {
@@ -18,7 +20,6 @@ const ForgotPassword = () => {
     confirmPassword: ''
   });
 
-  const [serverError, setServerError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // --- TIMER FOR RESENDING OTP ---
@@ -37,18 +38,21 @@ const ForgotPassword = () => {
 
   // --- RESEND OTP FUNCTION ---
   const handleResendOTP = async () => {
-    setServerError('');
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/forgot-password`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email })
       });
+      if (!response.ok) {
+        const data = await parseJsonResponse(response);
+        throw new Error(getApiErrorMessage(data.detail, 'Failed to resend OTP.'));
+      }
       setTimer(60);
       setCanResend(false);
-      console.log("OTP Resent!");
+      toast.success('A new verification code has been sent to your email.');
     } catch (err) {
-      setServerError("Failed to resend OTP.");
+      toast.error(err.message || 'Failed to resend OTP.');
     }
   };
 
@@ -64,11 +68,15 @@ const ForgotPassword = () => {
   const validateStep1 = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
-      setErrors({ email: "Email is required." });
+      const stepErrors = { email: "Email is required." };
+      setErrors(stepErrors);
+      showValidationError(stepErrors);
       return false;
     }
     if (!emailRegex.test(formData.email)) {
-      setErrors({ email: "Please enter a valid email address." });
+      const stepErrors = { email: "Please enter a valid email address." };
+      setErrors(stepErrors);
+      showValidationError(stepErrors);
       return false;
     }
     return true;
@@ -76,7 +84,9 @@ const ForgotPassword = () => {
 
   const validateStep2 = () => {
     if (formData.otp.length !== 6) {
-      setErrors({ otp: "Please enter the exact 6-digit code." });
+      const stepErrors = { otp: "Please enter the exact 6-digit code." };
+      setErrors(stepErrors);
+      showValidationError(stepErrors);
       return false;
     }
     return true;
@@ -99,13 +109,15 @@ const ForgotPassword = () => {
     }
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      showValidationError(newErrors);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
   // --- HANDLE FORM SUBMISSIONS ---
   const handleNextStep = async (e) => {
     e.preventDefault();
-    setServerError('');
     
     if (step === 1) {
       if (!validateStep1()) return;
@@ -116,10 +128,12 @@ const ForgotPassword = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })
         });
-        if (!response.ok) throw new Error("Failed to send OTP.");
+        const data = await parseJsonResponse(response);
+        if (!response.ok) throw new Error(getApiErrorMessage(data.detail, 'Failed to send OTP.'));
+        toast.success('Verification code sent. Please check your email.');
         setStep(2); 
       } catch (err) {
-        setServerError(err.message);
+        toast.error(err.message);
       } finally {
         setIsProcessing(false);
       }
@@ -134,12 +148,12 @@ const ForgotPassword = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, otp: formData.otp })
         });
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         
-        if (!response.ok) throw new Error(data.detail || "Invalid OTP.");
+        if (!response.ok) throw new Error(getApiErrorMessage(data.detail, 'Invalid OTP.'));
         setStep(3); 
       } catch (err) {
-        setServerError(err.message);
+        toast.error(err.message);
       } finally {
         setIsProcessing(false);
       }
@@ -149,7 +163,6 @@ const ForgotPassword = () => {
   // --- FINAL SUBMISSION TO RESET PASSWORD ---
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
-    setServerError('');
     
     if (!validateStep3()) return;
     setIsProcessing(true);
@@ -163,14 +176,14 @@ const ForgotPassword = () => {
           newPassword: formData.newPassword 
         })
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       
-      if (!response.ok) throw new Error(data.detail || "Failed to reset password.");
+      if (!response.ok) throw new Error(getApiErrorMessage(data.detail, 'Failed to reset password.'));
       
-      // Success! Send them to login
+      toast.success('Password reset successfully. Please log in with your new password.');
       navigate('/login');
     } catch (err) {
-      setServerError(err.message);
+      toast.error(err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -193,12 +206,6 @@ const ForgotPassword = () => {
         <Link to="/login" className="flex items-center text-gabay-blue text-md font-poppins mb-10 hover:opacity-80 transition-opacity">
           <ChevronLeft size={20} className="mr-1" /> Back to Login
         </Link>
-
-        {serverError && (
-          <div className="mb-6 p-3 text-sm text-red-700 bg-red-100 rounded-lg text-center font-poppins font-semibold">
-            {serverError}
-          </div>
-        )}
 
         {step === 1 && (
           <form onSubmit={handleNextStep} noValidate className="animate-in fade-in duration-500">

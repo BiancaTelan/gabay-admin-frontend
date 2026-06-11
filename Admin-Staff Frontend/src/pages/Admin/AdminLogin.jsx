@@ -8,6 +8,7 @@ import { emailPattern } from '../../utils/constants';
 import { AuthContext } from '../../authContext';
 import toast from 'react-hot-toast'; 
 import ReCAPTCHA from "react-google-recaptcha"; 
+import { getApiErrorMessage, parseJsonResponse, showValidationError } from '../../utils/apiError';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ export default function AdminLogin() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      showValidationError(newErrors);
       return; 
     }
 
@@ -66,24 +68,18 @@ export default function AdminLogin() {
         body: JSON.stringify(payload)
       });
 
-      const textResponse = await response.text();
-      let data;
-      try {
-        data = textResponse ? JSON.parse(textResponse) : {};
-      } catch (parseError) {
-        throw new Error("The server encountered an error. Please try again later.");
-      }
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         toast.dismiss(loadingToast);
-        let errMsg = 'Invalid credentials provided.';
-        if (typeof data.detail === 'string') errMsg = data.detail;
-        else if (Array.isArray(data.detail)) errMsg = data.detail[0].msg || 'Invalid data format.';
-        
-        toast.error(errMsg);
+        toast.error(getApiErrorMessage(data.detail, 'Invalid credentials provided.'));
         if (recaptchaRef.current) recaptchaRef.current.reset();
         setRecaptchaToken(null);
         return;
+      }
+
+      if (!data.access_token) {
+        throw new Error('Authentication response was incomplete. Please try again.');
       }
 
       const userRole = data.role?.toUpperCase();
