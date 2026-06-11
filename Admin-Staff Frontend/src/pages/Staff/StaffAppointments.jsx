@@ -194,8 +194,8 @@ export default function StaffAppointments() {
     if (searchTerm) {
       filtered = filtered.filter(
         (app) =>
-          app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.hospitalNo.includes(searchTerm),
+          (app.name?.toLowerCase() || "").includes(lowerSearch) ||
+          (app.hospitalNo?.toString().toLowerCase() || "").includes(lowerSearch)
       );
     }
 
