@@ -753,7 +753,6 @@ export default function StaffAppointments() {
                       <th className="px-5 py-4">Status</th>
                       {activeTab !== "pending" && <th className="px-5 py-4">Approved By</th>}
                       <th className="px-5 py-4 text-center">Action</th>
-                      <th className="px-5 py-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -883,11 +882,9 @@ export default function StaffAppointments() {
                         </p>
                       )}
                       {app.approvingStaffName && activeTab !== "pending" && (
-                        <div className="pt-2 mt-2 border-t border-gray-100">
-                          <p className="font-poppins text-sm text-gabay-teal">
-                            <span className="font-semibold text-gabay-navy">Approved by:</span> {app.approvingStaffName}
-                          </p>
-                        </div>
+                        <p className="font-poppins text-sm text-gabay-teal">
+                          <span className="font-semibold text-gabay-navy">Approved by:</span> {app.approvingStaffName}
+                        </p>
                       )}
                     </div>
                   </div>
