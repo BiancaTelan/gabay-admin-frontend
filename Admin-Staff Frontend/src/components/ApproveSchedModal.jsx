@@ -101,6 +101,10 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     }
   };
 
+  const filteredDoctors = doctors.filter(
+    (doc) => doc.department === (appointment?.department || "General")
+  );
+
   const handleApprove = () => {
     if (!selectedDate) return alert('Please select a date.');
     if (!selectedDocId) return alert('Please assign a doctor.');
@@ -146,6 +150,15 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
             <p className="font-poppins mt-1 text-gray-700">{appointment.name}</p>
           </div>
 
+          {/* Department Display */}
+          <div>
+            <label className="block font-poppins font-medium text-lg text-gabay-navy">Department:</label>
+            <p className="font-poppins mt-1 text-gray-700 font-medium">
+              {appointment.department || "General"}
+            </p>
+          </div>
+
+          {/* Filtered Doctor Dropdown */}
           <div>
             <label className="block font-poppins font-medium text-lg text-gabay-navy">Assigned Doctor:</label>
             <select
@@ -158,9 +171,13 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
               required
             >
               <option value="">Select a doctor</option>
-              {doctors.map(doc => (
-                <option key={doc.id} value={doc.id}>{doc.name}</option>
-              ))}
+              {filteredDoctors.length > 0 ? (
+                filteredDoctors.map(doc => (
+                  <option key={doc.id} value={doc.id}>{doc.name}</option>
+                ))
+              ) : (
+                <option value="" disabled>No doctors available in this department</option>
+              )}
             </select>
           </div>
 
