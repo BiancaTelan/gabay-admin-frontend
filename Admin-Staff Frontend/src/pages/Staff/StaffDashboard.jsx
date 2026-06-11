@@ -115,17 +115,18 @@ export default function StaffDashboard() {
       </div>
 
       {/* MAIN CONTENT GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-[5fr_2fr] gap-6">
+      <div className="space-y-6">
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full">
             <StatCard title="Appointments for Approval" value={stats.forApproval} icon={CalendarClock} color="gray" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'pending' } })} />
             <StatCard title="Appointments Approved" value={stats.approved} icon={CalendarCheck} color="green" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'approved' } })} />
             <StatCard title="Appointments Cancelled" value={stats.cancelled} icon={CalendarX} color="red" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'canceled' } })} />
             <StatCard title="Available Slots" value={stats.slot} icon={CalendarPlus} color="blue" onClick={() => navigate('/staff/no-show-appointments')} />
           </div>
 
+          <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-start">
           {/* TODAY'S APPOINTMENTS */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full">
             <h2 className="font-montserrat text-xl font-bold text-gabay-blue mb-6">Today's Scheduled Appointments</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {patients.map((patient) => (
@@ -154,14 +155,14 @@ export default function StaffDashboard() {
         </div>
         
         {/* LIVE QUEUE LIST */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Live Queue List</h2>
             <span className="text-xs bg-gabay-blue text-white px-2.5 py-1 rounded-full font-bold font-poppins">
               {queueList.filter(p => p.status === 'waiting' || p.status === 'serving').length} ACTIVE
             </span>
           </div>
-          <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+          <div className="flex flex-col gap-3 max-h-[520px] overflow-y-auto custom-scrollbar">
             {queueList.map((item) => {
               const badge = getStatusBadge(item.status);
               return (
@@ -184,6 +185,7 @@ export default function StaffDashboard() {
               <p className="text-center text-gray-400 text-sm py-4 italic">The queue is currently empty.</p>
             )}
           </div>
+        </div>
         </div>
       </div>
       
