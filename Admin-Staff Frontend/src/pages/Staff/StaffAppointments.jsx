@@ -9,8 +9,7 @@ import {
   Bell,
   Download,
   LayoutGrid,
-  Table2,
-} from "lucide-react";
+  Table } from "lucide-react";
 import ApproveScheduleModal from "../../components/ApproveSchedModal";
 import BookScheduleForm from "./BookScheduleForm";
 import ConfirmationModal from "../../components/confirmModal";
@@ -544,13 +543,15 @@ export default function StaffAppointments() {
                 size={18}
               />
             </div>
-            <div className="flex gap-2 flex-wrap justify-end">
+
+            <div className="flex gap-2 flex-wrap justify-end w-full lg:w-auto mt-4 lg:mt-0">
+              {/* VIEW TOGGLE */}
               <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                 <button
                   onClick={() => setViewMode("card")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition ${
+                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
                     viewMode === "card"
-                      ? "bg-gabay-blue text-white"
+                      ? "bg-gabay-blue text-white shadow-inner"
                       : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -560,13 +561,13 @@ export default function StaffAppointments() {
 
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition ${
+                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
                     viewMode === "table"
-                      ? "bg-gabay-blue text-white"
+                      ? "bg-gabay-blue text-white shadow-inner"
                       : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <Table2 size={16} />
+                  <Table size={16} />
                   Table
                 </button>
               </div>
@@ -574,7 +575,7 @@ export default function StaffAppointments() {
               <Button
                 variant="teal-outline"
                 onClick={openFilter}
-                className="px-8 py-2 min-w-[180px]"
+                className="px-8 py-2 min-w-[150px]"
               >
                 <Funnel size={16} className="inline mr-2" />
                 Filter & Sort
@@ -583,7 +584,7 @@ export default function StaffAppointments() {
               <Button
                 variant="teal"
                 onClick={exportToExcel}
-                className="py-2 px-8 min-w-[180px]"
+                className="py-2 px-8 min-w-[150px]"
               >
                 <Download size={16} className="inline mr-2" />
                 Export Excel
@@ -737,9 +738,9 @@ export default function StaffAppointments() {
             </div>
           )}
 
-          {/* APPOINTMENT LIST */}
+          {/* APPOINTMENT LIST RENDERING */}
           {viewMode === "table" ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50 border-b">
@@ -835,49 +836,86 @@ export default function StaffAppointments() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            /* RESTORED AND STYLED CARD VIEW */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
               {paginated.map((app) => (
-                <div key={app.id} className="mt-3">
-                  <p className="font-poppins text-sm text-gray-700 mb-2">
-                    <span className="font-semibold">Reason:</span> {app.reason}
-                  </p>
-                  {activeTab === "pending" && (
-                    <p className="font-poppins text-sm text-gray-700 mb-2">
-                      <span className="font-semibold">Requested Dates:</span>{" "}
-                      {app.requestedStartDate} - {app.requestedEndDate}
-                    </p>
-                  )}
-                  {(activeTab === "approved" ||
-                    activeTab === "rescheduled" ||
-                    activeTab === "canceled") && (
-                    <>
-                      <p className="font-poppins text-sm text-gray-700 mb-2">
-                        <span className="font-semibold">Appointment Date:</span>{" "}
-                        {app.appointmentDate
-                          ? typeof app.appointmentDate === "string"
-                            ? app.appointmentDate
-                            : app.appointmentDate.toLocaleDateString()
-                          : "Not set"}
+                <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gabay-teal transition-all flex flex-col justify-between">
+                  <div>
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-montserrat font-bold text-gabay-navy text-lg">{app.name}</h3>
+                        <p className="font-poppins text-xs text-gray-500">{app.hospitalNo}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          app.status?.toLowerCase() === "pending" ? "bg-gray-100 text-gray-600"
+                          : app.status?.toLowerCase() === "approved" ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {app.status?.toUpperCase()}
+                      </span>
+                    </div>
+                    
+                    {/* Details */}
+                    <div className="space-y-2 mb-6">
+                      <p className="font-poppins text-sm text-gray-700">
+                        <span className="font-semibold text-gabay-navy">Reason:</span> {app.reason}
                       </p>
-                      <p className="font-poppins text-sm text-gray-700 mb-2">
-                        <span className="font-semibold">Batch Time:</span>{" "}
-                        {app.batch}
+                      <p className="font-poppins text-sm text-gray-700">
+                        <span className="font-semibold text-gabay-navy">Dept:</span> {app.department || "General"}
                       </p>
-                      {/* UPDATED: Show approving staff name for validated appointments */}
-                      {app.approvingStaffName && (
-                        <p className="font-poppins text-sm text-gabay-teal border-t pt-2 mt-2">
-                          <span className="font-semibold">Approved by:</span>{" "}
-                          {app.approvingStaffName}
+                      <p className="font-poppins text-sm text-gray-700">
+                        <span className="font-semibold text-gabay-navy">Doctor:</span> {app.assignedDoctor || "Not assigned"}
+                      </p>
+                      <p className="font-poppins text-sm text-gray-700">
+                        <span className="font-semibold text-gabay-navy">Date:</span> {activeTab === "pending" ? `${app.requestedStartDate} - ${app.requestedEndDate}` : app.appointmentDate || "Not set"}
+                      </p>
+                      {app.batch && (
+                        <p className="font-poppins text-sm text-gray-700">
+                          <span className="font-semibold text-gabay-navy">Batch:</span> {app.batch}
                         </p>
                       )}
-                    </>
-                  )}
-                  {app.assignedDoctor && (
-                    <p className="font-poppins text-sm text-gray-700">
-                      <span className="font-semibold">Doctor:</span>{" "}
-                      {app.assignedDoctor}
-                    </p>
-                  )}
+                    </div>
+                  </div>
+
+                  {/* Restored Action Buttons matching the Table View logic */}
+                  <div className="flex justify-end border-t border-gray-100 pt-4">
+                    {activeTab === "pending" && (
+                      <button
+                        onClick={() => {
+                          setSelectedAppointment(app);
+                          setModalMode("approve");
+                          setModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 text-sm font-bold text-gabay-blue hover:text-gabay-navy transition-colors"
+                      >
+                        <SquarePen size={18} /> Approve
+                      </button>
+                    )}
+
+                    {activeTab === "approved" && (
+                      <button
+                        onClick={() => {
+                          navigate("/staff/reschedule", {
+                            state: { appointment: app },
+                          });
+                        }}
+                        className="flex items-center gap-2 text-sm font-bold text-gabay-blue hover:text-gabay-navy transition-colors"
+                      >
+                        <SquarePen size={18} /> Reschedule
+                      </button>
+                    )}
+
+                    {activeTab === "rescheduled" && (
+                      <button
+                        onClick={() => handleNotifyPatient(app)}
+                        className="flex items-center gap-2 text-sm font-bold text-orange-500 hover:text-orange-600 transition-colors"
+                      >
+                        <Bell size={18} /> Notify Patient
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
