@@ -192,6 +192,7 @@ export default function StaffAppointments() {
     }
 
     if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (app) =>
           (app.name?.toLowerCase() || "").includes(lowerSearch) ||
