@@ -159,7 +159,7 @@ export default function StaffDashboard() {
               color="red" 
               onClick={() => navigate('/staff/appointments', { state: { activeTab: 'canceled' } })} 
             />
-            
+
             <StatCard 
               title="Available Slots (Today)" 
               value={stats.slot} 
@@ -203,7 +203,10 @@ export default function StaffDashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Live Queue List</h2>
                 <span className="text-xs bg-gabay-blue text-white px-2.5 py-1 rounded-full font-bold font-poppins">
-                  {queueList.filter(p => p.status === 'waiting' || p.status === 'serving').length} ACTIVE
+                  {queueList.filter(p => {
+                    const currentStatus = p.status?.toLowerCase() || '';
+                    return currentStatus === 'waiting' || currentStatus === 'in progress';
+                  }).length} ACTIVE
                 </span>
               </div>
               <div className="flex flex-col gap-3 max-h-[520px] overflow-y-auto custom-scrollbar">
