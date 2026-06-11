@@ -751,6 +751,8 @@ export default function StaffAppointments() {
                       <th className="px-5 py-4">Doctor</th>
                       <th className="px-5 py-4">Date</th>
                       <th className="px-5 py-4">Status</th>
+                      {activeTab !== "pending" && <th className="px-5 py-4">Approved By</th>}
+                      <th className="px-5 py-4 text-center">Action</th>
                       <th className="px-5 py-4 text-center">Action</th>
                     </tr>
                   </thead>
@@ -788,6 +790,11 @@ export default function StaffAppointments() {
                             {app.status?.toUpperCase()}
                           </span>
                         </td>
+                        {activeTab !== "pending" && (
+                          <td className="px-5 py-4 text-gabay-teal font-medium">
+                            {app.approvingStaffName || "System"}
+                          </td>
+                        )}
                         <td className="px-5 py-4">
                           <div className="flex justify-center">
                             {activeTab === "pending" && (
@@ -836,7 +843,6 @@ export default function StaffAppointments() {
               </div>
             </div>
           ) : (
-            /* RESTORED AND STYLED CARD VIEW */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
               {paginated.map((app) => (
                 <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gabay-teal transition-all flex flex-col justify-between">
@@ -875,6 +881,13 @@ export default function StaffAppointments() {
                         <p className="font-poppins text-sm text-gray-700">
                           <span className="font-semibold text-gabay-navy">Batch:</span> {app.batch}
                         </p>
+                      )}
+                      {app.approvingStaffName && activeTab !== "pending" && (
+                        <div className="pt-2 mt-2 border-t border-gray-100">
+                          <p className="font-poppins text-sm text-gabay-teal">
+                            <span className="font-semibold text-gabay-navy">Approved by:</span> {app.approvingStaffName}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
