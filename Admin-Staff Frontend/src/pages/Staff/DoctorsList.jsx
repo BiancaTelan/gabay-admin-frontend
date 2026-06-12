@@ -306,7 +306,7 @@ export default function StaffDoctors() {
         </div>
         <button
           onClick={() => navigate('/staff/doctor-schedule')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white text-gabay-blue font-bold text-sm rounded-lg hover:bg-teal-50 transition-all shadow-lg active:scale-95 group"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gabay-blue font-bold text-sm rounded-lg hover:bg-teal-50 transition-all shadow-lg active:scale-95 group w-full sm:w-auto"
         >
           View Doctor Schedules
           <ChevronRightIcon size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -323,12 +323,12 @@ export default function StaffDoctors() {
             </div>
             
             {/* Filter and Search Container */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex items-center">
+            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+              <div className="relative flex items-center w-full md:w-auto">
                  <select
                   value={selectedDepartment}
                   onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }}
-                  className="border border-gray-300 rounded-md pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm font-poppins bg-white appearance-none h-full cursor-pointer"
+                  className="border border-gray-300 rounded-md pl-3 pr-8 py-2 md:py-1.5 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm font-poppins bg-white appearance-none w-full cursor-pointer"
                 >
                   {availableDepartments.map(dept => (
                     <option key={dept} value={dept}>{dept === 'All' ? 'All Departments' : dept}</option>
@@ -339,13 +339,13 @@ export default function StaffDoctors() {
                 </div>
               </div>
               
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   placeholder="Search doctor..."
-                  className="border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-64 pr-10 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm"
+                  className="border border-gray-300 rounded-md px-3 py-2 md:py-1.5 w-full md:w-64 pr-10 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm"
                 />
                 <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
@@ -365,8 +365,8 @@ export default function StaffDoctors() {
                       </h3>
                     </div>
                     
-                    <div className="w-full overflow-visible">
-                      <table className="w-full text-left border-collapse">
+                    <div className="w-full overflow-x-auto pb-24 custom-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead className="bg-white border-b border-gray-100">
                           <tr>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Doctor Name</th>

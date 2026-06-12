@@ -115,7 +115,7 @@ export default function DoctorScheduleCalendar() {
         </div>
         <button 
           onClick={() => navigate('/staff/doctors')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white text-gabay-blue font-bold text-sm rounded-lg hover:bg-teal-50 transition-all shadow-lg active:scale-95 group"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gabay-blue font-bold text-sm rounded-lg hover:bg-teal-50 transition-all shadow-lg active:scale-95 group w-full sm:w-auto"
         >
           <ChevronLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
           Return to Doctor List
@@ -136,7 +136,7 @@ export default function DoctorScheduleCalendar() {
               >
                 <ChevronLeft size={24} />
               </button>
-              <h2 className="font-montserrat font-bold text-2xl text-gabay-teal w-64 text-center uppercase tracking-widest">
+              <h2 className="font-montserrat font-bold text-lg sm:text-2xl text-gabay-teal flex-1 text-center uppercase tracking-widest px-2">
                 {monthNames[currentMonth]} {currentYear}
               </h2>
               <button
@@ -149,69 +149,75 @@ export default function DoctorScheduleCalendar() {
             </div>
           </div>
 
-          {/* WEEKDAY LABELS */}
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center font-semibold">
-            {weekDays.map(({ name, color }) => (
-              <div key={name} className={`py-2 ${color} uppercase text-xs tracking-widest`}>{name}</div>
-            ))}
-          </div>
-
-          {/* CALENDAR GRID */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for previous month */}
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-24 md:h-32 bg-gray-50/30 border border-gray-50 rounded-lg" />
-            ))}
-
-            {/* Current month days */}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const dateObj = new Date(currentYear, currentMonth, day);
+          {/* SCROLLABLE CALENDAR WRAPPER FOR MOBILE */}
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
+            <div className="min-w-[700px] lg:min-w-full">
               
-              const onDuty = getDoctorsForDay(dateObj.getDay(), dateObj); 
-              const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+              {/* WEEKDAY LABELS */}
+              <div className="grid grid-cols-7 gap-1 mb-2 text-center font-semibold">
+                {weekDays.map(({ name, color }) => (
+                  <div key={name} className={`py-2 ${color} uppercase text-[10px] sm:text-xs tracking-widest`}>{name}</div>
+                ))}
+              </div>
 
-              return (
-                <div
-                  key={day}
-                  className={`h-24 md:h-32 flex flex-col items-start p-2 border border-gray-100 rounded-lg overflow-hidden transition-colors ${
-                    isToday ? 'bg-teal-50 border-teal-200' : 'bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  <span className={`text-sm mb-1 font-bold ${isToday ? 'text-gabay-teal' : 'text-gray-700'}`}>
-                    {day}
-                  </span>
+              {/* CALENDAR GRID */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Empty cells for previous month */}
+                {Array.from({ length: firstDay }).map((_, i) => (
+                  <div key={`empty-${i}`} className="h-20 sm:h-24 md:h-32 bg-gray-50/30 border border-gray-50 rounded-lg" />
+                ))}
+
+                {/* Current month days */}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const dateObj = new Date(currentYear, currentMonth, day);
                   
-                  <div className="w-full space-y-1 overflow-y-auto custom-scrollbar">
-                    {onDuty.map((doc) => (
-                      <div 
-                        key={doc.uniqueKey} 
-                        title={doc.isUnavailable ? "Unavailable / On Leave" : "Available"}
-                        className={`px-1.5 py-1 rounded border shadow-sm truncate transition-colors ${
-                          doc.isUnavailable 
-                            ? 'bg-red-50 border-red-200 border-l-4 border-l-red-500' 
-                            : 'bg-white border-gray-200 border-l-4 border-l-gabay-teal'
-                        }`}
-                      >
-                        <p className={`text-[9px] font-bold truncate leading-tight uppercase ${
-                          doc.isUnavailable ? 'text-red-700' : 'text-gray-800'
-                        }`}>
-                          {doc.name.replace('Dr. ', '')}
-                        </p>
-                        <div className={`flex items-center gap-0.5 ${
-                          doc.isUnavailable ? 'text-red-400' : 'text-gray-400'
-                        }`}>
-                          <Clock size={7} />
-                          <span className="text-[7px] italic font-medium truncate">
-                            {doc.time}
-                          </span>
-                        </div>
+                  const onDuty = getDoctorsForDay(dateObj.getDay(), dateObj); 
+                  const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+
+                  return (
+                    <div
+                      key={day}
+                      className={`h-20 sm:h-24 md:h-32 flex flex-col items-start p-1 sm:p-2 border border-gray-100 rounded-lg overflow-hidden transition-colors ${
+                        isToday ? 'bg-teal-50 border-teal-200' : 'bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`text-xs sm:text-sm mb-1 font-bold ${isToday ? 'text-gabay-teal' : 'text-gray-700'}`}>
+                        {day}
+                      </span>
+                      
+                      <div className="w-full space-y-1 overflow-y-auto custom-scrollbar pr-1">
+                        {onDuty.map((doc) => (
+                          <div 
+                            key={doc.uniqueKey} 
+                            title={doc.isUnavailable ? "Unavailable / On Leave" : "Available"}
+                            className={`px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border shadow-sm truncate transition-colors ${
+                              doc.isUnavailable 
+                                ? 'bg-red-50 border-red-200 border-l-2 sm:border-l-4 border-l-red-500' 
+                                : 'bg-white border-gray-200 border-l-2 sm:border-l-4 border-l-gabay-teal'
+                            }`}
+                          >
+                            <p className={`text-[8px] sm:text-[9px] font-bold truncate leading-tight uppercase ${
+                              doc.isUnavailable ? 'text-red-700' : 'text-gray-800'
+                            }`}>
+                              {doc.name.replace('Dr. ', '')}
+                            </p>
+                            <div className={`flex items-center gap-0.5 mt-0.5 ${
+                              doc.isUnavailable ? 'text-red-400' : 'text-gray-400'
+                            }`}>
+                              <Clock size={7} className="shrink-0" />
+                              <span className="text-[6px] sm:text-[7px] italic font-medium truncate">
+                                {doc.time}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
