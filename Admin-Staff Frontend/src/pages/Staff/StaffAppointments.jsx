@@ -9,7 +9,8 @@ import {
   Bell,
   Download,
   LayoutGrid,
-  Table } from "lucide-react";
+  Table,
+  AlertTriangle } from "lucide-react";
 import ApproveScheduleModal from "../../components/ApproveSchedModal";
 import BookScheduleForm from "./BookScheduleForm";
 import ConfirmationModal from "../../components/confirmModal";
@@ -761,9 +762,12 @@ export default function StaffAppointments() {
                     {paginated.map((app) => (
                       <tr
                         key={app.id}
-                        className="border-b hover:bg-gray-50 transition font-poppins text-sm"
+                        className={`border-b transition font-poppins text-sm ${app.needsRescheduling ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-gray-50'}`}
                       >
-                        <td className="px-5 py-4 font-semibold text-gabay-navy">
+                        <td className="px-5 py-4 font-semibold text-gabay-navy flex items-center gap-2">
+                          {app.needsRescheduling && (
+                            <AlertTriangle size={16} className="text-red-500 shrink-0" title={`Needs Rescheduling: ${app.conflictReason}`} />
+                          )}
                           {app.name}
                         </td>
                         <td className="px-5 py-4">{app.hospitalNo}</td>
@@ -851,8 +855,20 @@ export default function StaffAppointments() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
               {paginated.map((app) => (
-                <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gabay-teal transition-all flex flex-col justify-between">
-                  <div>
+                <div 
+                  key={app.id} 
+                  className={`bg-white border rounded-xl p-5 transition-all flex flex-col justify-between relative overflow-hidden ${
+                    app.needsRescheduling ? 'border-red-400 shadow-sm shadow-red-100 hover:border-red-500' : 'border-gray-200 shadow-sm hover:border-gabay-teal'
+                  }`}
+                >
+                  {app.needsRescheduling && (
+                    <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                      <AlertTriangle size={12} className="shrink-0" /> 
+                      <span className="truncate">Needs Rescheduling: {app.conflictReason}</span>
+                    </div>
+                  )}
+
+                  <div className={app.needsRescheduling ? "pt-5" : ""}>
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
                       <div>
