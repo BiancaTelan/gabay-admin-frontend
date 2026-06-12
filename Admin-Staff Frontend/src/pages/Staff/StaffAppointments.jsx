@@ -749,6 +749,7 @@ export default function StaffAppointments() {
                       <th className="px-5 py-4">Patient</th>
                       <th className="px-5 py-4">Hospital No.</th>
                       <th className="px-5 py-4">Department</th>
+                      {activeTab === "pending" && <th className="px-5 py-4">Reason</th>}
                       <th className="px-5 py-4">Doctor</th>
                       <th className="px-5 py-4">Date</th>
                       <th className="px-5 py-4">Status</th>
@@ -769,6 +770,11 @@ export default function StaffAppointments() {
                         <td className="px-5 py-4">
                           {app.department || "General"}
                         </td>
+                        {activeTab === "pending" ? (
+                          <td className="px-5 py-4">
+                            {app.reason || "Not set"}
+                          </td>
+                        ) : null}
                         <td className="px-5 py-4">
                           {app.assignedDoctor || "Not assigned"}
                         </td>
@@ -877,7 +883,7 @@ export default function StaffAppointments() {
                       <p className="font-poppins text-sm text-gray-700">
                         <span className="font-semibold text-gabay-navy">Date:</span> {activeTab === "pending" ? `${app.requestedStartDate} - ${app.requestedEndDate}` : app.appointmentDate || "Not set"}
                       </p>
-                      {app.batch && (
+                      {app.batch && activeTab !== "pending" &&(
                         <p className="font-poppins text-sm text-gray-700">
                           <span className="font-semibold text-gabay-navy">Batch:</span> {app.batch}
                         </p>
