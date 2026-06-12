@@ -786,11 +786,11 @@ export default function StaffAppointments() {
                         <td className="px-5 py-4">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              app.status?.toLowerCase() === "pending"
-                                ? "bg-gray-100 text-gray-600"
-                                : app.status?.toLowerCase() === "approved"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-orange-100 text-orange-700"
+                              app.status?.toLowerCase() === "pending" ? "bg-gray-100 text-gray-600"
+                              : app.status?.toLowerCase() === "approved" || app.status?.toLowerCase() === "book" ? "bg-green-100 text-green-700"
+                              : app.status?.toLowerCase() === "rescheduled" ? "bg-orange-100 text-orange-700"
+                              : app.status?.toLowerCase() === "canceled" || app.status?.toLowerCase() === "denied" ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-600"
                             }`}
                           >
                             {app.status?.toUpperCase()}
@@ -861,8 +861,10 @@ export default function StaffAppointments() {
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           app.status?.toLowerCase() === "pending" ? "bg-gray-100 text-gray-600"
-                          : app.status?.toLowerCase() === "approved" ? "bg-green-100 text-green-700"
-                          : "bg-orange-100 text-orange-700"
+                          : app.status?.toLowerCase() === "approved" || app.status?.toLowerCase() === "book" ? "bg-green-100 text-green-700"
+                          : app.status?.toLowerCase() === "rescheduled" ? "bg-orange-100 text-orange-700"
+                          : app.status?.toLowerCase() === "canceled" || app.status?.toLowerCase() === "denied" ? "bg-red-100 text-red-700"
+                          : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {app.status?.toUpperCase()}
