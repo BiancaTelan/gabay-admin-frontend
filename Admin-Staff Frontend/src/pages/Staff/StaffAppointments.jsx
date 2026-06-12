@@ -790,7 +790,7 @@ export default function StaffAppointments() {
                                 ? "bg-gray-100 text-gray-600"
                                 : app.status?.toLowerCase() === "approved"
                                   ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
+                                  : "bg-orange-100 text-orange-700"
                             }`}
                           >
                             {app.status?.toUpperCase()}
