@@ -206,17 +206,17 @@ export default function StaffDashboard() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full relative">
               
               {/* HEADER WITH SEARCH, VIEW TOGGLES, AND FILTER */}
-              <div className="flex flex-col 2xl:flex-row justify-between items-start 2xl:items-center gap-4 mb-6 relative">
+              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6 relative">
                   <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Today's Scheduled Appointments</h2>
                   
-                  <div className="flex flex-wrap items-center gap-2 w-full 2xl:w-auto">
-                      <div className="relative flex-1 sm:flex-none">
+                  <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full xl:w-auto">
+                      <div className="relative flex-grow sm:flex-none">
                           <input 
                               type="text" 
                               placeholder="Search name or ID..." 
                               value={apptSearch} 
                               onChange={e => setApptSearch(e.target.value)} 
-                              className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-gabay-blue w-full sm:w-48"
+                              className="pl-8 pr-3 py-2 sm:py-1.5 border border-gray-200 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-gabay-blue w-full sm:w-48"
                           />
                           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                       </div>
@@ -224,7 +224,7 @@ export default function StaffDashboard() {
                       <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                         <button
                           onClick={() => setApptViewMode("card")}
-                          className={`px-3 py-1.5 flex items-center gap-1 font-poppins text-xs transition-all ${
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 flex justify-center items-center gap-1 font-poppins text-xs transition-all ${
                             apptViewMode === "card" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                           }`}
                         >
@@ -232,7 +232,7 @@ export default function StaffDashboard() {
                         </button>
                         <button
                           onClick={() => setApptViewMode("table")}
-                          className={`px-3 py-1.5 flex items-center gap-1 font-poppins text-xs transition-all ${
+                          className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 flex justify-center items-center gap-1 font-poppins text-xs transition-all ${
                             apptViewMode === "table" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                           }`}
                         >
@@ -242,10 +242,11 @@ export default function StaffDashboard() {
 
                       <button
                           onClick={() => setShowApptFilter(!showApptFilter)}
-                          className="px-3 py-1.5 border border-gabay-teal text-gabay-teal hover:bg-teal-50 rounded-lg flex items-center gap-1 font-poppins text-xs transition-all font-semibold"
+                          className="w-full sm:w-auto px-3 py-2 sm:py-1.5 justify-center border border-gabay-teal text-gabay-teal hover:bg-teal-50 rounded-lg flex items-center gap-1 font-poppins text-xs transition-all font-semibold"
                       >
                           <Funnel size={14} /> Filter
                       </button>
+                  
                   </div>
 
                   {/* ABSOLUTE FILTER DROPDOWN */}

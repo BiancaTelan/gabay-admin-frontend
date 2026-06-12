@@ -506,7 +506,7 @@ export default function StaffAppointments() {
       </div>
 
       <div className="w-full border border-gabay-blue overflow-hidden mb-6">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-2 md:grid-cols-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -548,48 +548,31 @@ export default function StaffAppointments() {
 
             <div className="flex gap-2 flex-wrap justify-end w-full lg:w-auto mt-4 lg:mt-0">
               {/* VIEW TOGGLE */}
-              <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+              <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200 w-full sm:w-auto">
                 <button
                   onClick={() => setViewMode("card")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
-                    viewMode === "card"
-                      ? "bg-gabay-blue text-white shadow-inner"
-                      : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 sm:flex-none px-4 py-2 flex justify-center items-center gap-2 font-poppins text-sm transition-all ${
+                    viewMode === "card" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <LayoutGrid size={16} />
-                  Card
+                  <LayoutGrid size={16} /> Card
                 </button>
-
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
-                    viewMode === "table"
-                      ? "bg-gabay-blue text-white shadow-inner"
-                      : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 sm:flex-none px-4 py-2 flex justify-center items-center gap-2 font-poppins text-sm transition-all ${
+                    viewMode === "table" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <Table size={16} />
-                  Table
+                  <Table size={16} /> Table
                 </button>
               </div>
 
-              <Button
-                variant="teal-outline"
-                onClick={openFilter}
-                className="px-8 py-2 min-w-[150px]"
-              >
-                <Funnel size={16} className="inline mr-2" />
-                Filter & Sort
+              <Button variant="teal-outline" onClick={openFilter} className="w-full sm:w-auto px-8 py-2 min-w-[150px]">
+                <Funnel size={16} className="inline mr-2" /> Filter & Sort
               </Button>
 
-              <Button
-                variant="teal"
-                onClick={exportToExcel}
-                className="py-2 px-8 min-w-[150px]"
-              >
-                <Download size={16} className="inline mr-2" />
-                Export Excel
+              <Button variant="teal" onClick={exportToExcel} className="w-full sm:w-auto py-2 px-8 min-w-[150px]">
+                <Download size={16} className="inline mr-2" /> Export Excel
               </Button>
             </div>
           </div>
