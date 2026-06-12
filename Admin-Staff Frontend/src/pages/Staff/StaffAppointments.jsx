@@ -862,7 +862,7 @@ export default function StaffAppointments() {
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           app.status?.toLowerCase() === "pending" ? "bg-gray-100 text-gray-600"
                           : app.status?.toLowerCase() === "approved" ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          : "bg-orange-100 text-orange-700"
                         }`}
                       >
                         {app.status?.toUpperCase()}
