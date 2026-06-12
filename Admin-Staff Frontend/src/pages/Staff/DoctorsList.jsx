@@ -39,19 +39,12 @@ export default function StaffDoctors() {
   const filteredDoctors = useMemo(() => {
     return doctors.filter(doc => {
       const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (doc.department || '').toLowerCase().includes(searchTerm.toLowerCase());
+        (doc.department || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDept = selectedDepartment === 'All' || doc.department === selectedDepartment;
       
       return matchesSearch && matchesDept;
     });
   }, [searchTerm, selectedDepartment, doctors]);
-
-  const filteredDoctors = useMemo(() => {
-    return doctors.filter(doc =>
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.department.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, doctors]);
 
   const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
   const paginatedDoctors = filteredDoctors.slice(
