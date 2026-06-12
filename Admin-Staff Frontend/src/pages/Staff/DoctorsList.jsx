@@ -25,8 +25,26 @@ export default function StaffDoctors() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
+  const [activeStatusDropdown, setActiveStatusDropdown] = useState(null);
 
   const itemsPerPage = 10;
+
+  //Department Filter States
+  const [selectedDepartment, setSelectedDepartment] = useState('All');
+  const availableDepartments = useMemo(() => {
+    const depts = new Set(doctors.map(doc => doc.department || 'General'));
+    return ['All', ...Array.from(depts).sort()];
+  }, [doctors]);
+
+  const filteredDoctors = useMemo(() => {
+    return doctors.filter(doc => {
+      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (doc.department || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDept = selectedDepartment === 'All' || doc.department === selectedDepartment;
+      
+      return matchesSearch && matchesDept;
+    });
+  }, [searchTerm, selectedDepartment, doctors]);
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter(doc =>
@@ -45,9 +63,74 @@ export default function StaffDoctors() {
   const entryStart = filteredDoctors.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredDoctors.length);
 
-  const [scheduleToEdit, setScheduleToEdit] = useState(null);
+  const handleDailyStatusChange = async (id, newStatus) => {
+    setActiveStatusDropdown(null);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/${id}/daily-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!response.ok) throw new Error("Update failed");
+      fetchDoctors();
+      toast.success("Doctor's daily status updated.");
+    } catch (error) {
+      toast.error("Failed to update daily status.");
+    }
+  };
 
-  const handleUpdateSchedule = async (doctorId, newDays, newTime, existingScheduleId) => {
+  const DailyStatusPicker = ({ doc }) => {
+    const isOpen = activeStatusDropdown === doc.id;
+    
+    // If no schedule today or permanently inactive, lock the button and show gray
+    if (doc.todayStatus === 'Not Scheduled Today' || doc.todayStatus === 'Inactive') {
+        return (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-poppins font-medium whitespace-nowrap bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed">
+                <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-gray-400"></span>
+                {doc.todayStatus}
+            </span>
+        );
+    }
+
+    const isAvailable = doc.todayStatus === 'Available';
+
+    return (
+        <div className="relative inline-block text-left">
+            <button
+              onClick={() => setActiveStatusDropdown(isOpen ? null : doc.id)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-poppins font-bold rounded-full shadow-sm transition-all active:scale-95 border ${
+                isAvailable 
+                  ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" 
+                  : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
+              {isAvailable ? 'AVAILABLE' : 'UNAVAILABLE'}
+              <ChevronDown size={12} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setActiveStatusDropdown(null)}></div>
+                <div className="absolute left-0 mt-2 w-36 origin-top-left rounded-md bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-20 overflow-hidden border border-gray-100">
+                  <div className="py-1">
+                    <button onClick={() => handleDailyStatusChange(doc.id, 'Available')} className="flex items-center justify-between w-full px-3 py-2 text-xs text-gray-700 hover:bg-green-50 transition-colors font-poppins">
+                      <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>Available</span>
+                      {isAvailable && <Check size={12} className="text-green-600" />}
+                    </button>
+                    <button onClick={() => handleDailyStatusChange(doc.id, 'Unavailable')} className="flex items-center justify-between w-full px-3 py-2 text-xs text-gray-700 hover:bg-red-50 transition-colors font-poppins">
+                      <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>Unavailable</span>
+                      {!isAvailable && <Check size={12} className="text-red-600" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+        </div>
+    );
+  };
+
+  const handleUpdateSchedule = async (doctorId, newDays, newTime, maxPatients, existingScheduleId) => {
     try {
       const endpoint = existingScheduleId 
         ? `/doctors/schedule/${existingScheduleId}` 
@@ -58,22 +141,20 @@ export default function StaffDoctors() {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}${endpoint}`, { 
         method: method,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ schedule: newDays, timePeriod: newTime })
+        body: JSON.stringify({ schedule: newDays, timePeriod: newTime, maxPatients: parseInt(maxPatients, 10) }) // NEW: Passing maxPatients
       });
       
       if (!response.ok) throw new Error("Failed to save schedule");
       
-      fetchDoctors(); 
-      setIsScheduleModalOpen(false);
-      setScheduleToEdit(null);
-      toast.success(existingScheduleId ? "Schedule updated!" : "Schedule added!");
+      await fetchDoctors(); 
+      return true; 
     } catch (error) {
       console.error(error);
       toast.error("Failed to update schedule.");
+      return false;
     }
   };
 
-  // REPLACED: window.confirm with Custom Modal
   const confirmDeleteSchedule = (scheduleId) => {
     setModalConfig({
       isOpen: true,
@@ -130,6 +211,16 @@ export default function StaffDoctors() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedDoctor && doctors.length > 0) {
+      const updatedDoc = doctors.find(d => d.id === selectedDoctor.id);
+      // Only trigger state update if the schedule data actually changed to prevent infinite loops
+      if (updatedDoc && JSON.stringify(updatedDoc.schedules) !== JSON.stringify(selectedDoctor.schedules)) {
+         setSelectedDoctor(updatedDoc);
+      }
+    }
+  }, [doctors]);
   
   // --- INITIAL FETCH ---
   useEffect(() => {
@@ -236,15 +327,34 @@ export default function StaffDoctors() {
             <div className="flex items-center gap-4">
               <h2 className="font-montserrat text-2xl font-bold text-gabay-blue text-left">Doctor List</h2>
             </div>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                placeholder="Search doctor..."
-                className="border border-gray-300 rounded-md px-3 py-1.5 w-64 pr-10 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm"
-              />
-              <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            
+            {/* Filter and Search Container */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex items-center">
+                 <select
+                  value={selectedDepartment}
+                  onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }}
+                  className="border border-gray-300 rounded-md pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm font-poppins bg-white appearance-none h-full cursor-pointer"
+                >
+                  {availableDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept === 'All' ? 'All Departments' : dept}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  placeholder="Search doctor..."
+                  className="border border-gray-300 rounded-md px-3 py-1.5 w-full sm:w-64 pr-10 focus:ring-2 focus:ring-gabay-teal/20 outline-none text-sm"
+                />
+                <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
             </div>
           </div>
 
@@ -266,10 +376,11 @@ export default function StaffDoctors() {
                         <thead className="bg-white border-b border-gray-100">
                           <tr>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Doctor Name</th>
-                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Schedule</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Contact No.</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Email</th>
-                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Schedule</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Today's Status</th>
+                            <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider">Available Slot</th>
                             <th className="p-4 font-poppins text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Actions</th>
                           </tr>
                         </thead>
@@ -279,23 +390,32 @@ export default function StaffDoctors() {
                               <td className="p-4 font-poppins text-sm text-gabay-navy font-semibold whitespace-nowrap">
                                 {doc.name}
                               </td>
+                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
+                                {doc.contactNumber || 'N/A'}
+                              </td>
+                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
+                                {doc.email || 'N/A'}
+                              </td>
                               <td className="p-4 font-poppins text-sm text-gray-600 hidden md:table-cell">
                                 {doc.schedule && doc.timePeriod ? `${doc.schedule} (${doc.timePeriod})` : 'TBD'}
                               </td>
-                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
-                                {doc.contactNumber}
-                              </td>
-                              <td className="p-4 font-poppins text-sm text-gray-600 hidden lg:table-cell">
-                                {doc.email}
-                              </td>
+                              
+                              {/* Dynamic Status Badge based on Backend Data */}
                               <td className="p-4">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-poppins font-medium ${
-                                  doc.isAvailable ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${doc.isActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                                  {doc.isAvailable ? 'Active' : 'Inactive'}
-                                </span>
+                                <DailyStatusPicker doc={doc} />
                               </td>
+
+                              {/* UPDATED: Available Slot Column (Grayed out if unavailable) */}
+                              <td className="p-4 font-poppins text-sm text-center">
+                                {(doc.todayStatus === 'Not Scheduled Today' || doc.todayStatus === 'On Leave / Unavailable' || doc.todayStatus === 'Inactive') ? (
+                                    <span className="text-gray-300 font-medium cursor-not-allowed">-</span>
+                                ) : (
+                                    <span className={`font-bold ${doc.availableSlot > 0 ? 'text-gabay-teal' : 'text-red-500'}`}>
+                                        {doc.availableSlot}
+                                    </span>
+                                )}
+                              </td>
+
                               <td className="p-4 flex items-center justify-center gap-2">
                                 <button
                                   onClick={() => { setSelectedDoctor(doc); setIsScheduleModalOpen(true); }}
@@ -379,8 +499,8 @@ export default function StaffDoctors() {
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
         doctor={selectedDoctor}
-        editingSchedule={scheduleToEdit}
         onSave={handleUpdateSchedule}
+        onDelete={confirmDeleteSchedule}
       />
       {/* CONFIRMATION MODAL */}
       <ConfirmationModal {...modalConfig} onClose={() => setModalConfig({ ...modalConfig, isOpen: false })} />
