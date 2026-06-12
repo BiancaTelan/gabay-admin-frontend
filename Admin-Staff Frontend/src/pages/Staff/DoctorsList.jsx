@@ -72,10 +72,9 @@ export default function StaffDoctors() {
     }
   };
 
-  const DailyStatusPicker = ({ doc }) => {
+  const DailyStatusPicker = ({ doc, isLast, total }) => {
     const isOpen = activeStatusDropdown === doc.id;
     
-    // If no schedule today or permanently inactive, lock the button and show gray
     if (doc.todayStatus === 'Not Scheduled Today' || doc.todayStatus === 'Inactive') {
         return (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-poppins font-medium whitespace-nowrap bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed">
@@ -86,6 +85,7 @@ export default function StaffDoctors() {
     }
 
     const isAvailable = doc.todayStatus === 'Available';
+    const dropUp = isLast && total > 1;
 
     return (
         <div className="relative inline-block text-left">
@@ -104,8 +104,9 @@ export default function StaffDoctors() {
 
             {isOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setActiveStatusDropdown(null)}></div>
-                <div className="absolute left-0 mt-2 w-36 origin-top-left rounded-md bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-20 overflow-hidden border border-gray-100">
+                <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdown(null)}></div>
+                
+                <div className={`absolute left-0 w-36 rounded-md bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-50 overflow-hidden border border-gray-100 ${dropUp ? 'bottom-full mb-2 origin-bottom-left' : 'top-full mt-2 origin-top-left'}`}>
                   <div className="py-1">
                     <button onClick={() => handleDailyStatusChange(doc.id, 'Available')} className="flex items-center justify-between w-full px-3 py-2 text-xs text-gray-700 hover:bg-green-50 transition-colors font-poppins">
                       <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>Available</span>
@@ -355,16 +356,16 @@ export default function StaffDoctors() {
             <div className="space-y-6 mb-6">
               {Object.keys(groupedDoctors).length > 0 ? (
                 Object.entries(groupedDoctors).map(([departmentName, departmentDoctors]) => (
-                  <div key={departmentName} className="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div key={departmentName} className="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
                     
                     {/* Department Header */}
-                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 rounded-t-xl">
                       <h3 className="text-sm font-bold text-gabay-navy uppercase tracking-widest">
                         {departmentName}
                       </h3>
                     </div>
                     
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-visible">
                       <table className="w-full text-left border-collapse">
                         <thead className="bg-white border-b border-gray-100">
                           <tr>
@@ -395,10 +396,14 @@ export default function StaffDoctors() {
                               
                               {/* Dynamic Status Badge based on Backend Data */}
                               <td className="p-4">
-                                <DailyStatusPicker doc={doc} />
+                                <DailyStatusPicker 
+                                  doc={doc} 
+                                  isLast={index === departmentDoctors.length - 1} 
+                                  total={departmentDoctors.length} 
+                                />
                               </td>
 
-                              {/* UPDATED: Available Slot Column (Grayed out if unavailable) */}
+                              {/* Available Slot Column */}
                               <td className="p-4 font-poppins text-sm text-center">
                                 {(doc.todayStatus === 'Not Scheduled Today' || doc.todayStatus === 'On Leave / Unavailable' || doc.todayStatus === 'Inactive') ? (
                                     <span className="text-gray-300 font-medium cursor-not-allowed">-</span>

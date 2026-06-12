@@ -69,24 +69,34 @@ export default function DoctorScheduleCalendar() {
   };
 
   // --- GET DOCTORS ON DUTY FOR A GIVEN DAY ---
-  const getDoctorsForDay = (dayIndex) => {
+  const getDoctorsForDay = (dayIndex, dateObj) => {
     const fullDayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const targetDay = fullDayMap[dayIndex];
     
+    const yyyy = dateObj.getFullYear();
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const localDateString = `${yyyy}-${mm}-${dd}`;
+
     const onDuty = [];
 
     doctors.forEach(doc => {
       if (!doc.schedules || !Array.isArray(doc.schedules)) return;
 
-      const matchedSchedule = doc.schedules.find(s => s.day === targetDay);
+      const matchedSchedules = doc.schedules.filter(s => s.day === targetDay);
 
-      if (matchedSchedule) {
+      matchedSchedules.forEach(matchedSchedule => {
+        const isGloballyInactive = !doc.isActive || doc.availability === 'Not Available';
+        const isOnLeaveToday = doc.onLeaveDate === localDateString;
+        const isUnavailable = isGloballyInactive || isOnLeaveToday;
+
         onDuty.push({
-          id: doc.id,
+          uniqueKey: `${doc.id}-${matchedSchedule.id}`,
           name: doc.name,
-          time: matchedSchedule.time
+          time: matchedSchedule.time,
+          isUnavailable: isUnavailable
         });
-      }
+      });
     });
 
     return onDuty;
@@ -157,7 +167,8 @@ export default function DoctorScheduleCalendar() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateObj = new Date(currentYear, currentMonth, day);
-              const onDuty = getDoctorsForDay(dateObj.getDay());
+              
+              const onDuty = getDoctorsForDay(dateObj.getDay(), dateObj); 
               const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
 
               return (
@@ -174,16 +185,25 @@ export default function DoctorScheduleCalendar() {
                   <div className="w-full space-y-1 overflow-y-auto custom-scrollbar">
                     {onDuty.map((doc) => (
                       <div 
-                        key={doc.id} 
-                        className="px-1.5 py-1 rounded bg-white border border-gray-200 shadow-sm border-l-4 border-l-gabay-teal truncate"
+                        key={doc.uniqueKey} 
+                        title={doc.isUnavailable ? "Unavailable / On Leave" : "Available"}
+                        className={`px-1.5 py-1 rounded border shadow-sm truncate transition-colors ${
+                          doc.isUnavailable 
+                            ? 'bg-red-50 border-red-200 border-l-4 border-l-red-500' 
+                            : 'bg-white border-gray-200 border-l-4 border-l-gabay-teal'
+                        }`}
                       >
-                        <p className="text-[9px] font-bold text-gray-800 truncate leading-tight uppercase">
-                          {doc.name.split(',')[0]}
+                        <p className={`text-[9px] font-bold truncate leading-tight uppercase ${
+                          doc.isUnavailable ? 'text-red-700' : 'text-gray-800'
+                        }`}>
+                          {doc.name.replace('Dr. ', '')}
                         </p>
-                        <div className="flex items-center gap-0.5 text-gray-400">
+                        <div className={`flex items-center gap-0.5 ${
+                          doc.isUnavailable ? 'text-red-400' : 'text-gray-400'
+                        }`}>
                           <Clock size={7} />
                           <span className="text-[7px] italic font-medium truncate">
-                            {doc.time?.split('–')[0]}
+                            {doc.time}
                           </span>
                         </div>
                       </div>
