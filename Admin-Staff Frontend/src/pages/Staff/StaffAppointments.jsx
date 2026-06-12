@@ -595,8 +595,8 @@ export default function StaffAppointments() {
           </div>
 
           {showFilterDropdown && (
-            <div className="relative">
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
+            <div className="relative z-[100]">
+              <div className="absolute right-0 mt-2 w-80 max-h-[75vh] overflow-y-auto custom-scrollbar bg-white border border-gray-200 rounded-xl shadow-2xl p-5 space-y-5">
                 {/* Sort By */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">
