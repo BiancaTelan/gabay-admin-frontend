@@ -417,21 +417,6 @@ export default function StaffDoctors() {
                                 >
                                   <CalendarDays size={18} />
                                 </button>
-                                <button
-                                  onClick={() => {
-                                    setModalConfig({
-                                      isOpen: true,
-                                      type: doc.isActive ? 'danger' : 'info',
-                                      title: doc.isActive ? 'Deactivate Doctor' : 'Activate Doctor',
-                                      message: `Are you sure you want to ${doc.isActive ? 'deactivate' : 'activate'} Dr. ${doc.name}?`,
-                                      onConfirm: () => handleToggleStatus(doc.id, doc.isActive)
-                                    });
-                                  }}
-                                  className={`p-1.5 rounded-md transition-colors ${doc.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'}`}
-                                  title={doc.isActive ? "Deactivate" : "Activate"}
-                                >
-                                  {doc.isActive ? <Trash2 size={18} /> : <Check size={18} />}
-                                </button>
                               </td>
                             </tr>
                           ))}
