@@ -65,10 +65,14 @@ export default function BookScheduleForm({ onSuccess, token }) {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!response.ok) throw new Error("Failed to load doctor's schedule.");
+
         const data = await response.json();
         setAllowedDays(data.working_days || []);
       } catch (error) {
         console.error("Failed to fetch working days:", error);
+        toast.error("Could not load the doctor's available days.");
       }
     };
 
@@ -140,17 +144,20 @@ export default function BookScheduleForm({ onSuccess, token }) {
       toast.error(`Reason cannot exceed ${MAX_REASON_CHARS} characters.`);
       return;
     }
-    if (!date) {
-      toast.error("Please select an appointment date.");
-      setLoading(false);
-      return;
-    }
 
     setLoading(true);
 
     const formattedDate = date.toLocaleDateString('en-US', {
       month: '2-digit', day: '2-digit', year: 'numeric'
     });
+
+    let localDateString = null;
+    if (date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      localDateString = `${yyyy}-${mm}-${dd}`;
+    }
 
     const payload = {
       hospital_num, 
@@ -162,7 +169,8 @@ export default function BookScheduleForm({ onSuccess, token }) {
       street, barangay, city, province,                 
       department_id: departmentId ? parseInt(departmentId) : null, 
       doctor_id: doctorId ? parseInt(doctorId) : null,
-      date: date ? date.toISOString().split('T')[0] : null, 
+      date: localDateString,
+      batch, 
       reason
     };
 

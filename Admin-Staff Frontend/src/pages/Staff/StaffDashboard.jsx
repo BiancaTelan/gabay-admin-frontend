@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarCheck, CalendarX, CalendarPlus, CalendarClock, Plus, ChevronRightIcon } from 'lucide-react';
+import { CalendarCheck, CalendarX, CalendarPlus, CalendarClock, Plus, ChevronRightIcon, Filter } from 'lucide-react';
 import StatCard from '../../components/StatCard';
 import QueueStatusModal from '../../components/QueueStatusModal';
 import AppointmentDetailsModal from '../../components/ApptDetailsModal';
@@ -18,12 +18,13 @@ export default function StaffDashboard() {
   const [stats, setStats] = useState({ approved: 0, cancelled: 0, slot: 0, forApproval: 0 });
   const [patients, setPatients] = useState([]);
   const [queueList, setQueueList] = useState([]);
+  const [timeFilter, setTimeFilter] = useState('Month');
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
   // Fetch dashboard data 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch(`${apiBase}/api/staff/overview`, {
+      const response = await fetch(`${apiBase}/api/staff/overview?filter_time=${timeFilter.toLowerCase()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -39,7 +40,7 @@ export default function StaffDashboard() {
   
   useEffect(() => {
     fetchDashboardData();
-  }, [token]);
+  }, [token, timeFilter]);
 
   // Handle status updates for queue items and appointments
   const handleUpdateAction = async (patient, actionString, newStatusDisplay) => {
@@ -116,12 +117,56 @@ export default function StaffDashboard() {
 
       {/* MAIN CONTENT GRID */}
       <div className="space-y-6">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full">
-            <StatCard title="Appointments for Approval" value={stats.forApproval} icon={CalendarClock} color="gray" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'pending' } })} />
-            <StatCard title="Appointments Approved" value={stats.approved} icon={CalendarCheck} color="green" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'approved' } })} />
-            <StatCard title="Appointments Cancelled" value={stats.cancelled} icon={CalendarX} color="red" onClick={() => navigate('/staff/appointments', { state: { activeTab: 'canceled' } })} />
-            <StatCard title="Available Slots" value={stats.slot} icon={CalendarPlus} color="blue" onClick={() => navigate('/staff/no-show-appointments')} />
+        <div className="space-y-4">
+
+          {/* FILTER HEADER ROW */}
+          <div className="flex justify-between items-end w-full">
+            <h2 className="font-montserrat text-lg font-bold text-gabay-navy">Overview Statistics</h2>
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-gray-500" />
+              <select 
+                value={timeFilter} 
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="bg-white border border-gray-200 text-sm font-poppins rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-gabay-teal text-gray-700 shadow-sm cursor-pointer"
+              >
+                <option value="Today">Today</option>
+                <option value="Week">This Week</option>
+                <option value="Month">This Month</option>
+              </select>
+            </div>
+          </div>
+
+          {/* STAT CARDS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full mb-6">
+            <StatCard 
+              title={`Appointments for Approval (${timeFilter})`} 
+              value={stats.forApproval} 
+              icon={CalendarClock} 
+              color="gray" 
+              onClick={() => navigate('/staff/appointments', { state: { activeTab: 'pending' } })} 
+            />
+            <StatCard 
+              title={`Appointments Approved (${timeFilter})`} 
+              value={stats.approved} 
+              icon={CalendarCheck} 
+              color="green" 
+              onClick={() => navigate('/staff/appointments', { state: { activeTab: 'approved' } })} 
+            />
+            <StatCard 
+              title={`Appointments Cancelled (${timeFilter})`} 
+              value={stats.cancelled} 
+              icon={CalendarX} 
+              color="red" 
+              onClick={() => navigate('/staff/appointments', { state: { activeTab: 'canceled' } })} 
+            />
+
+            <StatCard 
+              title="Available Slots (Today)" 
+              value={stats.slot} 
+              icon={CalendarPlus} 
+              color="blue" 
+              onClick={() => navigate('/staff/no-show-appointments')} 
+            />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6 items-start">
@@ -158,7 +203,10 @@ export default function StaffDashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-montserrat text-lg font-bold text-gabay-blue">Live Queue List</h2>
                 <span className="text-xs bg-gabay-blue text-white px-2.5 py-1 rounded-full font-bold font-poppins">
-                  {queueList.filter(p => p.status === 'waiting' || p.status === 'serving').length} ACTIVE
+                  {queueList.filter(p => {
+                    const currentStatus = p.status?.toLowerCase() || '';
+                    return currentStatus === 'waiting' || currentStatus === 'in progress';
+                  }).length} ACTIVE
                 </span>
               </div>
               <div className="flex flex-col gap-3 max-h-[520px] overflow-y-auto custom-scrollbar">

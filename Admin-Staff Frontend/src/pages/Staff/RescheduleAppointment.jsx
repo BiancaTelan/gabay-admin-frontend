@@ -6,6 +6,7 @@ import { CalendarDays } from 'lucide-react';
 import Button from '../../components/button';
 import ConfirmRescheduleModal from '../../components/ConfirmRescheduleModal';
 import { AuthContext } from '../../authContext';
+import toast from 'react-hot-toast'; 
 
 export default function RescheduleAppointmentPage() {
   const { token } = useContext(AuthContext);
@@ -49,12 +50,13 @@ export default function RescheduleAppointmentPage() {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (response.ok) {
-           const data = await response.json();
-           setAllowedDays(data.working_days || []);
-        }
+        if (!response.ok) throw new Error("Failed to load");
+        const data = await response.json();
+        setAllowedDays(data.working_days || []);
+        
       } catch (error) {
         console.error("Failed to fetch working days:", error);
+        toast.error("Could not load the doctor's available working days."); // NEW: Alert user
       }
     };
 
@@ -208,18 +210,10 @@ export default function RescheduleAppointmentPage() {
                         disabled={allowedDays.length === 0}
                         dateFormat="MM/dd/yyyy"
                         wrapperClassName="w-full"
-                        customInput={
-                          <div className="relative w-full">
-                            <input
-                              value={selectedDate ? selectedDate.toLocaleDateString('en-US') : ''}
-                              readOnly
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md font-poppins text-md focus:outline-none focus:ring-2 focus:ring-gabay-blue pr-10 cursor-pointer"
-                              placeholder="Select a date"
-                            />
-                            <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                          </div>
-                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md font-poppins text-md focus:outline-none focus:ring-2 focus:ring-gabay-blue pr-10 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholderText={allowedDays.length === 0 ? "Loading schedule..." : "Select a date"}
                       />
+                      <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
                     </div>
                   </div>
 

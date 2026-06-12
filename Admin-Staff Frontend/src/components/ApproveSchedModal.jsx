@@ -101,6 +101,10 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     }
   };
 
+  const filteredDoctors = doctors.filter(
+    (doc) => doc.department === (appointment?.department || "General")
+  );
+
   const handleApprove = () => {
     if (!selectedDate) return alert('Please select a date.');
     if (!selectedDocId) return alert('Please assign a doctor.');
@@ -126,48 +130,66 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
   if (!isOpen || !appointment) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-lg max-w-lg w-full p-10 relative">
-        <div className="relative mb-4">
-          <h3 className="font-montserrat text-xl font-bold text-gabay-blue text-center">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6 backdrop-blur-sm">
+      
+      {/* MAIN MODAL CONTAINER*/}
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full flex flex-col relative max-h-[95vh] overflow-hidden border border-gray-100">
+        
+        {/* STICKY HEADER */}
+        <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0">
+          <h3 className="font-montserrat text-xl font-bold text-gabay-blue">
             Approve Schedule
           </h3>
           <button
             onClick={onClose}
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 p-2 rounded-full transition-colors"
+            title="Close"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block font-poppins font-medium text-lg text-gabay-navy">Patient:</label>
-            <p className="font-poppins mt-1 text-gray-700">{appointment.name}</p>
+        {/* SCROLLABLE BODY */}
+        <div className="px-8 py-6 overflow-y-auto flex-1 space-y-5 custom-scrollbar">
+          
+          {/* Patient Details Card */}
+          <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100/50 space-y-3">
+            <div>
+              <label className="block font-poppins text-[11px] font-bold text-gray-400 uppercase tracking-widest">Patient Name</label>
+              <p className="font-poppins font-semibold text-gabay-navy text-lg">{appointment.name}</p>
+            </div>
+            <div>
+              <label className="block font-poppins text-[11px] font-bold text-gray-400 uppercase tracking-widest">Department</label>
+              <p className="font-poppins font-medium text-gabay-teal">{appointment.department || "General"}</p>
+            </div>
           </div>
 
           <div>
-            <label className="block font-poppins font-medium text-lg text-gabay-navy">Assigned Doctor:</label>
+            <label className="block font-poppins font-medium text-[15px] text-gabay-navy mb-1.5">Assigned Doctor:</label>
             <select
               value={selectedDocId}
               onChange={(e) => {
                 setSelectedDocId(e.target.value);
                 setSelectedDate(null); 
               }}
-              className="mt-1 w-full p-2 border border-gray-200 rounded-md font-poppins text-md focus:outline-none focus:ring-2 focus:ring-gabay-blue"
+              className="w-full p-2.5 border border-gray-200 rounded-lg font-poppins text-sm focus:outline-none focus:ring-2 focus:ring-gabay-blue bg-white"
               required
             >
               <option value="">Select a doctor</option>
-              {doctors.map(doc => (
-                <option key={doc.id} value={doc.id}>{doc.name}</option>
-              ))}
+              {filteredDoctors.length > 0 ? (
+                filteredDoctors.map(doc => (
+                  <option key={doc.id} value={doc.id}>{doc.name}</option>
+                ))
+              ) : (
+                <option value="" disabled>No doctors available in this department</option>
+              )}
             </select>
           </div>
 
           <div>
-            <label className="block font-poppins font-medium text-lg text-gabay-navy">Date:</label>
-            <p className="font-poppins text-sm text-gray-500 mb-1">
-              Requested range: {appointment.requestedStartDate} - {appointment.requestedEndDate}
+            <label className="block font-poppins font-medium text-[15px] text-gabay-navy mb-1">Schedule Date:</label>
+            <p className="font-poppins text-xs text-gray-500 mb-2">
+              Requested range: <span className="font-medium text-gray-700">{appointment.requestedStartDate} - {appointment.requestedEndDate}</span>
             </p>
             <div className="relative">
               <DatePicker
@@ -177,85 +199,86 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
                 minDate={startDate}
                 disabled={!selectedDocId || allowedDays.length === 0}
                 placeholderText={!selectedDocId ? "Select doctor first" : "Select date within range"}
-                className="w-full p-2 border border-gray-200 rounded-md font-poppins text-md focus:outline-none focus:ring-2 focus:ring-gabay-blue pr-10 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full p-2.5 border border-gray-200 rounded-lg font-poppins text-sm focus:outline-none focus:ring-2 focus:ring-gabay-blue pr-10 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                 wrapperClassName="w-full"
               />
-              <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
+              <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
             </div>
           </div>
 
           <div>
-            <label className="block font-poppins font-medium text-lg text-gabay-navy">Batch:</label>
-            <div className="flex gap-4 mt-1">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <label className="block font-poppins font-medium text-[15px] text-gabay-navy mb-2">Batch Timing:</label>
+            <div className="flex flex-col sm:flex-row gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <label className="flex items-center gap-2 cursor-pointer flex-1">
                 <input
                   type="radio"
                   name="batch"
                   value="Morning"
                   checked={selectedBatch === 'Morning'}
                   onChange={() => setSelectedBatch('Morning')}
-                  className="text-gabay-blue focus:ring-gabay-blue"
+                  className="text-gabay-blue focus:ring-gabay-blue accent-gabay-blue w-4 h-4"
                 />
-                <span className="font-poppins text-md">Morning (8:00 - 12:00)</span>
+                <span className="font-poppins text-sm font-medium text-gray-700">Morning (8 AM - 12 PM)</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer flex-1">
                 <input
                   type="radio"
                   name="batch"
                   value="Afternoon"
                   checked={selectedBatch === 'Afternoon'}
                   onChange={() => setSelectedBatch('Afternoon')}
-                  className="text-gabay-blue focus:ring-gabay-blue"
+                  className="text-gabay-blue focus:ring-gabay-blue accent-gabay-blue w-4 h-4"
                 />
-                <span className="font-poppins text-md">Afternoon (1:00 - 5:00)</span>
+                <span className="font-poppins text-sm font-medium text-gray-700">Afternoon (1 PM - 5 PM)</span>
               </label>
             </div>
           </div>
 
-        {appointment.attachedFile && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
-            <p className="font-poppins font-medium text-sm text-gabay-navy mb-1">Attached Document (Specialty Form):</p>
-            <button 
-              onClick={handleViewFile}
-              disabled={isLoadingFile}
-              className="text-gabay-blue hover:text-gabay-teal text-sm font-medium underline flex items-center gap-1 disabled:text-gray-400"
-              type="button"
-            >
-              {isLoadingFile ? "Loading File securely..." : "View Uploaded File"}
-            </button>
-          </div>
-        )}
+          {appointment.attachedFile && (
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="font-poppins font-medium text-sm text-gabay-navy">Attached Document (Specialty Form)</p>
+              <button 
+                onClick={handleViewFile}
+                disabled={isLoadingFile}
+                className="text-white bg-gabay-blue hover:bg-gabay-navy px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-colors disabled:bg-gray-300 whitespace-nowrap"
+                type="button"
+              >
+                {isLoadingFile ? "Loading..." : "View File"}
+              </button>
+            </div>
+          )}
 
-          <p className="font-poppins text-sm text-gray-500 text-center italic mt-4">
+          <p className="font-poppins text-xs text-gray-400 text-center italic pt-2 pb-2">
             An automated alert will be sent via Email.
           </p>
         </div>
 
-        <div className="mt-6 border-t border-gray-200 pt-4">
+        {/* STICKY FOOTER */}
+        <div className="px-8 py-5 border-t border-gray-100 bg-gray-50 shrink-0 z-20">
           <label className="block font-poppins font-medium text-gabay-navy text-sm mb-2">
-            Denial Remarks (Required if denying):
+            Denial Remarks <span className="text-gray-400 font-normal text-xs">(Required if denying)</span>
           </label>
           <textarea
             value={denyReason}
             onChange={(e) => setDenyReason(e.target.value)}
-            placeholder="Please explain why this appointment cannot be approved..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md font-poppins text-sm focus:outline-none focus:ring-2 focus:ring-red-400 mb-3"
+            placeholder="Explain why this cannot be approved..."
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg font-poppins text-sm focus:outline-none focus:ring-2 focus:ring-red-400 mb-4 resize-none"
             rows="2"
           />
           
-          <div className="flex justify-end gap-3">
-            <Button variant="teal" onClick={handleApprove} className="flex-1 py-2">
-            Approve & Notify
-          </Button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
             <button 
               onClick={() => onDeny(appointment.id, denyReason)}
-              className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md font-poppins text-sm font-medium hover:bg-red-100 transition-colors"
+              className="px-5 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg font-poppins text-sm font-bold hover:bg-red-50 transition-colors sm:w-auto w-full"
             >
               Deny Appointment
             </button>
-            
+            <Button variant="teal" onClick={handleApprove} className="px-8 py-2.5 sm:w-auto w-full">
+              Approve & Notify
+            </Button>
           </div>
         </div>
+
       </div>
       
       {showFileViewer && (
