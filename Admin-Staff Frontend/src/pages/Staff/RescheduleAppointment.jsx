@@ -11,11 +11,10 @@ import toast from 'react-hot-toast';
 export default function RescheduleAppointmentPage() {
   const { token } = useContext(AuthContext);
   const [allowedDays, setAllowedDays] = useState([]);
+  const [scheduleDetails, setScheduleDetails] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
-  
   const rawData = location.state?.appointment || location.state?.patientData;
-  
   const appointment = rawData ? {
     id: rawData.id,
     ...rawData,
@@ -23,17 +22,14 @@ export default function RescheduleAppointmentPage() {
     appointmentDate: rawData.appointmentDate || rawData.previousDate || new Date().toISOString(),
     hospitalNo: rawData.hospitalNo || rawData.hospitalNumber || 'N/A'
   } : null;
-
   const nameParts = appointment?.name?.split(' ') || ['N/A'];
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ') || '';
-
   const [selectedBatch, setSelectedBatch] = useState(appointment?.batch || 'Morning');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
   const [selectedDate, setSelectedDate] = useState(() => {
     if (!appointment?.appointmentDate) return null;
     const parsed = new Date(appointment.appointmentDate);
@@ -53,15 +49,26 @@ export default function RescheduleAppointmentPage() {
         if (!response.ok) throw new Error("Failed to load");
         const data = await response.json();
         setAllowedDays(data.working_days || []);
+        setScheduleDetails(data.schedule_details || {}); 
         
       } catch (error) {
         console.error("Failed to fetch working days:", error);
-        toast.error("Could not load the doctor's available working days."); // NEW: Alert user
+        toast.error("Could not load the doctor's available working days."); 
       }
     };
 
     fetchWorkingDays();
   }, [appointment?.docID, token]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      const dayIndex = selectedDate.getDay();
+      const availableBatches = scheduleDetails[dayIndex] || [];
+      if (availableBatches.length > 0 && !availableBatches.includes(selectedBatch)) {
+        setSelectedBatch(availableBatches[0]);
+      }
+    }
+  }, [selectedDate, scheduleDetails]);
 
   // --- VALIDATION FUNCTION ---
   const isWorkingDay = (d) => {
@@ -220,18 +227,24 @@ export default function RescheduleAppointmentPage() {
                   <div>
                     <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Batch</label>
                     <div className="flex flex-wrap gap-6 mt-2">
-                      {['Morning', 'Afternoon'].map((b) => (
-                        <label key={b} className="flex items-center gap-2 font-poppins text-gabay-navy text-md cursor-pointer">
-                          <input
-                            type="radio"
-                            value={b}
-                            checked={selectedBatch === b}
-                            onChange={() => setSelectedBatch(b)}
-                            className="w-4 h-4 text-gabay-teal focus:ring-gabay-teal"
-                          />
-                          {b === 'Morning' ? 'Morning (8:00 - 12:00)' : 'Afternoon (1:00 - 5:00)'}
-                        </label>
-                      ))}
+                      {['Morning', 'Afternoon'].map((b) => {
+                        const dayIndex = selectedDate ? selectedDate.getDay() : null;
+                        const isAvailable = selectedDate ? (scheduleDetails[dayIndex] || []).includes(b) : true;
+                        
+                        return (
+                          <label key={b} className={`flex items-center gap-2 font-poppins text-md ${!isAvailable ? 'text-gray-400 cursor-not-allowed' : 'text-gabay-navy cursor-pointer'}`}>
+                            <input
+                              type="radio"
+                              value={b}
+                              checked={selectedBatch === b}
+                              onChange={() => setSelectedBatch(b)}
+                              disabled={!isAvailable}
+                              className="w-4 h-4 text-gabay-teal focus:ring-gabay-teal disabled:opacity-50"
+                            />
+                            {b === 'Morning' ? 'Morning (8:00 - 12:00)' : 'Afternoon (1:00 - 5:00)'}
+                          </label>
+                        )
+                      })}
                     </div>
                   </div>
 

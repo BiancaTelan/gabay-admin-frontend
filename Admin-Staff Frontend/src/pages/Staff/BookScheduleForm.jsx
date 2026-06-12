@@ -52,12 +52,14 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
   const [loading, setLoading] = useState(false);
   const [allowedDays, setAllowedDays] = useState([]);
+  const [scheduleDetails, setScheduleDetails] = useState({});
 
   // --- FETCH WORKING DAYS FOR SELECTED DOCTOR ---
   useEffect(() => {
     const fetchWorkingDays = async () => {
       if (!doctorId || !token) {
         setAllowedDays([]);
+        setScheduleDetails({});
         return;
       }
       
@@ -70,6 +72,7 @@ export default function BookScheduleForm({ onSuccess, token }) {
 
         const data = await response.json();
         setAllowedDays(data.working_days || []);
+        setScheduleDetails(data.schedule_details || {});
       } catch (error) {
         console.error("Failed to fetch working days:", error);
         toast.error("Could not load the doctor's available days.");
@@ -79,6 +82,16 @@ export default function BookScheduleForm({ onSuccess, token }) {
     fetchWorkingDays();
     setDate(null); 
   }, [doctorId, token]);
+
+  useEffect(() => {
+    if (date) {
+      const dayIndex = date.getDay();
+      const availableBatches = scheduleDetails[dayIndex] || [];
+      if (availableBatches.length > 0 && !availableBatches.includes(batch)) {
+        setBatch(availableBatches[0]);
+      }
+    }
+  }, [date, scheduleDetails]);
 
   // --- WORKING DAYS FILTER FOR DATEPICKER ---
   const isWorkingDay = (d) => {
@@ -354,12 +367,25 @@ export default function BookScheduleForm({ onSuccess, token }) {
             <div>
               <label className="block font-poppins font-medium text-gabay-navy text-md mb-1">Batch</label>
               <div className="flex flex-wrap gap-6 mt-2">
-                <label className="flex items-center font-poppins gap-2 cursor-pointer">
-                  <input type="radio" name="batch" value="Morning" checked={batch === 'Morning'} onChange={() => setBatch('Morning')} className="w-4 h-4 text-gabay-teal" /> Morning (8:00 - 12:00)
-                </label>
-                <label className="flex items-center font-poppins gap-2 cursor-pointer">
-                  <input type="radio" name="batch" value="Afternoon" checked={batch === 'Afternoon'} onChange={() => setBatch('Afternoon')} className="w-4 h-4 text-gabay-teal" /> Afternoon (1:00 - 5:00)
-                </label>
+                {['Morning', 'Afternoon'].map((b) => {
+                  const dayIndex = date ? date.getDay() : null;
+                  const isAvailable = date ? (scheduleDetails[dayIndex] || []).includes(b) : true;
+                  
+                  return (
+                    <label key={b} className={`flex items-center font-poppins gap-2 ${!isAvailable ? 'opacity-40 cursor-not-allowed text-gray-500' : 'cursor-pointer text-gabay-navy'}`}>
+                      <input 
+                        type="radio" 
+                        name="batch" 
+                        value={b} 
+                        checked={batch === b} 
+                        onChange={() => setBatch(b)} 
+                        disabled={!isAvailable}
+                        className="w-4 h-4 text-gabay-teal disabled:opacity-50" 
+                      /> 
+                      {b === 'Morning' ? 'Morning (8:00 - 12:00)' : 'Afternoon (1:00 - 5:00)'}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
