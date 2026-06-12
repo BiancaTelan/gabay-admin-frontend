@@ -27,7 +27,7 @@ export default function StaffDashboard() {
   const [showApptFilter, setShowApptFilter] = useState(false);
   const [apptSort, setApptSort] = useState({ key: 'name', order: 'asc' });
   const [apptFilters, setApptFilters] = useState({ batch: 'All', department: 'All', doctor: 'All' });
-
+  
   const filterOptions = useMemo(() => {
       return {
           batches: ['All', ...new Set(patients.map(p => p.time).filter(Boolean))],
