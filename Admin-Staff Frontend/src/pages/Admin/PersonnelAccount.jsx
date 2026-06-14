@@ -5,8 +5,140 @@ import toast from 'react-hot-toast';
 import Input from '../../components/input';
 import ConfirmationModal from '../../components/confirmModal';
 import ChangeModal from '../../components/changeModal';
-import { emailPattern, namePattern, phonePattern, dobPattern } from '../../utils/constants';
+import { phonePattern } from '../../utils/constants'; 
 import { AuthContext } from '../../authContext';
+
+export default function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([])
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const provRes = await fetch('https://psgc.gitlab.io/api/provinces/');
+        const provData = await provRes.json();
+
+        const ncr = { code: '130000000', name: 'METRO MANILA', isRegion: true };
+        const allProvinces = [...provData, ncr].sort((a, b) => a.name.localeCompare(b.name));
+        setProvinces(allProvinces);
+
+        if (localUserInfo.province) {
+          const selectedProv = allProvinces.find(p => p.name === localUserInfo.province);
+          if (selectedProv) {
+            const cityUrl = selectedProv.isRegion 
+              ? `https://psgc.gitlab.io/api/regions/${selectedProv.code}/cities-municipalities/`
+              : `https://psgc.gitlab.io/api/provinces/${selectedProv.code}/cities-municipalities/`;
+            
+            const cityRes = await fetch(cityUrl);
+            const cityData = await cityRes.json();
+            setCities(cityData.sort((a, b) => a.name.localeCompare(b.name)));
+
+            if (localUserInfo.city) {
+              const selectedCity = cityData.find(c => c.name === localUserInfo.city);
+              if (selectedCity) {
+                const brgyRes = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedCity.code}/barangays/`);
+                const brgyData = await brgyRes.json();
+                setBarangays(brgyData.sort((a, b) => a.name.localeCompare(b.name)));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load PSGC data", error);
+      }
+    };
+
+    if (localUserInfo.province !== undefined) {
+      loadInitialData();
+    }
+  }, [localUserInfo.province, localUserInfo.city]);
+
+  const handleProvinceChange = async (e) => {
+    const provinceName = e.target.value;
+    const selectedProv = provinces.find(p => p.name === provinceName);
+    
+    setTempUserInfo(prev => ({ ...prev, province: provinceName, city: '', barangay: '' }));
+    setCities([]);
+    setBarangays([]); 
+
+    if (selectedProv) {
+      const url = selectedProv.isRegion 
+        ? `https://psgc.gitlab.io/api/regions/${selectedProv.code}/cities-municipalities/`
+        : `https://psgc.gitlab.io/api/provinces/${selectedProv.code}/cities-municipalities/`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+      setCities(data.sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
+
+  const handleCityChange = async (e) => {
+    const cityName = e.target.value;
+    const selectedCity = cities.find(c => c.name === cityName);
+    
+    setTempUserInfo(prev => ({ ...prev, city: cityName, barangay: '' }));
+    setBarangays([]);
+
+    if (selectedCity) {
+      const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedCity.code}/barangays/`);
+      const data = await res.json();
+      setBarangays(data.sort((a, b) => a.name.localeCompare(b.name)));
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Province Dropdown */}
+      <div className="md:col-span-2">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Province</label>
+        <select 
+          disabled={!isEditing}
+          value={tempUserInfo.province} 
+          onChange={handleProvinceChange}
+          className="w-full border p-2 rounded-lg text-sm outline-none bg-white"
+        >
+          <option value="" disabled>Select Province</option>
+          {provinces.map(prov => (
+            <option key={prov.code} value={prov.name}>{prov.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* City Dropdown */}
+      <div className="md:col-span-2">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">City / Municipality</label>
+        <select 
+          disabled={!isEditing || !tempUserInfo.province}
+          value={tempUserInfo.city} 
+          onChange={handleCityChange}
+          className="w-full border p-2 rounded-lg text-sm outline-none bg-white disabled:bg-gray-50"
+        >
+          <option value="" disabled>Select City</option>
+          {cities.map(city => (
+            <option key={city.code} value={city.name}>{city.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Barangay Dropdown */}
+      <div className="md:col-span-2">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Barangay</label>
+        <select 
+          disabled={!isEditing || !tempUserInfo.city}
+          value={tempUserInfo.barangay} 
+          onChange={(e) => setTempUserInfo(prev => ({ ...prev, barangay: e.target.value }))}
+          className="w-full border p-2 rounded-lg text-sm outline-none bg-white disabled:bg-gray-50"
+        >
+          <option value="" disabled>Select Barangay</option>
+          {barangays.map(brgy => (
+            <option key={brgy.code} value={brgy.name}>{brgy.name}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
 
 export default function PersonnelAccount() {
   const navigate = useNavigate();
@@ -30,15 +162,18 @@ export default function PersonnelAccount() {
     barangay: "", 
     city: "",     
     province: "",
+    postalCode: "", 
     profilePhoto: null
   });
 
-  const [tempUserInfo, setTempUserInfo] = useState(null);
+  const [tempUserInfo, setTempUserInfo] = useState({ ...localUserInfo });
   const [isEditing, setIsEditing] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Modal States
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
-  const [changeModalType, setChangeModalType] = useState('password');
+  const [changeModalType, setChangeModalType] = useState('email'); 
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
 
   // --- FETCH PROFILE ---
   useEffect(() => {
@@ -46,17 +181,12 @@ export default function PersonnelAccount() {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });
 
         if (!response.ok) throw new Error("Failed to fetch profile data");
         
         const data = await response.json();
-        const addressStr = data.address || "";
-        const [street = "", barangay = "", city = "", province = ""] = addressStr.split(" | ");
         
         setLocalUserInfo(prev => ({ 
           ...prev, 
@@ -66,10 +196,11 @@ export default function PersonnelAccount() {
           middlename: data.middlename || "",
           suffix: data.suffix || "",
           contactNumber: data.contactNumber || "",
-          street: street,
-          barangay: barangay,
-          city: city,
-          province: province,
+          street: data.street || "",
+          barangay: data.barangay || "",
+          city: data.city || "",
+          province: data.province || "",
+          postalCode: data.postalCode || "",
           gender: data.gender || "Male"
         })); 
       } catch (error) {
@@ -77,300 +208,244 @@ export default function PersonnelAccount() {
       }
     };
 
-    if (token) {
-      fetchProfile();
-    }
+    if (token) fetchProfile();
   }, [apiBase, token]);
 
-  // --- INPUT HANDLERS ---
+  // Sync temp data when editing starts
+  useEffect(() => {
+    if (isEditing) setTempUserInfo({ ...localUserInfo });
+  }, [isEditing, localUserInfo]);
+
+  // --- HANDLERS ---
+  const handleEditToggle = () => {
+    if (isEditing) setTempUserInfo({ ...localUserInfo });
+    setIsEditing(!isEditing);
+  };
+
   const handleInputChange = (e) => {
-    let { name, value } = e.target;
-    if (name === 'dob') {
-      const cleanValue = value.replace(/\D/g, ''); 
-      if (cleanValue.length <= 2) value = cleanValue;
-      else if (cleanValue.length <= 4) value = `${cleanValue.slice(0, 2)}/${cleanValue.slice(2)}`;
-      else value = `${cleanValue.slice(0, 2)}/${cleanValue.slice(2, 4)}/${cleanValue.slice(4, 8)}`;
+    const { name, value } = e.target;
+    setTempUserInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  // --- STRICT VALIDATION & SAVE LOGIC ---
+  const handleSaveProfile = async () => {
+    // 1. Core Field Validations
+    if (!tempUserInfo.firstname.trim()) return toast.error("First Name is required.");
+    if (!tempUserInfo.surname.trim()) return toast.error("Surname is required.");
+    if (!tempUserInfo.dob) return toast.error("Date of Birth is required.");
+    
+    if (!tempUserInfo.contactNumber.trim()) {
+      return toast.error("Contact Number is required.");
+    } else if (!phonePattern.test(tempUserInfo.contactNumber)) {
+      return toast.error("Please enter a valid 11-digit contact number (e.g., 09123456789).");
     }
-    setLocalUserInfo(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+
+    if (!tempUserInfo.street.trim()) return toast.error("Street/Building is required.");
+    if (!tempUserInfo.barangay.trim()) return toast.error("Barangay is required.");
+    if (!tempUserInfo.city.trim()) return toast.error("City/Municipality is required.");
+    if (!tempUserInfo.province.trim()) return toast.error("Province is required.");
+    
+    if (!tempUserInfo.postalCode.trim()) {
+      return toast.error("Postal / ZIP Code is required.");
+    } else if (!/^\d{4}$/.test(tempUserInfo.postalCode)) {
+      return toast.error("Please enter a valid 4-digit Postal Code.");
+    }
+
+    const payload = {
+      firstname: tempUserInfo.firstname,
+      middlename: tempUserInfo.middlename,
+      surname: tempUserInfo.surname,
+      mi: tempUserInfo.mi,
+      suffix: tempUserInfo.suffix,
+      contactNumber: tempUserInfo.contactNumber,
+      dob: tempUserInfo.dob,
+      gender: tempUserInfo.gender,
+      street: tempUserInfo.street,
+      barangay: tempUserInfo.barangay,
+      city: tempUserInfo.city,
+      province: tempUserInfo.province,
+      postalCode: tempUserInfo.postalCode
+    };
+
+    const loadingToast = toast.loading("Saving profile updates...");
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+      
+      setLocalUserInfo({ ...tempUserInfo });
+      setIsEditing(false);
+      toast.success("Profile updated successfully!", { id: loadingToast });
+    } catch (error) {
+      toast.error(error.message, { id: loadingToast });
+    }
   };
 
-  const getImageUrl = (path) => {
-    if (!path) return "/default-avatar.png";
-    if (path.startsWith("http")) return path; 
-    return `${import.meta.env.VITE_API_BASE_URL}${path}`;
-  };
-
-  const handleCalendarChange = (e) => {
-    const dateValue = e.target.value; 
-    if (!dateValue) return;
-    const [y, m, d] = dateValue.split('-');
-    setLocalUserInfo(prev => ({ ...prev, dob: `${m}/${d}/${y}` }));
-  };
-
-  // --- 2. UPLOAD PHOTO ---
-  const handleImageClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  const handleFileChange = async (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 100 * 1024 * 1024) {
-        return toast.error("File is too large (Max 100MB)");
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error("File size must be less than 5MB");
     }
 
     const formData = new FormData();
     formData.append('profile_photo', file);
 
+    const loadingToast = toast.loading("Uploading photo...");
+    setIsUploading(true);
+
     try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/upload-photo`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/upload-photo`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
 
-        if (!response.ok) throw new Error("Upload failed");
-
-        const data = await response.json();
-        setLocalUserInfo(prev => ({ ...prev, profilePhoto: data.photo_url }));
-        setProfilePhoto(data.photo_url);
-        toast.success("Photo updated successfully!");
-    } catch (error) {
-        toast.error(error.message);
-    }
-  };
-
-  // --- 3. SAVE PROFILE ---
-  const validate = () => {
-    let newErrors = {};
-    const today = new Date();
-
-    if (!localUserInfo.firstname?.trim()) newErrors.firstname = "First name is required";
-    else if (!namePattern.test(localUserInfo.firstname)) newErrors.firstname = "No numbers/special characters";
-
-    if (!localUserInfo.surname?.trim()) newErrors.surname = "Last name is required";
-    else if (!namePattern.test(localUserInfo.surname)) newErrors.surname = "No numbers/special characters";
-
-
-    if (!localUserInfo.dob?.trim()) {
-      newErrors.dob = "Date of birth is required";
-    } else if (!dobPattern.test(localUserInfo.dob)) {
-      newErrors.dob = "Use MM/DD/YYYY format";
-    } else {
-      const [m, d, y] = localUserInfo.dob.split('/').map(Number);
-      const birthDate = new Date(y, m - 1, d);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const mDiff = today.getMonth() - birthDate.getMonth();
-      if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+      if (!response.ok) throw new Error("Failed to upload photo");
       
-      if (birthDate > today) newErrors.dob = "Date cannot be in the future";
-      else if (age < 18) newErrors.dob = `MUST BE AT LEAST 18 YEARS OLD`;
-    }
-
-    if (!localUserInfo.street.trim()) newErrors.street = "Required";
-    if (!localUserInfo.barangay.trim()) newErrors.barangay = "Required";
-    if (!localUserInfo.city.trim()) newErrors.city = "Required";
-    if (!localUserInfo.province.trim()) newErrors.province = "Required";
-
-    if (!localUserInfo.contactNumber?.trim()) newErrors.contactNumber = "Required";
-    else if (!/^\d{11}$/.test(localUserInfo.contactNumber)) newErrors.contactNumber = "Must be 11 digits";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (validate()) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/update-profile`, {
-          method: 'PUT',
-          headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}` 
-          },
-          body: JSON.stringify(localUserInfo)
-        });
-        if (!response.ok) throw new Error(`Failed to save profile.`);
-        
-        setIsEditing(false);
-        toast.success('Profile Updated Successfully!');
-      } catch (error) {
-        toast.error(error.message);
-      }
+      const data = await response.json();
+      setLocalUserInfo(prev => ({ ...prev, profilePhoto: data.photo_url }));
+      setProfilePhoto(data.photo_url); 
+      toast.success("Profile photo updated!", { id: loadingToast });
+    } catch (error) {
+      toast.error(error.message, { id: loadingToast });
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const openLogoutModal = () => {
     setModalConfig({
-      isOpen: true,
-      type: 'info',
-      title: 'Log Out',
-      message: 'Are you sure you want to log out?',
-      onConfirm: () => { logout(); navigate('/'); }
+      isOpen: true, type: 'danger', title: 'Confirm Logout',
+      message: 'Are you sure you want to log out of your session?',
+      onConfirm: () => {
+        logout();
+        navigate('/');
+      }
     });
   };
 
-  const getFullDisplayName = () => {
-    const { firstname, middlename, surname, suffix } = localUserInfo;
-    return `${firstname} ${middlename} ${surname} ${suffix}`.replace(/\s+/g, ' ').trim();
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 md:py-6 font-poppins relative text-left animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10">
       
-      <div className="flex flex-row items-center justify-between mb-10 gap-4 flex-nowrap">
-        <div className="flex items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-montserrat font-bold text-gabay-blue whitespace-nowrap">
-              {isEditing ? "Account Information" : `My Account`}
-            </h1>
-            <div className="flex flex-row items-center gap-4 mt-1 flex-nowrap">
-              <p className="text-gray-500 text-base">
-                {isEditing ? "Edit your profile details here" : "View your profile information here"}
-              </p>
-              {!isEditing && (
-                <button 
-                  onClick={() => { setTempUserInfo({...localUserInfo}); setIsEditing(true); }} 
-                  className="px-5 py-1 rounded-full text-sm font-medium border border-gabay-teal text-gabay-teal bg-white hover:bg-teal-50 transition-all whitespace-nowrap shrink-0"
-                >
-                  Edit Profile
-                </button>
-              )}
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue tracking-tight">Account Settings</h1>
+          <p className="text-xs md:text-sm font-poppins text-gray-500 mt-1">Manage your personal information and security</p>
+        </div>
+        {!isEditing ? (
+          <button onClick={handleEditToggle} className="w-full sm:w-auto px-6 py-2.5 bg-gabay-blue text-white rounded-xl font-poppins font-medium text-sm hover:bg-opacity-90 transition-all shadow-sm">
+            Edit Profile
+          </button>
+        ) : (
+          <div className="flex w-full sm:w-auto gap-3">
+            <button onClick={handleEditToggle} className="flex-1 sm:flex-none px-6 py-2.5 bg-white border border-gray-300 text-gray-600 rounded-xl font-poppins font-medium text-sm hover:bg-gray-50 transition-all">
+              Cancel
+            </button>
+            <button onClick={handleSaveProfile} className="flex-1 sm:flex-none px-6 py-2.5 bg-gabay-teal text-white rounded-xl font-poppins font-medium text-sm hover:bg-opacity-90 transition-all shadow-sm flex items-center justify-center gap-2">
+              <CheckCircle size={16} /> Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* MAIN CONTENT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        
+        {/* LEFT COLUMN: Profile Form */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Personal Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              <Input label="First Name" name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} />
+              <Input label="Middle Name" name="middlename" value={isEditing ? tempUserInfo.middlename : localUserInfo.middlename} onChange={handleInputChange} disabled={!isEditing} />
+              <Input label="Surname" name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block pl-1">Gender</label>
+                  <select name="gender" value={isEditing ? tempUserInfo.gender : localUserInfo.gender} onChange={handleInputChange} disabled={!isEditing} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-poppins text-gray-800 outline-none focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal transition-all disabled:opacity-60 disabled:bg-gray-100">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+              <Input label="Contact Number" name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" />
+              <Input label="Date of Birth" name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Location Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5">
+              <div className="md:col-span-4">
+                <Input label="Street / Building / House No." name="street" value={isEditing ? tempUserInfo.street : localUserInfo.street} onChange={handleInputChange} disabled={!isEditing} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Barangay" name="barangay" value={isEditing ? tempUserInfo.barangay : localUserInfo.barangay} onChange={handleInputChange} disabled={!isEditing} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="City / Municipality" name="city" value={isEditing ? tempUserInfo.city : localUserInfo.city} onChange={handleInputChange} disabled={!isEditing} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Province" name="province" value={isEditing ? tempUserInfo.province : localUserInfo.province} onChange={handleInputChange} disabled={!isEditing} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Postal / ZIP Code" name="postalCode" type="text" maxLength={4} value={isEditing ? tempUserInfo.postalCode : localUserInfo.postalCode} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g., 1900" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col lg:flex-row gap-16">
-        <div className="flex-1 space-y-12">
-          
-          <section>
-            <h2 className="text-base font-bold text-gabay-teal mb-5 tracking-widest uppercase">Personal Information</h2>
-
-            {isEditing ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                  <div className="md:col-span-4">
-                    <Input label="First Name" name="firstname" value={localUserInfo.firstname} onChange={handleInputChange} error={errors.firstname} isEditing={true} required />
-                  </div>
-                  <div className="md:col-span-3">
-                    <Input label="Middle Name" name="middlename" value={localUserInfo.middlename} onChange={handleInputChange} isEditing={true} />
-                  </div>
-                  <div className="md:col-span-3">
-                    <Input label="Last Name" name="surname" value={localUserInfo.surname} onChange={handleInputChange} error={errors.surname} isEditing={true} required />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-gabay-navy mb-1 block">Suffix</label>
-                    <select name="suffix" value={localUserInfo.suffix} onChange={handleInputChange} className="w-full h-[42px] px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gabay-teal/20 focus:border-gabay-teal transition-all bg-white text-sm">
-                      <option value="">None</option> <option value="Jr.">Jr.</option> <option value="Sr.">Sr.</option> <option value="I">I</option> 
-                      <option value="II">II</option> <option value="III">III</option> <option value="IV">IV</option> <option value="V">V</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-x-6 pt-3">
-                  <Input label="Role" value={localUserInfo.role} readOnly noHover className="bg-gray-100" />
-                  <Input label="Date of Birth" name="dob" value={localUserInfo.dob} onChange={handleInputChange} onIconClick={handleCalendarChange} readOnly={!isEditing} isEditing={isEditing} placeholder="MM/DD/YYYY" maxLength={10} error={errors.dob} required />
-                  <div className="flex flex-col md:col-span-2 lg:col-span-1">
-                    <label className="text-sm font-medium text-gabay-navy mb-2 block">Gender</label>
-                    <div className="flex gap-6 items-center h-10">
-                      {["Female", "Male"].map((g) => (
-                        <label key={g} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="gender" value={g} checked={localUserInfo.gender === g} onChange={handleInputChange} className="accent-gabay-blue w-4 h-4" />
-                          <span className="text-base">{g}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                  <Input label="Full Name" value={getFullDisplayName()} readOnly noHover />
-                  <Input label="Role" value={localUserInfo.role} readOnly noHover className="bg-gray-100" />
-                  <Input label="Date of Birth" value={localUserInfo.dob} readOnly noHover />
-                  <Input label="Gender" value={localUserInfo.gender} readOnly noHover />
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section>
-            <h2 className="text-base font-bold text-gabay-teal mb-5 tracking-widest uppercase">Contact Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-              <Input label="Email Address" value={localUserInfo.email} readOnly noHover className="bg-gray-50"/>
-              <Input label="Contact Number" name="contactNumber" value={localUserInfo.contactNumber} onChange={handleInputChange} error={errors.contactNumber} readOnly={!isEditing} isEditing={isEditing} required maxLength={11} placeholder="09XXXXXXXXX" />
-              <div className="md:col-span-2 border-t border-gray-100 pt-5 mt-3">
-                <h4 className="text-sm font-bold text-gabay-navy tracking-wider uppercase mb-4">Complete Address</h4>
-                {isEditing ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                     <Input label="House No./Block/Lot/Street" name="street" value={localUserInfo.street} onChange={handleInputChange} isEditing={true} required error={errors.street} />
-                     <Input label="Barangay" name="barangay" value={localUserInfo.barangay} onChange={handleInputChange} isEditing={true} required error={errors.barangay}/>
-                     <Input label="City" name="city" value={localUserInfo.city} onChange={handleInputChange} isEditing={true} required error={errors.city}/>
-                     <Input label="Province" name="province" value={localUserInfo.province} onChange={handleInputChange} isEditing={true} required error={errors.province}/>
-                  </div>
+        {/* RIGHT COLUMN: Profile Photo & Security */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
+                {localUserInfo.profilePhoto || profilePhoto ? (
+                  <img src={localUserInfo.profilePhoto || profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <Input 
-                    label="Address" 
-                    value={[localUserInfo.street, localUserInfo.barangay, localUserInfo.city, localUserInfo.province].filter(Boolean).join(', ')} 
-                    readOnly 
-                    noHover 
-                  />
-                )}
-              </div>
-            </div>
-          </section>
-
-          {isEditing && (
-            <div className="flex gap-4 pt-2">
-              <button onClick={() => { setLocalUserInfo(tempUserInfo); setIsEditing(false); setErrors({}); }} className="px-8 py-1 rounded-full border border-gabay-teal text-gabay-teal font-poppins font-semibold hover:bg-teal-50 bg-white transition-all text-sm">CANCEL</button>
-              <button onClick={handleSave} className="px-10 py-2 rounded-full bg-gabay-teal text-white font-poppins font-semibold hover:bg-teal-600 transition-all shadow-md text-sm">SAVE CHANGES</button>
-            </div>
-          )}
-        </div>
-
-        <div className="w-full lg:w-72 flex flex-col items-center lg:items-start border-l border-gray-100 pl-0 lg:pl-12">
-          <div className="flex flex-col items-center lg:items-start mb-8">
-            <div className="relative group w-40 h-40" onClick={isEditing ? handleImageClick : null}>
-              <div className={`w-40 h-40 rounded-full bg-gray-200 overflow-hidden border-4 border-white shadow-lg transition-all ${isEditing ? 'cursor-pointer' : ''}`}>
-                
-                <img 
-                  src={getImageUrl(localUserInfo.profilePhoto || profilePhoto)} 
-                  alt="Admin" 
-                  className="h-full w-full rounded-full object-cover bg-gray-100" 
-                />
-                {isEditing && (
-                  <div className="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Camera size={24} className="text-white mb-1" />
-                    <span className="text-white text-[11px] font-bold font-montserrat text-center">Edit Image</span>
-                  </div>
+                  <span className="text-4xl font-bold text-gray-400 font-montserrat">{localUserInfo.firstname.charAt(0)}</span>
                 )}
               </div>
               {isEditing && (
-                <button className="absolute bottom-1 right-1 p-2 bg-white rounded-full shadow-md text-gabay-blue hover:text-gabay-teal transition-colors z-10 border border-gray-100 pointer-events-none">
-                  <Camera size={18} />
-                </button>
+                <>
+                  <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
+                  <button disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 p-2.5 bg-gabay-blue text-white rounded-full hover:bg-gabay-navy transition-colors shadow-md disabled:opacity-50 border-2 border-white">
+                    <Camera size={18} />
+                  </button>
+                </>
               )}
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
             </div>
-            {isEditing && (
-              <p className="text-[10px] text-gray-400 mt-4 text-center lg:text-left leading-relaxed">
-                Must be in .jpg or .png format <br/> Maximum file size allowed: 100mb
-              </p>
-            )}
+            
+            <div className="mt-5 text-center">
+              <h3 className="text-xl font-bold text-gabay-blue font-montserrat">{localUserInfo.firstname} {localUserInfo.surname}</h3>
+              <span className="inline-block mt-1 px-3 py-1 bg-teal-50 text-gabay-teal text-xs font-bold uppercase tracking-wider rounded-full font-poppins border border-teal-100">
+                {localUserInfo.role}
+              </span>
+            </div>
           </div>
 
-          <div className="w-full flex flex-col items-center lg:items-start gap-4 pt-4 md:pt-0">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Account Settings</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 flex flex-col gap-5">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Mail size={12}/> Registered Email</p>
+              <p className="text-sm font-poppins text-gray-800 break-all">{localUserInfo.email}</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Lock size={12}/> System Password</p>
+              <p className="text-sm font-poppins text-gray-800 tracking-widest">••••••••••••</p>
+            </div>
+
             {isEditing && (
               <div className="flex flex-col items-center lg:items-start gap-4 w-full">
                 <button onClick={() => { setChangeModalType('email'); setIsChangeModalOpen(true); }} className="block text-gabay-blue hover:text-gabay-navy transition-colors hover:underline text-sm font-medium">Change Email</button>
@@ -386,6 +461,7 @@ export default function PersonnelAccount() {
       </div>
 
       <ConfirmationModal {...modalConfig} onClose={() => setModalConfig({...modalConfig, isOpen: false})} />
+      
       <ChangeModal 
         isOpen={isChangeModalOpen} 
         onClose={() => setIsChangeModalOpen(false)} 
@@ -395,7 +471,7 @@ export default function PersonnelAccount() {
         apiBase={apiBase}
         onSuccess={(updatedEmail) => {
           setLocalUserInfo(prev => ({ ...prev, email: updatedEmail }));
-        }}
+        }} 
       />
     </div>
   );

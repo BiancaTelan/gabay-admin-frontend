@@ -1,39 +1,50 @@
 import React, { useState, useMemo, useEffect, useContext } from 'react';
-import { Search, Download, Funnel, Plus, Edit3, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import { Search, Download, Funnel, Plus, Edit3, ChevronLeft, ChevronRight, CircleMinus, CircleCheckBig, Eye, CalendarClock, X } from 'lucide-react';
 import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 import AddDoctorModal from '../../components/AddDoctorModal';
+import UserStatusModal from '../../components/UserStatusModal';
+import SchedulePickerModal from '../../components/SchedulePickerModal';
 
 export default function Personnel() {
   const { token } = useContext(AuthContext);
-
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  
   const [doctorsData, setDoctorsData] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
-  const [doctorToDelete, setDoctorToDelete] = useState(null);
+  const [viewDetailsDoctor, setViewDetailsDoctor] = useState(null);
+  
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedDoctorSched, setSelectedDoctorSched] = useState(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [filters, setFilters] = useState({
-    sortKey: 'name', sortOrder: 'asc', availabilities: ['Available', 'Unavailable']
+    sortKey: 'name', 
+    sortOrder: 'asc', 
+    status: ['Active', 'Deactivated'],
+    deptFilter: '' 
   });
+  const [statusModal, setStatusModal] = useState({ isOpen: false, user: null, actionType: '' });
 
   const itemsPerPage = 10;
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/personnel`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const deptRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, { headers: { 'Authorization': `Bearer ${token}` } });
+      
       if (!response.ok) throw new Error('Failed to fetch personnel');
       const data = await response.json();
+      setDoctorsData(data.filter(person => person.role === 'DOCTOR'));
       
-      const onlyDoctors = data.filter(person => person.role === 'DOCTOR');
-      setDoctorsData(onlyDoctors);
+      if(deptRes.ok) setDepartments(await deptRes.json());
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -43,33 +54,80 @@ export default function Personnel() {
 
   useEffect(() => { if (token) fetchDoctors(); }, [token]);
 
-  const handleDeleteDoctor = async () => {
-    if (!doctorToDelete) return;
-    const loadingToast = toast.loading("Removing doctor...");
+  // Keep SchedulePickerModal up-to-date post-refresh
+  useEffect(() => {
+    if (selectedDoctorSched) {
+      const updatedDoc = doctorsData.find(d => d.raw_id === selectedDoctorSched.raw_id);
+      if (updatedDoc) setSelectedDoctorSched(updatedDoc);
+    }
+  }, [doctorsData]);
+
+  const executeStatusChange = async () => {
+    if (!statusModal.user) return;
+    setIsSubmitting(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${doctorToDelete.raw_id}`, {
-        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+      const updatedStatus = statusModal.actionType === 'deactivate' ? 'Deactivated' : 'Active';
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${statusModal.user.raw_id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: updatedStatus })
       });
-      if (!response.ok) throw new Error('Failed to remove doctor.');
-      toast.dismiss(loadingToast);
-      toast.success('Doctor removed successfully.');
-      setDoctorToDelete(null);
-      fetchDoctors();
+      if (!response.ok) throw new Error('Failed to update status');
+
+      toast.success(`Account successfully ${statusModal.actionType}d!`);
+      fetchDoctors(); 
+      setStatusModal({ isOpen: false, user: null, actionType: '' });
     } catch (error) {
-      toast.dismiss(loadingToast);
       toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveSchedule = async (docId, daysStr, timeStr, maxPatients, schedId) => {
+    try {
+      if (schedId) {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/schedules/${schedId}`, { 
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${docId}/schedules`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ days: daysStr, timePeriod: timeStr, maxPatients })
+      });
+      if(!res.ok) throw new Error("Failed to save schedule");
+      fetchDoctors();
+      return true;
+    } catch(e) {
+      toast.error(e.message);
+      return false;
+    }
+  };
+
+  const handleDeleteSchedule = async (schedId) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/schedules/${schedId}`, { 
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if(!res.ok) throw new Error("Failed to delete block");
+      fetchDoctors();
+      return true;
+    } catch(e) {
+      toast.error(e.message);
+      return false;
     }
   };
 
   const filteredData = useMemo(() => {
     let result = doctorsData.filter(item => 
       (item.name && item.name.toLowerCase().includes(search.toLowerCase())) || 
-      (item.id && String(item.id).toLowerCase().includes(search.toLowerCase()))
+      (item.id && String(item.id).toLowerCase().includes(search.toLowerCase())) ||
+      (item.dept && item.dept.toLowerCase().includes(search.toLowerCase()))
     );
 
-    if (filters.availabilities.length > 0) {
-      result = result.filter(i => filters.availabilities.includes(i.status === 'Active' ? 'Available' : 'Unavailable'));
-    }
+    if (filters.status.length > 0) result = result.filter(i => filters.status.includes(i.status));
+    if (filters.deptFilter) result = result.filter(item => item.dept === filters.deptFilter);
 
     result.sort((a, b) => {
       const valA = String(a[filters.sortKey] || '');
@@ -89,18 +147,19 @@ export default function Personnel() {
     const worksheet = workbook.addWorksheet('GABAY Doctors');
 
     worksheet.columns = [
-      { header: 'Doctor ID', key: 'id', width: 15 },
-      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Employee ID', key: 'id', width: 15 },
+      { header: 'License Number', key: 'licenseNumber', width: 25 },
+      { header: 'Full Name', key: 'name', width: 30 },
       { header: 'Department', key: 'dept', width: 25 },
-      { header: 'Schedule', key: 'schedule', width: 25 },
-      { header: 'Time', key: 'time', width: 20 },
-      { header: 'Availability', key: 'status', width: 15 }
+      { header: 'Schedule Summary', key: 'schedule', width: 35 },
+      { header: 'Average Slots', key: 'slot', width: 15 },
+      { header: 'Status', key: 'status', width: 15 }
     ];
 
     filteredData.forEach(doc => {
       worksheet.addRow({
-        id: doc.id, name: doc.name, dept: doc.dept, schedule: doc.schedule,
-        time: doc.time, status: doc.status === 'Active' ? 'Available' : 'Unavailable'
+        id: doc.id, name: doc.name, dept: doc.dept, schedule: `${doc.schedule} | ${doc.time}`,
+        slot: doc.slot, licenseNumber: doc.licenseNumber, status: doc.status
       });
     });
 
@@ -144,44 +203,46 @@ export default function Personnel() {
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
           <button onClick={handleExportExcel} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export
+            <Download size={16} /> Export Records
           </button>
 
           <div className="relative flex-1 lg:flex-none">
             <button onClick={() => setShowFilterDropdown(!showFilterDropdown)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-              <Funnel size={16} /> Filter ({filters.availabilities.length})
+              <Funnel size={16} /> Filter ({filters.status.length + (filters.deptFilter ? 1 : 0)})
             </button>
             
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
+              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5 max-h-[500px] overflow-y-auto scrollbar-thin">
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Sort By</p>
-                  <div className="flex flex-col gap-2">
-                    <select value={filters.sortKey} className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:ring-2 focus:ring-gabay-blue/10" onChange={(e) => setFilters({...filters, sortKey: e.target.value})}>
-                      <option value="name">Name</option><option value="id">Doctor ID</option>
-                    </select>
-                    <select value={filters.sortOrder} className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:ring-2 focus:ring-gabay-blue/10" onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}>
-                      <option value="asc">Ascending (A-Z)</option><option value="desc">Descending (Z-A)</option>
-                    </select>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
+                  <div className="space-y-3">
+                    <div>
+                      <select value={filters.sortKey} className="w-full text-sm font-poppins border border-gray-200 rounded-lg p-2 mt-1 outline-none focus:ring-2 focus:ring-gabay-blue/10" onChange={(e) => setFilters({...filters, sortKey: e.target.value})}>
+                        <option value="name">Name</option>
+                        <option value="id">Employee ID</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select value={filters.sortOrder} className="w-full text-sm font-poppins border border-gray-200 rounded-lg p-2 mt-1 outline-none focus:ring-2 focus:ring-gabay-blue/10" onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}>
+                        <option value="asc">Ascending (A-Z / 0-9)</option>
+                        <option value="desc">Descending (Z-A / 9-0)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Availability</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['Available', 'Unavailable'].map(a => (
-                      <label key={a} className="flex items-center gap-2 text-sm text-gray-600 font-poppins cursor-pointer">
-                        <input type="checkbox" checked={filters.availabilities.includes(a)} onChange={(e) => {
-                            const newAvails = e.target.checked ? [...filters.availabilities, a] : filters.availabilities.filter(x => x !== a);
-                            setFilters({...filters, availabilities: newAvails});
-                          }} className="w-4 h-4 rounded accent-gabay-blue" /> {a}
-                      </label>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-1">Department Filter</p>
+                  <select value={filters.deptFilter} className="w-full text-sm font-poppins border border-gray-200 rounded-lg p-2 mt-1 outline-none focus:ring-2 focus:ring-gabay-blue/10" onChange={(e) => { setFilters({...filters, deptFilter: e.target.value}); setCurrentPage(1); }}>
+                    <option value="">All Departments</option>
+                    {departments.map(d => (
+                        <option key={d.deptID || d.id} value={d.department || d.name}>{d.department || d.name}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 <div className="pt-2 flex gap-2"> 
-                  <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', availabilities: [] })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500 transition-colors">Reset</button>
+                  <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', status: ['Active', 'Deactivated'], deptFilter: '' })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium hover:bg-opacity-90 transition">Apply</button>
                 </div>
               </div>
@@ -195,24 +256,29 @@ export default function Personnel() {
           <div className="p-12 text-center text-gray-500 font-poppins">Loading doctors...</div>
         ) : (
         <div className="overflow-x-auto cursor-default">
-          <table className="w-full text-left min-w-[1000px]">
+          <table className="w-full text-left min-w-[1200px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Doctor ID</th>
+                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Employee ID</th>
+                <th className="px-4 py-4 text-[12px] md:text-xs font-poppins font-bold uppercase tracking-wider">License No.</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Name</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Department</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Schedule</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Time</th>
-                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Availability</th>
+                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Slot</th>
+                <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider">Status</th>
                 <th className="px-4 py-4 text-[12px] md:text-xs font-bold uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {pagedData.map((doc) => {
                 const isAvailable = doc.status === 'Active';
+                const isDeactivated = doc.status !== 'Active'; // FIXED: Declared variable
+                
                 return (
                   <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{doc.id}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{doc.licenseNumber || 'N/A'}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{doc.name}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{doc.dept}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{doc.schedule}</td>
@@ -226,7 +292,23 @@ export default function Personnel() {
                     <td className="px-4 py-4">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => { setEditingDoctor(doc); setIsAddModalOpen(true); }} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit Doctor"><Edit3 size={18}/></button>
-                        <button onClick={() => setDoctorToDelete(doc)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Remove Doctor"><Trash2 size={18}/></button>
+                        {isDeactivated ? (
+                            <button 
+                              onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'activate' })} 
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Activate Account"
+                            >
+                              <CircleCheckBig size={18}/>
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'deactivate' })} 
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Deactivate Account"
+                            >
+                              <CircleMinus size={18}/>
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -245,21 +327,56 @@ export default function Personnel() {
         </div>
       </div>
 
-      {doctorToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 font-poppins text-center">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4"><AlertTriangle size={32} className="text-red-500" /></div>
-            <h3 className="text-lg font-bold text-gabay-blue mb-2">Remove Doctor Record?</h3>
-            <p className="text-sm text-gray-500 mb-6">You are about to permanently remove <strong>{doctorToDelete.name}</strong> from the system. This action cannot be undone. Are you sure you want to proceed?</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => setDoctorToDelete(null)} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button onClick={handleDeleteDoctor} className="px-5 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg">Yes, Remove Doctor</button>
+      {viewDetailsDoctor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 font-poppins">
+            <div className="flex justify-between items-center border-b pb-4 mb-4">
+              <h2 className="text-xl font-bold text-gabay-blue">Doctor Overview</h2>
+              <button onClick={() => setViewDetailsDoctor(null)} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Doctor DB-ID</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.docID}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Employee ID</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.id}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">PRC License Number</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.licenseNumber || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Full Name</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.name}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Email Address</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.email || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Contact No.</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.phone || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Department</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.dept}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Average Slots</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.slot}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Status</span><span className={`font-bold ${viewDetailsDoctor.status === 'Active' ? 'text-gabay-green' : 'text-red-500'}`}>{viewDetailsDoctor.status}</span></div>
+            </div>
+
+            <div className="mt-8 pt-4 border-t text-center">
+              <button onClick={() => setViewDetailsDoctor(null)} className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Close</button>
             </div>
           </div>
         </div>
       )}
 
-      <AddDoctorModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={fetchDoctors} editData={editingDoctor} />
+      <AddDoctorModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={fetchDoctors} 
+        editData={editingDoctor} 
+      />
+
+      <SchedulePickerModal 
+        isOpen={isScheduleModalOpen} 
+        onClose={() => setIsScheduleModalOpen(false)} 
+        doctor={selectedDoctorSched ? { ...selectedDoctorSched, id: selectedDoctorSched.raw_id } : null} 
+        onSave={handleSaveSchedule} 
+        onDelete={handleDeleteSchedule} 
+      />
+
+      <UserStatusModal
+        isOpen={statusModal.isOpen}
+        user={statusModal.user}
+        actionType={statusModal.actionType}
+        isSubmitting={isSubmitting}
+        onClose={() => setStatusModal({ isOpen: false, user: null, actionType: '' })}
+        onConfirm={executeStatusChange}
+       />
     </div>
   );
 }

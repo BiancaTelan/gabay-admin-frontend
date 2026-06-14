@@ -4,7 +4,6 @@ import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
 import ExcelJS from 'exceljs';
 
-
 export default function Departments() {
   const { token } = useContext(AuthContext);
   const [search, setSearch] = useState('');
@@ -17,7 +16,7 @@ export default function Departments() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ department: '', type: 'GENERAL', slotCapacity: 25 });
+  const [formData, setFormData] = useState({ department: '', type: 'GENERAL' });
   const [editingDept, setEditingDept] = useState(null);
   const [deptToDelete, setDeptToDelete] = useState(null);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -74,11 +73,11 @@ export default function Departments() {
 
   // --- EDIT DEPARTMENT ---
   const handleOpenEdit = (dept) => {
-    setEditingDept({...dept, department: dept.name, slotCapacity: dept.totalSlots});
+    setEditingDept({...dept, department: dept.name});
     setIsEditModalOpen(true);
   };
 
-  // --- UPDATE DEPARTMENT & AUTO-ADJUST SCHEDULES ---
+  // --- UPDATE DEPARTMENT ---
   const handleUpdateDept = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -88,13 +87,12 @@ export default function Departments() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           department: editingDept.department,
-          type: editingDept.type,
-          slotCapacity: Number(editingDept.slotCapacity)
+          type: editingDept.type
         })
       });
       if (!response.ok) throw new Error('Failed to update department');
       
-      toast.success('Department and Schedules updated!');
+      toast.success('Department updated!');
       setIsEditModalOpen(false);
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
@@ -162,14 +160,11 @@ export default function Departments() {
       { header: 'Department ID', key: 'id', width: 15 },
       { header: 'Department Name', key: 'name', width: 30 },
       { header: 'Type', key: 'type', width: 15 },
-      { header: 'Doctors Assigned', key: 'doctors', width: 18 },
-      { header: 'Staff Assigned', key: 'staff', width: 15 },
-      { header: 'Used Slots', key: 'used', width: 15 },
-      { header: 'Total Capacity', key: 'total', width: 15 }
+      { header: 'Doctors Assigned', key: 'doctors', width: 18 }
     ];
 
     filteredData.forEach(d => {
-      worksheet.addRow({ id: d.id, name: d.name, type: d.type, doctors: d.doctors, staff: d.staff, used: d.usedSlots, total: d.totalSlots });
+      worksheet.addRow({ id: d.id, name: d.name, type: d.type, doctors: d.doctors});
     });
 
     const headerRow = worksheet.getRow(1);
@@ -214,7 +209,7 @@ export default function Departments() {
             />
             <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
           </div>
-          <button onClick={() => {setFormData({department: '', type: 'GENERAL', slotCapacity: 25}); setIsAddModalOpen(true);}} className="whitespace-nowrap flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-opacity-90 transition shadow-sm">
+          <button onClick={() => {setFormData({department: '', type: 'GENERAL'}); setIsAddModalOpen(true);}} className="whitespace-nowrap flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium font-poppins text-sm hover:bg-opacity-90 transition shadow-sm">
             <Plus size={16} /><span className="hidden sm:inline">New Department</span><span className="sm:hidden">Department</span> 
           </button>
         </div>
@@ -237,7 +232,6 @@ export default function Departments() {
                     <select value={filters.sortKey} onChange={(e) => setFilters({...filters, sortKey: e.target.value})} className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue">
                       <option value="name">Department Name</option>
                       <option value="id">Department ID</option>
-                      <option value="totalSlots">Slot Capacity</option>
                     </select>
                     <select value={filters.sortOrder} onChange={(e) => setFilters({...filters, sortOrder: e.target.value})} className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue">
                       <option value="asc">Ascending (A-Z / 0-9)</option>
@@ -280,15 +274,13 @@ export default function Departments() {
           <div className="p-12 text-center text-gray-500 font-poppins">Loading department statistics...</div>
         ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[1000px]">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider">Department ID</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider">Department Name</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Department Type</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Doctors</th>
-                <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Staff</th>
-                <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Slot Capacity</th>
                 <th className="px-4 py-4 text-[12px] font-bold uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
@@ -303,10 +295,6 @@ export default function Departments() {
                     </span>
                   </td>
                   <td className="px-4 py-4 text-center text-sm text-gray-700 font-poppins">{dept.doctors}</td>
-                  <td className="px-4 py-4 text-center text-sm text-gray-700 font-poppins">{dept.staff}</td>
-                  <td className="px-4 py-4 text-center text-sm font-poppins font-semibold text-gray-600">
-                    {dept.usedSlots} / {dept.totalSlots}
-                  </td>
                   <td className="px-4 py-4">
                     <div className="flex justify-center gap-3">
                       <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(dept); }} className="text-gabay-teal hover:scale-110 transition-transform"><Edit3 size={18}/></button>
@@ -320,7 +308,7 @@ export default function Departments() {
         </div>)}
 
         {/* PAGINATION */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
            <div className="flex items-center gap-2">
               <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-1.5 rounded hover:bg-white disabled:opacity-30 border border-transparent hover:border-gray-200 transition-all"><ChevronLeft size={20}/></button>
               {[...Array(totalPages)].map((_, i) => (
@@ -354,7 +342,7 @@ export default function Departments() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
-                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue"
+                  <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue bg-white"
                     value={isEditModalOpen ? editingDept.type : formData.type} 
                     onChange={e => isEditModalOpen ? setEditingDept({...editingDept, type: e.target.value}) : setFormData({...formData, type: e.target.value})}
                   >
@@ -362,20 +350,7 @@ export default function Departments() {
                     <option value="SPECIALTY">Specialty</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Daily Slot Capacity</label>
-                  <input type="number" min="1" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" 
-                    value={isEditModalOpen ? editingDept.slotCapacity : formData.slotCapacity} 
-                    onChange={e => isEditModalOpen ? setEditingDept({...editingDept, slotCapacity: e.target.value}) : setFormData({...formData, slotCapacity: e.target.value})} 
-                  />
-                </div>
               </div>
-              
-              {isEditModalOpen && (
-                <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-[11px] rounded-lg border border-blue-100">
-                  <p><strong>Note:</strong> Changing the Daily Slot Capacity will automatically update the schedules of all {editingDept.doctors} doctor(s) assigned to this department.</p>
-                </div>
-              )}
 
               <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
                 <button type="button" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition">Cancel</button>

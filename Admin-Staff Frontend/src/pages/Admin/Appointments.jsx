@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { 
-  Search, Download, Funnel, Plus, 
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Calendar, Clock, User 
+  Search, Download, Funnel, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Calendar, Clock, User 
 } from 'lucide-react';
 import { AuthContext } from '../../authContext';
 import { toast } from 'react-hot-toast';
@@ -9,15 +8,18 @@ import ExcelJS from 'exceljs';
 
 // --- STATUS BADGE STYLES ---
 const statusStyles = {
-  Approved: 'bg-amber-100 text-amber-700',
-  Completed: 'bg-green-50 text-gabay-green',
-  Confirmed: 'bg-blue-50 text-blue-700',           // ADDED
-  Rescheduled: 'bg-purple-50 text-purple-700',
+  Approved: 'bg-green-100 text-green-700',
+  Completed: 'bg-blue-50 text-blue-700',   
+  Rescheduled: 'bg-amber-50 text-amber-700',
   Cancelled: 'bg-red-50 text-gabay-red',
   Pending: 'bg-gray-100 text-gray-400',
+  Denied: 'bg-red-100 text-red-700',
+  'No Show': 'bg-gray-200 text-gray-600',
+  Book: 'bg-teal-100 text-teal-700'
 };
 
-// --- HELPER: TIME AGO CALCULATOR ---
+const ALL_STATUSES = ['Pending', 'Approved', 'Rescheduled', 'Completed', 'Cancelled', 'Denied', 'No Show', 'Book'];
+
 export default function Appointments() {
   const { token } = useContext(AuthContext);
   const [search, setSearch] = useState('');
@@ -27,11 +29,14 @@ export default function Appointments() {
   const [expandedId, setExpandedId] = useState(null);
   const [appointmentData, setAppointmentData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
-    statuses: ['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'],
-    deptTypes: ['General', 'Specialty']
+    statuses: ALL_STATUSES, 
+    deptTypes: ['General', 'Specialty'],
+    deptFilter: '',
+    timeline: 'All'
   });
 
   const itemsPerPage = 10;
@@ -58,14 +63,14 @@ export default function Appointments() {
     if (token) fetchAppointments();
   }, [token]);
 
-
   // --- FILTERING & SORTING ---
   const filteredData = useMemo(() => {
     let result = appointmentData.filter(item => 
       item.patient.toLowerCase().includes(search.toLowerCase()) || 
       item.doctor.toLowerCase().includes(search.toLowerCase()) ||
       item.id.toLowerCase().includes(search.toLowerCase()) ||
-      (item.hospitalNum && item.hospitalNum.includes(search))
+      (item.hospitalNum && item.hospitalNum.includes(search)) ||
+      item.dept.toLowerCase().includes(search.toLowerCase())
     );
 
     if (filters.statuses.length > 0) result = result.filter(i => filters.statuses.includes(i.status));
@@ -74,6 +79,38 @@ export default function Appointments() {
       result = result.filter(i => {
         const type = i.isSpecialty ? 'Specialty' : 'General';
         return filters.deptTypes.includes(type);
+      });
+    }
+
+    if (filters.deptFilter) {
+      result = result.filter(item => item.dept === filters.deptFilter);
+    }
+
+    // --- TIMELINE FILTER LOGIC ---
+    if (filters.timeline !== 'All') {
+      const now = new Date();
+      result = result.filter(item => {
+        if (!item.rawDate) return false;
+        
+        const itemDate = new Date(item.rawDate);
+        
+        if (filters.timeline === 'Today') {
+          return itemDate.toDateString() === now.toDateString();
+        }
+        if (filters.timeline === 'This Week') {
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); 
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          return itemDate >= startOfWeek && itemDate <= endOfWeek;
+        }
+        if (filters.timeline === 'This Month') {
+          return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+        }
+        if (filters.timeline === 'This Year') {
+          return itemDate.getFullYear() === now.getFullYear();
+        }
+        return true;
       });
     }
 
@@ -134,14 +171,11 @@ export default function Appointments() {
     toast.success("Excel report generated!");
   };
 
-  // --- PAGINATION & SELECTION ---
+  // --- PAGINATION ---
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
   const pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
-
-  const handleSelectAll = (e) => e.target.checked ? setSelectedIds(pagedData.map(i => i.id)) : setSelectedIds([]);
-  const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
   // --- MAIN RENDER ---
   return (
@@ -167,7 +201,7 @@ export default function Appointments() {
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
           <button onClick={handleExportExcel} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           <div className="relative flex-1 lg:flex-none">
@@ -175,17 +209,34 @@ export default function Appointments() {
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
             >
-              <Funnel size={16} /> Filter ({filters.statuses.length + filters.deptTypes.length})
+              <Funnel size={16} /> Filter ({filters.statuses.length + (filters.timeline !== 'All' ? 1 : 0)})
             </button>
             
             {showFilterDropdown && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl p-5 space-y-5 max-h-[500px] overflow-y-auto z-50">
+                
+                {/* NEW TIMELINE FILTER */}
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
-                  <div className="space-y-3">
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Timeline</p>
+                  <select 
+                    value={filters.timeline}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
+                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
+                  >
+                    <option value="All">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                    <option value="This Year">This Year</option>
+                  </select>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Sort By</p>
+                  <div className="space-y-2">
                     <select 
                       value={filters.sortKey}
-                      className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue"
+                      className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
                       onChange={(e) => setFilters({...filters, sortKey: e.target.value})}
                     >
                       <option value="id">Appointment ID</option>
@@ -194,7 +245,7 @@ export default function Appointments() {
                     </select>
                     <select 
                       value={filters.sortOrder}
-                      className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue"
+                      className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
                       onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}
                     >
                       <option value="asc">Ascending (A-Z)</option>
@@ -206,7 +257,7 @@ export default function Appointments() {
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Status</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['Pending', 'Approved', 'Confirmed', 'Rescheduled', 'Completed', 'Cancelled'].map(s => (
+                    {ALL_STATUSES.map(s => (
                       <label key={s} className="flex items-center gap-2 text-sm font-poppins cursor-pointer group">
                         <input type="checkbox" checked={filters.statuses.includes(s)} onChange={(e) => {
                           const newStatus = e.target.checked ? [...filters.statuses, s] : filters.statuses.filter(x => x !== s);
@@ -234,7 +285,7 @@ export default function Appointments() {
                 </div>
 
                 <div className="pt-2 flex gap-2">
-                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: [], deptTypes: [] })} 
+                  <button onClick={() => setFilters({ sortKey: 'id', sortOrder: 'desc', statuses: ALL_STATUSES, deptTypes: ['General', 'Specialty'], timeline: 'All' })} 
                   className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} 
                   className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90 transition-all">Apply</button>
@@ -266,22 +317,19 @@ export default function Appointments() {
               <tbody className="divide-y divide-gray-100">
                 {pagedData.map((app) => (
                   <React.Fragment key={app.id}>
-                    <tr className={`hover:bg-gray-50 transition-colors ${expandedId === app.id ? 'bg-blue-50/30' : ''}`}>
+                    <tr className={`hover:bg-gray-50 transition-colors cursor-pointer ${expandedId === app.id ? 'bg-blue-50/30' : ''}`} onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}>
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-medium">{app.id}</td>
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-base">{app.hospitalNum}</td>
                       <td className="px-4 py-4 text-sm font-poppins font-medium text-gabay-blue">{app.patient}</td>
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700">{app.doctor}</td>
                       <td className="px-4 py-4 text-sm font-poppins text-gabay-teal font-medium">{app.dept}</td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`px-4 py-0.5 rounded-full text-[11px] font-poppins font-bold ${statusStyles[app.status] || statusStyles['Pending']}`}>
+                        <span className={`px-4 py-0.5 rounded-full text-[11px] font-poppins font-bold whitespace-nowrap ${statusStyles[app.status] || statusStyles['Pending']}`}>
                           {app.status.toUpperCase()}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <button 
-                          onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
-                          className="text-gray-400 hover:text-gabay-blue transition-colors"
-                        >
+                        <button className="text-gray-400 hover:text-gabay-blue transition-colors">
                           {expandedId === app.id ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
                         </button>
                       </td>
@@ -291,28 +339,28 @@ export default function Appointments() {
                         <td colSpan="8" className="px-10 py-5 border-l-4 border-gabay-blue bg-white shadow-inner">
                           <div className="flex flex-col gap-4">
                             
-                            {/* DETAILS GRID (Full Width) */}
+                            {/* DETAILS GRID */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                               <div className="space-y-2 text-xs font-poppins">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Schedule Details:</p>
-                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Calendar size={14}/> {app.date}</span>
-                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Clock size={14}/> {app.time}</span>
+                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Calendar size={14} className="text-gabay-blue"/> {app.date}</span>
+                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Clock size={14} className="text-gabay-blue"/> {app.time}</span>
                               </div>
                               <div className="space-y-2 text-xs font-poppins">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Action Taken By:</p>
-                                <span className="flex items-center gap-2 text-gray-700 font-medium"><User size={14}/> {app.approvedBy || '--'}</span>
-                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Calendar size={14}/> {app.approvedDate || '--'}</span>
+                                <span className="flex items-center gap-2 text-gray-700 font-medium"><User size={14} className="text-gabay-teal"/> {app.approvedBy}</span>
+                                <span className="flex items-center gap-2 text-gray-700 font-medium"><Calendar size={14} className="text-gabay-teal"/> {app.approvedDate}</span>
                               </div>
                               <div className="space-y-2 text-xs font-poppins">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System Record:</p>
-                                <span className="text-gray-700 font-medium">Created: {app.lastUpdate}</span>
+                                <span className="flex items-center gap-2 text-gray-700 font-medium">Created: <br/>{app.lastUpdate}</span>
                               </div>
                             </div>
                             
-                            {app.status === 'Cancelled' && (
+                            {app.cancelReason && (
                               <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg w-full">
-                                <p className="text-[10px] font-bold text-red-400 uppercase">Cancellation Reason:</p>
-                                <p className="text-xs font-medium text-red-700 mt-1">"{app.cancelReason || "No reason provided in system."}"</p>
+                                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Reason Context:</p>
+                                <p className="text-xs font-medium text-red-700 mt-1">"{app.cancelReason}"</p>
                               </div>
                             )}
 

@@ -13,6 +13,11 @@ const roleStyles = {
   SYSTEM: 'bg-gray-100 text-gray-500',
 };
 
+const ACTION_OPTIONS = [
+  'Update', 'Create', 'Insert', 'Book', 'Approved', 
+  'Deny', 'Delete', 'Cancel', 'Deactivated', 'Reactivated'
+];
+
 export default function AuditLogs() {
   const { token } = useContext(AuthContext);
   const [search, setSearch] = useState('');
@@ -21,10 +26,12 @@ export default function AuditLogs() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [logsData, setLogsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
   const [filters, setFilters] = useState({
-    sortKey: 'date', 
     sortOrder: 'desc', 
-    roles: ['PATIENT', 'STAFF', 'DOCTOR', 'ADMIN', 'SYSTEM']
+    roles: ['STAFF', 'ADMIN'],
+    timeline: 'All',
+    actionTypes: [] 
   });
 
   const itemsPerPage = 10;
@@ -58,8 +65,8 @@ export default function AuditLogs() {
   // --- FILTERING & SORTING ---
   const filteredData = useMemo(() => {
     let result = logsData.filter(item => 
-      (item.user && item.user.toLowerCase().includes(search.toLowerCase())) || 
-      (item.ip && item.ip.toLowerCase().includes(search.toLowerCase())) ||
+      (item.user && item.user.toLowerCase().includes(search.toLowerCase())) ||
+      (item.target && item.target.toLowerCase().includes(search.toLowerCase())) ||
       (item.action && item.action.toLowerCase().includes(search.toLowerCase())) ||
       (item.date && item.date.includes(search))
     );
@@ -68,18 +75,58 @@ export default function AuditLogs() {
       result = result.filter(i => filters.roles.includes(i.role));
     }
 
+    if (filters.actionTypes.length > 0) {
+      result = result.filter(item => {
+         const act = item.action.toUpperCase();
+         const desc = item.description.toUpperCase();
+         return filters.actionTypes.some(filterAct => {
+            const f = filterAct.toUpperCase();
+            if ((f === 'CREATE' || f === 'INSERT') && (act === 'INSERT' || desc.includes('CREATED') || desc.includes('ADDED'))) return true;
+            if (f === 'CANCEL' && (desc.includes('CANCEL') || act === 'DENY')) return true;
+            if (f === 'DEACTIVATED' && desc.includes('DEACTIVATED')) return true;
+            if (f === 'REACTIVATED' && desc.includes('REACTIVATED')) return true;
+            if (f === 'APPROVED' && act === 'APPROVE') return true;
+            if (f === 'DELETE' && act === 'DELETE') return true;
+            if (f === 'UPDATE' && act === 'UPDATE') return true;
+            if (f === 'BOOK' && act === 'BOOK') return true;
+            if (f === 'DENY' && act === 'DENY') return true;
+            return false;
+         });
+      });
+    }
+
+    if (filters.timeline !== 'All') {
+      const now = new Date();
+      result = result.filter(item => {
+        if (!item.rawDate) return false;
+        
+        const itemDate = new Date(item.rawDate);
+        
+        if (filters.timeline === 'Today') {
+          return itemDate.toDateString() === now.toDateString();
+        }
+        if (filters.timeline === 'This Week') {
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay()); 
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          return itemDate >= startOfWeek && itemDate <= endOfWeek;
+        }
+        if (filters.timeline === 'This Month') {
+          return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+        }
+        if (filters.timeline === 'This Year') {
+          return itemDate.getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+    }
+
+    // Sort Order
     result.sort((a, b) => {
-      let valA = a[filters.sortKey];
-      let valB = b[filters.sortKey];
-
-      if (filters.sortKey === 'date') {
-        valA = new Date(`${a.date} ${a.time}`);
-        valB = new Date(`${b.date} ${b.time}`);
-        return filters.sortOrder === 'asc' ? valA - valB : valB - valA;
-      }
-
-      const comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true });
-      return filters.sortOrder === 'asc' ? comparison : -comparison;
+      const valA = new Date(a.rawDate || `${a.date} ${a.time}`);
+      const valB = new Date(b.rawDate || `${b.date} ${b.time}`);
+      return filters.sortOrder === 'asc' ? valA - valB : valB - valA;
     });
 
     return result;
@@ -100,9 +147,9 @@ export default function AuditLogs() {
       { header: 'Time', key: 'time', width: 15 },
       { header: 'User', key: 'user', width: 25 },
       { header: 'Role', key: 'role', width: 12 },
-      { header: 'Action', key: 'action', width: 20 },
-      { header: 'Description', key: 'description', width: 40 },
-      { header: 'IP Address', key: 'ip', width: 18 }
+      { header: 'Action', key: 'action', width: 15 },
+      { header: 'Target', key: 'target', width: 25 },
+      { header: 'Description', key: 'description', width: 50 }
     ];
 
     filteredData.forEach(log => {
@@ -112,8 +159,8 @@ export default function AuditLogs() {
         user: log.user,
         role: log.role,
         action: log.action,
-        description: log.description,
-        ip: log.ip
+        target: log.target,
+        description: log.description
       });
     });
 
@@ -141,20 +188,7 @@ export default function AuditLogs() {
   const entryStart = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const entryEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
-  // --- SELECTION LOGIC ---
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(pagedData.map(i => i.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const toggleSelection = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
+  const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
   // --- MAIN RENDER ---
   return (
@@ -172,7 +206,7 @@ export default function AuditLogs() {
               type="text" 
               value={search}
               onChange={(e) => {setSearch(e.target.value); setCurrentPage(1);}}
-              placeholder="Search Audit Logs..." 
+              placeholder="Search by Target, User, or Action..." 
               className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg font-poppins outline-none focus:ring-2 focus:ring-gabay-blue/20"
             />
             <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
@@ -192,23 +226,41 @@ export default function AuditLogs() {
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors"
             >
-              <Funnel size={16} /> Filter ({filters.roles.length})
+              <Funnel size={16} /> Filter ({filters.roles.length + filters.actionTypes.length + (filters.timeline !== 'All' ? 1 : 0)})
             </button>
             
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5">
+              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-5 space-y-5 max-h-[500px] overflow-y-auto scrollbar-thin">
+                
+                {/* TIMELINE FILTER */}
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort By</p>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Timeline</p>
                   <select 
-                    value={filters.sortOrder}
-                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none"
-                    onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}
+                    value={filters.timeline}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
+                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
                   >
-                    <option value="desc">By Newest</option>
-                    <option value="asc">By Oldest</option>
+                    <option value="All">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                    <option value="This Year">This Year</option>
                   </select>
                 </div>
 
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Sort Order</p>
+                  <select 
+                    value={filters.sortOrder}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
+                    onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}
+                  >
+                    <option value="desc">By Newest Date</option>
+                    <option value="asc">By Oldest Date</option>
+                  </select>
+                </div>
+
+                {/* ROLE FILTER */}
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">User Role</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -228,8 +280,28 @@ export default function AuditLogs() {
                   </div>
                 </div>
 
+                {/* ACTION FILTER */}
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">Action Taken</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ACTION_OPTIONS.map(act => (
+                      <label key={act} className="flex items-center gap-2 text-sm font-poppins text-gray-600 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={filters.actionTypes.includes(act)}
+                          onChange={(e) => {
+                            const newActs = e.target.checked ? [...filters.actionTypes, act] : filters.actionTypes.filter(x => x !== act);
+                            setFilters({...filters, actionTypes: newActs});
+                          }}
+                          className="w-4 h-4 rounded accent-gabay-blue"
+                        /> {act}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="pt-2 flex gap-2">
-                  <button onClick={() => setFilters({ sortKey: 'date', sortOrder: 'desc', roles: [] })} 
+                  <button onClick={() => setFilters({ sortOrder: 'desc', roles: [], actionTypes: [], timeline: 'All' })} 
                   className="flex-1 py-2 text-xs font-poppins font-medium border border-gray-400 rounded-lg text-gray-400 hover:text-red-500 transition-colors">Reset</button>
                   <button onClick={() => setShowFilterDropdown(false)} 
                   className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium shadow-md hover:bg-opacity-90">Apply</button>
@@ -251,30 +323,29 @@ export default function AuditLogs() {
           <table className="w-full text-left min-w-[1000px]">
             <thead className="bg-gabay-blue font-poppins text-white select-none">
               <tr>
-
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Date</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">User</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-center">Role</th>
+                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">User</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Action</th>
+                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Target</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">Description</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider">IP Address</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {pagedData.map((log) => (
                 <tr key={log.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(log.id) ? 'bg-blue-50/50' : ''}`} onClick={() => toggleSelection(log.id)}>
-                  <td className="px-4 py-4 text-xs font-poppins text-gabay-blue font-medium">
+                  <td className="px-4 py-4 text-xs font-poppins text-gabay-blue font-medium min-w-[120px]">
                     {log.date} <br/> <span className="text-gray-400 font-normal">{log.time}</span>
                   </td>
-                  <td className="px-4 py-4 text-sm font-poppins font-medium text-blue-600 underline cursor-pointer">{log.user}</td>
                   <td className="px-4 py-4 text-center">
                     <span className={`px-3 py-0.5 rounded-full text-[10px] font-poppins font-bold tracking-wider ${roleStyles[log.role]}`}>
                       {log.role}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-700 font-poppins">{log.action}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 font-poppins italic">{log.description}</td>
-                  <td className="px-4 py-4 text-sm text-gray-400 font-poppins">{log.ip}</td>
+                  <td className="px-4 py-4 text-sm font-poppins font-medium text-blue-600 min-w-[150px]">{log.user}</td>
+                  <td className="px-4 py-4 text-sm text-gray-700 font-poppins font-semibold">{log.action}</td>
+                  <td className="px-4 py-4 text-sm text-gabay-teal font-medium font-poppins min-w-[150px]">{log.target}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 font-poppins min-w-[300px]">{log.description}</td>
                 </tr>
               ))}
             </tbody>

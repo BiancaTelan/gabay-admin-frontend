@@ -173,7 +173,7 @@ export default function Patient() {
 
         <div className="flex flex-row gap-2 w-full lg:w-auto">
           <button onClick={handleExportExcel} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gabay-teal text-gabay-teal rounded-lg text-sm font-poppins font-medium hover:bg-teal-50 transition-colors">
-            <Download size={16} /> Export as Excel
+            <Download size={16} /> Export Records
           </button>
           
           <div className="relative flex-1 lg:flex-none">
@@ -252,7 +252,7 @@ export default function Patient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 cursor-default">
-                {pagedData.map((patient) => (
+                {pagedData.map((patient, index) => (
                   <tr key={patient.patient_id || index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4 text-sm font-poppins text-gray-700 font-semibold">{patient.id}</td>
                     <td className="px-4 py-4 text-sm font-poppins text-gabay-blue font-medium">{patient.name}</td>

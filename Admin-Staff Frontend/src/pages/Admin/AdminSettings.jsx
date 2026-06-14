@@ -12,6 +12,8 @@ export default function AdminSettings() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const apiBase = import.meta.env.VITE_API_BASE_URL;
+  const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   const [settings, setSettings] = useState({
     startTime: "09:00 AM",
@@ -90,6 +92,51 @@ export default function AdminSettings() {
     }));
     if (errors) setErrors({});
   };
+
+  // --- RESTORE BACKUP HANDLER ---
+  const handleRestoreSystem = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.name.endsWith('.sql')) {
+    toast.error("Invalid file. Please upload a .sql database backup file.");
+    return;
+  }
+
+  const confirmMsg = `WARNING: You are about to restore the database using "${file.name}". This will overwrite all current system data. This action CANNOT be undone. Proceed?`;
+  if (!window.confirm(confirmMsg)) {
+    event.target.value = ''; 
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('backup_file', file);
+
+  const toastId = toast.loading("Restoring system database... Do not close this window.");
+  setIsRestoring(true);
+
+  try {
+    const response = await fetch(`${apiBase}/api/admin/restore`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData 
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Database restoration failed.");
+    }
+
+    toast.success("System restored successfully! Reloading...", { id: toastId });
+    setTimeout(() => window.location.reload(), 2000);
+    
+  } catch (error) {
+    toast.error(error.message, { id: toastId });
+  } finally {
+    setIsRestoring(false);
+    event.target.value = ''; 
+  }
+};
 
   // --- EDIT/CANCEL/SAVE HANDLERS ---
   const handleEdit = () => {
@@ -255,50 +302,40 @@ export default function AdminSettings() {
         </div>
 
         {/* DATABASE BACKUPS */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3 text-gabay-teal">
-              <Database className="p-1.5 bg-teal-50 rounded-lg" size={32} />
-              <h4 className="font-montserrat font-bold text-lg text-gabay-blue">System Backups</h4>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+              <Database size={20} className="text-gabay-blue" />
             </div>
+            <div>
+              <h2 className="text-lg font-bold text-gabay-blue font-montserrat">System Backup & Data</h2>
+              <p className="text-xs text-gray-500 font-poppins">Secure your records and manage database dumps</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 mt-4">
+            <button 
+              onClick={triggerManualBackup}
+              className="flex items-center gap-2 px-6 py-2.5 bg-gabay-teal text-white text-sm font-bold font-poppins rounded-xl hover:bg-opacity-90 transition shadow-md"
+            >
+              <Database size={18} /> GENERATE MANUAL BACKUP
+            </button>
             
-            <div className="flex items-center gap-4">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  name="autoBackup" 
-                  disabled={!isEditMode} 
-                  checked={tempSettings.autoBackup} 
-                  onChange={handleInputChange} 
-                  className="sr-only peer" 
-                />
-                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gabay-teal"></div>
-              </label>
-              
-              <button 
-                disabled={!isEditMode} 
-                className="text-[10px] font-bold text-gabay-teal border border-gabay-teal px-4 py-2 rounded-lg hover:bg-teal-50 disabled:opacity-30 transition-colors"
-                onClick={async () => {
-                  try {
-                    const response = await fetch(`${apiBase}/api/admin/backup`, { 
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (response.ok) {
-                        toast.success('Backup sequence initiated successfully!');
-                    } else {
-                        const errData = await response.json();
-                        toast.error(errData.detail || 'Backup failed to start.');
-                    }
-                  } catch (err) {
-                    toast.error('Network error. Check server logs.');
-                  }
-                }}
-              >
-                BACKUP NOW
-              </button>
-            </div>
+            {/* NEW RESTORE SYSTEM BUTTON */}
+            <input 
+              type="file" 
+              accept=".sql" 
+              ref={fileInputRef} 
+              onChange={handleRestoreSystem} 
+              className="hidden" 
+            />
+            <button 
+              onClick={() => fileInputRef.current.click()}
+              disabled={isRestoring}
+              className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 text-sm font-bold font-poppins rounded-xl hover:bg-red-50 transition shadow-sm disabled:opacity-50"
+            >
+              <History size={18} /> {isRestoring ? "RESTORING..." : "RESTORE SYSTEM"}
+            </button>
           </div>
 
           <div className={`grid grid-cols-2 gap-4 transition-opacity duration-300 ${tempSettings.autoBackup ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
