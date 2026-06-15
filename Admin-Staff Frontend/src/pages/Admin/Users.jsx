@@ -294,7 +294,7 @@ export default function Users() {
             
             {/* EXPANDED STAFF DETAILS */}
             <div className="space-y-4">
-              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Employee ID</span><span className="text-gray-800 font-medium">{viewDetailsUser.employeeID}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Employee ID</span><span className="text-gray-800 font-medium">{viewDetailsUser.id}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">System Staff ID</span><span className="text-gray-800 font-medium">{viewDetailsUser.staffID}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Full Name</span><span className="text-gray-800 font-medium">{viewDetailsUser.name}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Email Address</span><span className="text-gray-800 font-medium">{viewDetailsUser.email || 'N/A'}</span></div>
