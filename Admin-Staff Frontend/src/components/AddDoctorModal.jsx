@@ -12,6 +12,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   const [departmentsList, setDepartmentsList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSensitive, setShowSensitive] = useState(false);
+  const [errors, setErrors] = useState({}); 
 
   const [schedules, setSchedules] = useState([
     { id: Date.now(), days: [], startTime: '08:00', endTime: '17:00', slot: 20 }
@@ -29,6 +30,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   });
 
   useEffect(() => {
+    // Fetch departments
     fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, { headers: { 'Authorization': `Bearer ${token}` }})
     .then(res => res.json())
     .then(data => {
@@ -42,6 +44,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
     })
     .catch(() => toast.error("Failed to load departments."));
 
+    // Pre-fill form data safely
     if (isEditing && editData) {
       let fName = editData.firstname || '';
       let sName = editData.surname || '';
@@ -63,23 +66,51 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
         deptID: editData.deptID || prev.deptID
       }));
       setShowSensitive(false);
+      setErrors({}); // Reset errors
     } else {
       setFormData({ employeeID: '', firstname: '', middlename: '', surname: '', licenseNumber: '', email: '', contact: '', deptID: '' });
       setSchedules([{ id: Date.now(), days: [], startTime: '08:00', endTime: '17:00', slot: 20 }]);
+      setErrors({}); // Reset errors
     }
   }, [editData, isOpen, token]);
+
+  // --- NEW: INLINE VALIDATION LOGIC ---
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.firstname.trim()) newErrors.firstname = "Required";
+    if (!formData.surname.trim()) newErrors.surname = "Required";
+    if (!formData.employeeID.trim()) newErrors.employeeID = "Required";
+    if (!formData.licenseNumber.trim()) newErrors.licenseNumber = "Required";
+    if (!formData.deptID) newErrors.deptID = "Required";
+    
+    if (!isEditing && !formData.email.trim()) newErrors.email = "Required";
+    
+    if (!isEditing && schedules.some(s => s.days.length === 0)) {
+      newErrors.schedules = "Select duty days for all blocks";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Wrapper for rendering inputs with inline errors
+  const ErrorWrapper = ({ label, name, children }) => (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
+      </div>
+      {children}
+    </div>
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.employeeID.trim() || !formData.firstname.trim() || !formData.surname.trim() || !formData.licenseNumber.trim() || !formData.deptID) {
-      toast.error("Employee ID, Name, License No., and Department are strictly required.");
+    // Trigger inline validation
+    if (!validate()) {
+      toast.error("Please fix the errors highlighted in red.");
       return;
-    }
-
-    if (!isEditing && schedules.some(s => s.days.length === 0)) {
-        toast.error("Please assign duty days to all created schedule blocks.");
-        return;
     }
 
     setIsSubmitting(true);
@@ -88,7 +119,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${editData.raw_id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors`;
       
-    // UNIFIED PAYLOAD: Strictly send Employee ID and License Number every single time
     const payload = {
       employeeID: formData.employeeID.trim(),
       licenseNumber: formData.licenseNumber.trim(),
@@ -143,61 +173,64 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
             
             <div className="md:col-span-3 pb-2 border-b text-sm font-bold text-gabay-teal uppercase tracking-wide">Professional Profile</div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} />
-            </div>
+            <ErrorWrapper label="First Name" name="firstname">
+              <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${errors.firstname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} />
+            </ErrorWrapper>
+
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Middle Name <span className="text-gray-400 font-normal">(Optional)</span></label>
               <input type="text" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.middlename} onChange={e => setFormData({...formData, middlename: e.target.value})} />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.surname} onChange={e => setFormData({...formData, surname: e.target.value})} />
-            </div>
+
+            <ErrorWrapper label="Surname" name="surname">
+              <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${errors.surname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.surname} onChange={e => setFormData({...formData, surname: e.target.value})} />
+            </ErrorWrapper>
 
             <div className="md:col-span-3 pb-2 pt-4 border-b text-sm font-bold text-gabay-teal uppercase tracking-wide">System Assignment</div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Employee ID</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" placeholder="e.g., DOC-001" value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">PRC License Number</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Assigned Department</label>
-              <select required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white" value={formData.deptID} onChange={e => setFormData({...formData, deptID: e.target.value})}>
+            <ErrorWrapper label="Employee ID" name="employeeID">
+              <input type="text" placeholder="e.g., DOC-001" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${errors.employeeID ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
+            </ErrorWrapper>
+
+            <ErrorWrapper label="PRC License Number" name="licenseNumber">
+              <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${errors.licenseNumber ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} />
+            </ErrorWrapper>
+
+            <ErrorWrapper label="Assigned Department" name="deptID">
+              <select className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal bg-white ${errors.deptID ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.deptID} onChange={e => setFormData({...formData, deptID: e.target.value})}>
                 <option value="" disabled>Select department...</option>
                 {departmentsList.map(d => <option key={d.deptID} value={d.deptID}>{d.department} ({d.type})</option>)}
               </select>
-            </div>
+            </ErrorWrapper>
+
             {!isEditing && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                <input type="email" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
+              <ErrorWrapper label="Email Address" name="email">
+                <input type="email" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </ErrorWrapper>
             )}
+            
             <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Number</label>
-                <input type="tel" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Number <span className="text-gray-400 font-normal">(Optional)</span></label>
+              <input type="tel" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
             </div>
 
             {/* DYNAMIC SCHEDULE CAPTURE FOR NEW DOCTORS ONLY */}
             {!isEditing && (
                 <>
                   <div className="md:col-span-3 pb-2 pt-4 border-b flex justify-between items-center text-sm font-bold text-gabay-teal uppercase tracking-wide">
-                    <span>Initial Schedules</span>
+                    <div className="flex items-center gap-3">
+                      <span>Initial Schedules</span>
+                      {errors.schedules && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded-full">{errors.schedules}</span>}
+                    </div>
                     <button type="button" onClick={() => setSchedules([...schedules, { id: Date.now(), days: [], startTime: '08:00', endTime: '17:00', slot: 20 }])} className="text-xs flex items-center gap-1 text-gabay-teal hover:underline"><Plus size={14}/> Add Block</button>
                   </div>
 
                   {schedules.map((block, index) => (
-                    <div key={block.id} className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border border-gray-100 bg-gray-50 rounded-xl relative">
+                    <div key={block.id} className={`md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border bg-gray-50 rounded-xl relative ${errors.schedules && block.days.length === 0 ? 'border-red-400' : 'border-gray-100'}`}>
                         {schedules.length > 1 && <button type="button" onClick={() => setSchedules(schedules.filter(s => s.id !== block.id))} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><X size={16}/></button>}
                         
                         <div className="md:col-span-4">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Duty Days</label>
+                            <label className={`block text-[10px] font-bold uppercase mb-2 ${errors.schedules && block.days.length === 0 ? 'text-red-500' : 'text-gray-400'}`}>Duty Days</label>
                             <div className="flex gap-2 flex-wrap">
                                 {DAYS_OF_WEEK.map(day => (
                                     <button type="button" key={day} onClick={() => {

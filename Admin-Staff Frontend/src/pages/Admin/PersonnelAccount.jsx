@@ -342,17 +342,31 @@ export default function PersonnelAccount() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              
-              <ErrorWrapper label="First Name" name="firstname">
-                <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
-              </ErrorWrapper>
-              
-              <Input label="Middle Name" name="middlename" value={isEditing ? tempUserInfo.middlename : localUserInfo.middlename} onChange={handleInputChange} disabled={!isEditing} />
-              
-              <ErrorWrapper label="Surname" name="surname">
-                <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
-              </ErrorWrapper>
-              
+              {!isEditing ? (
+                <>
+                  <div className="md:col-span-4">
+                    <Input 
+                      label="Full Name" 
+                      value={localUserInfo.firstname ? `${localUserInfo.middlename}, ${localUserInfo.surname}` : ''} 
+                      disabled={true} 
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                <div className="grid grid-cols-3 gap-4">
+                  <ErrorWrapper label="First Name" name="firstname">
+                    <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
+                  </ErrorWrapper>
+                  
+                  <Input label="Middle Name" name="middlename" value={isEditing ? tempUserInfo.middlename : localUserInfo.middlename} onChange={handleInputChange} disabled={!isEditing} />
+                  
+                  <ErrorWrapper label="Surname" name="surname">
+                    <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
+                  </ErrorWrapper>
+                </div>
+              </>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
                 <div className="space-y-1">
@@ -372,9 +386,10 @@ export default function PersonnelAccount() {
               <ErrorWrapper label="Date of Birth" name="dob">
                 <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
               </ErrorWrapper>
-
+              
             </div>
           </div>
+          
 
           {/* LOCATION DETAILS */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mt-6">
@@ -385,12 +400,9 @@ export default function PersonnelAccount() {
                   <div className="md:col-span-4">
                     <Input 
                       label="Complete Address" 
-                      value={localUserInfo.street ? `${localUserInfo.street}, ${localUserInfo.barangay}, ${localUserInfo.city}, ${localUserInfo.province}` : ''} 
+                      value={localUserInfo.street ? `${localUserInfo.street}, ${localUserInfo.barangay}, ${localUserInfo.city}, ${localUserInfo.province}, ${localUserInfo.postalCode}` : ''} 
                       disabled={true} 
                     />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Input label="Postal / ZIP Code" value={localUserInfo.postalCode} disabled={true} />
                   </div>
                 </>
               ) : (
