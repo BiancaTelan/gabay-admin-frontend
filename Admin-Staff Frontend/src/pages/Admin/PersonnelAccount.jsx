@@ -9,8 +9,28 @@ import { phonePattern } from '../../utils/constants';
 import { AuthContext } from '../../authContext';
 
 // ==========================================
-// HELPER COMPONENT: REACTIVE DROPDOWNS
+// STATIC DATA & WRAPPER COMPONENTS
 // ==========================================
+
+const postalCodeMap = {
+  "1900": { city: "Cainta", province: "Rizal" },
+  "1920": { city: "Taytay", province: "Rizal" },
+  "1800": { city: "Marikina", province: "METRO MANILA" }, 
+  "1600": { city: "Pasig", province: "METRO MANILA" },
+  "1100": { city: "Quezon City", province: "METRO MANILA" },
+  "1000": { city: "Manila", province: "METRO MANILA" }
+};
+
+const ErrorWrapper = ({ label, name, error, children }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between items-center">
+      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      {error && <span className="text-[10px] text-red-500 font-bold">{error}</span>}
+    </div>
+    {children}
+  </div>
+);
+
 function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
@@ -122,6 +142,7 @@ export default function PersonnelAccount() {
   const fileInputRef = useRef(null);
   const currentRole = user?.role || userRole; 
   const apiBase = currentRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
+  
   const [localUserInfo, setLocalUserInfo] = useState({
     firstname: "", middlename: "", surname: "", suffix: "",
     role: currentRole?.toUpperCase() || "STAFF", email: "",
@@ -129,6 +150,7 @@ export default function PersonnelAccount() {
     street: "", barangay: "", city: "", province: "", postalCode: "", 
     profilePhoto: null
   });
+  
   const [tempUserInfo, setTempUserInfo] = useState({ ...localUserInfo });
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -151,26 +173,6 @@ export default function PersonnelAccount() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const ErrorWrapper = ({ label, name, children }) => (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
-      </div>
-      {children}
-    </div>
-  );
-
-  // Dictionary for Auto-Fill
-  const postalCodeMap = {
-    "1900": { city: "Cainta", province: "Rizal" },
-    "1920": { city: "Taytay", province: "Rizal" },
-    "1800": { city: "Marikina", province: "METRO MANILA" }, 
-    "1600": { city: "Pasig", province: "METRO MANILA" },
-    "1100": { city: "Quezon City", province: "METRO MANILA" },
-    "1000": { city: "Manila", province: "METRO MANILA" }
   };
 
   useEffect(() => {
@@ -216,18 +218,20 @@ export default function PersonnelAccount() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    setTempUserInfo(prev => {
-      const updated = { ...prev, [name]: value };
+    // 3. FIX: Simplified state update to prevent bugs with strict mode
+    setTempUserInfo(prev => ({ ...prev, [name]: value }));
       
-      // Execute Postal Code Auto-fill
-      if (name === 'postalCode' && value.length === 4 && postalCodeMap[value]) {
-        updated.province = postalCodeMap[value].province;
-        updated.city = postalCodeMap[value].city;
-        updated.barangay = ''; 
-        toast.success(`Auto-filled location for ${postalCodeMap[value].city}`);
-      }
-      return updated;
-    });
+    // Execute Postal Code Auto-fill Safely
+    if (name === 'postalCode' && value.length === 4 && postalCodeMap[value]) {
+      setTempUserInfo(prev => ({
+        ...prev,
+        postalCode: value, // Ensure the input still receives the value
+        province: postalCodeMap[value].province,
+        city: postalCodeMap[value].city,
+        barangay: '' 
+      }));
+      toast.success(`Auto-filled location for ${postalCodeMap[value].city}`);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -355,13 +359,13 @@ export default function PersonnelAccount() {
               ) : (
                 <>
                 <div className="grid grid-cols-4 gap-4">
-                  <ErrorWrapper label="First Name" name="firstname">
+                  <ErrorWrapper label="First Name" name="firstname" error={errors.firstname}>
                     <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
                   
                   <Input label="Middle Name" name="middlename" value={isEditing ? tempUserInfo.middlename : localUserInfo.middlename} onChange={handleInputChange} disabled={!isEditing} />
                   
-                  <ErrorWrapper label="Surname" name="surname">
+                  <ErrorWrapper label="Surname" name="surname" error={errors.surname}>
                     <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
 
@@ -380,11 +384,11 @@ export default function PersonnelAccount() {
                 </div>
               </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <ErrorWrapper label="Contact Number" name="contactNumber">
+                  <ErrorWrapper label="Contact Number" name="contactNumber" error={errors.contactNumber}>
                     <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
                   
-                  <ErrorWrapper label="Date of Birth" name="dob">
+                  <ErrorWrapper label="Date of Birth" name="dob" error={errors.dob}>
                     <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
                 </div>
@@ -409,7 +413,7 @@ export default function PersonnelAccount() {
               ) : (
                 <>
                   <div className="md:col-span-4">
-                    <ErrorWrapper label="Street / Building / House No." name="street">
+                    <ErrorWrapper label="Street / Building / House No." name="street" error={errors.street}>
                       <Input name="street" value={tempUserInfo.street} onChange={handleInputChange} disabled={!isEditing} className={errors.street ? 'border-red-500 bg-red-50/30' : ''} />
                     </ErrorWrapper>
                   </div>
@@ -417,7 +421,7 @@ export default function PersonnelAccount() {
                   <AddressDropdowns tempUserInfo={tempUserInfo} setTempUserInfo={setTempUserInfo} isEditing={isEditing} />
                   
                   <div className="md:col-span-2">
-                    <ErrorWrapper label="Postal / ZIP Code" name="postalCode">
+                    <ErrorWrapper label="Postal / ZIP Code" name="postalCode" error={errors.postalCode}>
                       <Input name="postalCode" type="text" maxLength={4} value={tempUserInfo.postalCode} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g., 1900" className={errors.postalCode ? 'border-red-500 bg-red-50/30' : ''} />
                     </ErrorWrapper>
                   </div>
