@@ -73,7 +73,20 @@ export default function Appointments() {
       item.dept.toLowerCase().includes(search.toLowerCase())
     );
 
-    if (filters.statuses.length > 0) result = result.filter(i => filters.statuses.includes(i.status));
+    if (filters.statuses.length > 0) {
+      const activeStatuses = filters.statuses.map(s => s.toLowerCase());
+      
+      result = result.filter(i => {
+        let s = i.status ? i.status.toLowerCase().trim() : 'pending';
+        
+        // Failsafe for legacy DB entries
+        if (s === 'canceled') s = 'cancelled';
+        if (s === 'in progress') s = 'approved';
+        if (s === 'waiting') s = 'pending';
+        
+        return activeStatuses.includes(s);
+      });
+    }
     
     if (filters.deptTypes.length > 0) {
       result = result.filter(i => {
