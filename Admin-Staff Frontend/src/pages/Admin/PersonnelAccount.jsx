@@ -364,8 +364,9 @@ export default function PersonnelAccount() {
                   <ErrorWrapper label="Surname" name="surname">
                     <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
+
+                  <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
                 </div>
-                <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
               </>
               )}
               <div className="grid grid-cols-1 gap-4">
