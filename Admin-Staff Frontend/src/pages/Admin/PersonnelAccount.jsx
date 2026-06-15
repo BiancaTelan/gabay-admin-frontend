@@ -354,7 +354,7 @@ export default function PersonnelAccount() {
                 </>
               ) : (
                 <>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <ErrorWrapper label="First Name" name="firstname">
                     <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
@@ -365,10 +365,10 @@ export default function PersonnelAccount() {
                     <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
                 </div>
+                <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
               </>
               )}
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block pl-1">Gender</label>
                   <select name="gender" value={isEditing ? tempUserInfo.gender : localUserInfo.gender} onChange={handleInputChange} disabled={!isEditing} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-poppins text-gray-800 outline-none focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal transition-all disabled:opacity-60 disabled:bg-gray-100">
@@ -377,15 +377,14 @@ export default function PersonnelAccount() {
                     <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
-                <ErrorWrapper label="Contact Number" name="contactNumber">
-                <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
-              </ErrorWrapper>
-              
-              <ErrorWrapper label="Date of Birth" name="dob">
-                <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
-              </ErrorWrapper>
               </div>
-              
+                <ErrorWrapper label="Contact Number" name="contactNumber">
+                  <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
+                </ErrorWrapper>
+                
+                <ErrorWrapper label="Date of Birth" name="dob">
+                  <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
+                </ErrorWrapper>
             </div>
           </div>
           
