@@ -377,15 +377,14 @@ export default function PersonnelAccount() {
                     <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
-              </div>
-              
-              <ErrorWrapper label="Contact Number" name="contactNumber">
+                <ErrorWrapper label="Contact Number" name="contactNumber">
                 <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
               </ErrorWrapper>
               
               <ErrorWrapper label="Date of Birth" name="dob">
                 <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
               </ErrorWrapper>
+              </div>
               
             </div>
           </div>
