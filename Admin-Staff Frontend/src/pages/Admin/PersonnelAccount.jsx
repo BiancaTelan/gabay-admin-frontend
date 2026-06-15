@@ -379,13 +379,15 @@ export default function PersonnelAccount() {
                   </select>
                 </div>
               </div>
-                <ErrorWrapper label="Contact Number" name="contactNumber">
-                  <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
-                </ErrorWrapper>
-                
-                <ErrorWrapper label="Date of Birth" name="dob">
-                  <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
-                </ErrorWrapper>
+                <div className="grid grid-cols-2 gap-4">
+                  <ErrorWrapper label="Contact Number" name="contactNumber">
+                    <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
+                  </ErrorWrapper>
+                  
+                  <ErrorWrapper label="Date of Birth" name="dob">
+                    <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
+                  </ErrorWrapper>
+                </div>
             </div>
           </div>
           
