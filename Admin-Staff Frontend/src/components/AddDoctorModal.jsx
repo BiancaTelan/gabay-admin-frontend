@@ -18,7 +18,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   ]);
   
   const [formData, setFormData] = useState({
-    id: '',
+    employeeID: '',
     firstname: '',
     middlename: '',
     surname: '', 
@@ -36,7 +36,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
 
     if (isEditing && editData) {
       setFormData({
-        id: editData.id && editData.id !== 'Unassigned' ? editData.id : '',
+        employeeID: editData.id && editData.id !== 'Unassigned' ? editData.id : '',
         firstname: editData.firstname || '',
         middlename: editData.middlename || '',
         surname: editData.surname || '',
@@ -54,7 +54,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.id.trim() || !formData.firstname.trim() || !formData.surname.trim() || !formData.licenseNumber.trim() || !formData.deptID) {
+    if (!formData.employeeID.trim() || !formData.firstname.trim() || !formData.surname.trim() || !formData.licenseNumber.trim() || !formData.deptID) {
       toast.error("Employee ID, Name, License No., and Department are strictly required.");
       return;
     }
@@ -76,11 +76,11 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       surname: formData.surname.trim(),
       contactNumber: formData.contact,
       deptID: parseInt(formData.deptID),
-      id: showSensitive && formData.id ? formData.id : undefined,
+      employeeID: showSensitive && formData.employeeID ? formData.employeeID : undefined,
       email: showSensitive && formData.email ? formData.email : undefined,
       licenseNumber: showSensitive && formData.licenseNumber ? formData.licenseNumber : undefined,
     } : {
-      id: formData.id.trim(),
+      employeeID: formData.employeeID.trim(),
       firstname: formData.firstname.trim(),
       middlename: formData.middlename.trim(),
       surname: formData.surname.trim(),
@@ -143,7 +143,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
 
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Employee ID</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" placeholder="e.g., DOC-001" value={formData.id} onChange={e => setFormData({...formData, idD: e.target.value})} />
+              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-teal" placeholder="e.g., DOC-001" value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PRC License Number</label>
@@ -229,7 +229,7 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
                     
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Change Employee ID</label>
-                      <input type="text" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.id} onChange={e => setFormData({...formData, id: e.target.value})} />
+                      <input type="text" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Change License Number</label>
