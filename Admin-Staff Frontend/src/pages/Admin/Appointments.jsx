@@ -8,14 +8,17 @@ import ExcelJS from 'exceljs';
 
 // --- STATUS BADGE STYLES ---
 const statusStyles = {
-  Approved: 'bg-green-100 text-green-700',
-  Completed: 'bg-blue-50 text-blue-700',   
-  Rescheduled: 'bg-amber-50 text-amber-700',
-  Cancelled: 'bg-red-50 text-gabay-red',
-  Pending: 'bg-gray-100 text-gray-400',
-  Denied: 'bg-red-100 text-red-700',
-  'No Show': 'bg-gray-200 text-gray-600',
-  Book: 'bg-teal-100 text-teal-700'
+  approved: 'bg-green-100 text-green-700',
+  completed: 'bg-blue-50 text-blue-700',   
+  rescheduled: 'bg-amber-50 text-amber-700',
+  cancelled: 'bg-red-50 text-gabay-red',
+  canceled: 'bg-red-50 text-gabay-red', 
+  pending: 'bg-gray-100 text-gray-400',
+  waiting: 'bg-gray-100 text-gray-400', 
+  denied: 'bg-red-100 text-red-700',
+  'no show': 'bg-gray-200 text-gray-600',
+  book: 'bg-teal-100 text-teal-700',
+  'in progress': 'bg-green-100 text-green-700'
 };
 
 const ALL_STATUSES = ['Pending', 'Approved', 'Rescheduled', 'Completed', 'Cancelled', 'Denied', 'No Show', 'Book'];
@@ -29,17 +32,21 @@ export default function Appointments() {
   const [expandedId, setExpandedId] = useState(null);
   const [appointmentData, setAppointmentData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const itemsPerPage = 10;
+
+  const uniqueDepartments = useMemo(() => {
+    return [...new Set(appointmentData.map(a => a.dept))].sort();
+  }, [appointmentData]);
   
   const [filters, setFilters] = useState({
     sortKey: 'id',
     sortOrder: 'desc',
     statuses: ALL_STATUSES, 
     deptTypes: ['General', 'Specialty'],
-    deptFilter: '',
+    deptFilter: '', // Selected department
     timeline: 'All'
   });
-
-  const itemsPerPage = 10;
 
   // --- FETCH APPOINTMENTS ---
   useEffect(() => {
@@ -228,19 +235,15 @@ export default function Appointments() {
             {showFilterDropdown && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl p-5 space-y-5 max-h-[500px] overflow-y-auto z-50">
                 
-                {/* NEW TIMELINE FILTER */}
                 <div>
-                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Timeline</p>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Department</p>
                   <select 
-                    value={filters.timeline}
+                    value={filters.deptFilter}
                     className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
-                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
+                    onChange={(e) => setFilters({...filters, deptFilter: e.target.value})}
                   >
-                    <option value="All">All Time</option>
-                    <option value="Today">Today</option>
-                    <option value="This Week">This Week</option>
-                    <option value="This Month">This Month</option>
-                    <option value="This Year">This Year</option>
+                    <option value="">All Departments</option>
+                    {uniqueDepartments.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
 
@@ -253,7 +256,6 @@ export default function Appointments() {
                       onChange={(e) => setFilters({...filters, sortKey: e.target.value})}
                     >
                       <option value="id">Appointment ID</option>
-                      <option value="dept">Department</option>
                       <option value="date">Date</option>
                     </select>
                     <select 
@@ -337,7 +339,7 @@ export default function Appointments() {
                       <td className="px-4 py-4 text-sm font-poppins text-gray-700">{app.doctor}</td>
                       <td className="px-4 py-4 text-sm font-poppins text-gabay-teal font-medium">{app.dept}</td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`px-4 py-0.5 rounded-full text-[11px] font-poppins font-bold whitespace-nowrap ${statusStyles[app.status] || statusStyles['Pending']}`}>
+                        <span className={`px-4 py-0.5 rounded-full text-[11px] font-poppins font-bold whitespace-nowrap ${statusStyles[app.status?.toLowerCase().trim()] || statusStyles['pending']}`}>
                           {app.status.toUpperCase()}
                         </span>
                       </td>

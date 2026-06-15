@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { 
   Clock, Database, History, AlertTriangle, Save, Edit2, 
-  X, HardHat
+  X, HardHat, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthContext } from '../../authContext'; 
@@ -38,388 +38,385 @@ export default function AdminSettings() {
         const response = await fetch(`${apiBase}/api/admin/settings`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (response.ok) {
-          const data = await response.json();
-          setSettings(data);
-          setTempSettings(data);
-        }
+        if (!response.ok) throw new Error("Failed to load settings.");
+        const data = await response.json();
+        
+        // Ensure defaults if any specific field comes back null/undefined from DB
+        const unifiedData = {
+          startTime: data.startTime || "09:00 AM",
+          endTime: data.endTime || "05:00 PM",
+          autoBackup: !!data.autoBackup,
+          backupFrequency: data.backupFrequency || "Weekly",
+          backupTime: data.backupTime || "12:00 AM",
+          retentionValue: String(data.retentionValue || "3"),
+          retentionUnit: data.retentionUnit || "years",
+          maintenanceMode: !!data.maintenanceMode,
+          downtimeReason: data.downtimeReason || "Maintenance Mode",
+          resumeTimer: String(data.resumeTimer || "60")
+        };
+
+        setSettings(unifiedData);
+        setTempSettings(unifiedData);
       } catch (error) {
-        toast.error("Failed to load system settings");
+        console.error(error);
+        toast.error("Error reading system configuration.");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSettings();
+
+    if (token) fetchSettings();
   }, [apiBase, token]);
 
-  // --- VALIDATION LOGIC ---
-  const convertTo24Hour = (timeStr) => {
-    const [time, modifier] = timeStr.split(' ');
-    let [hours, minutes] = time.split(':');
-    if (hours === '12') hours = '00';
-    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-    return parseInt(hours, 10);
-  };
+  const [startVal, startPeriod] = (tempSettings.startTime || "09:00 AM").split(' ');
+  const [endVal, endPeriod] = (tempSettings.endTime || "05:00 PM").split(' ');
 
-  const validate = () => {
-    let newErrors = {};
-    
-    if (tempSettings.retentionUnit === 'years' && parseInt(tempSettings.retentionValue) > 10) {
-      newErrors.retention = "Maximum retention is 10 years.";
-    }
-    if (tempSettings.retentionUnit === 'months' && parseInt(tempSettings.retentionValue) > 12) {
-      newErrors.retention = "Months cannot exceed 12.";
-    }
-
-    const start24 = convertTo24Hour(tempSettings.startTime);
-    const end24 = convertTo24Hour(tempSettings.endTime);
-
-    if (start24 < 7) newErrors.hours = "Cannot start before 7:00 AM.";
-    if (end24 > 19) newErrors.hours = "Cannot end after 7:00 PM.";
-    if (end24 <= start24) newErrors.hours = "End time must be after start time.";
-    if (end24 - start24 > 8) newErrors.hours = "Shift exceeds 8-hour maximum.";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // --- INPUT CHANGE HANDLER ---
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setTempSettings(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    if (errors) setErrors({});
-  };
-
-  // --- RESTORE BACKUP HANDLER ---
-  const handleRestoreSystem = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  if (!file.name.endsWith('.sql')) {
-    toast.error("Invalid file. Please upload a .sql database backup file.");
-    return;
-  }
-
-  const confirmMsg = `WARNING: You are about to restore the database using "${file.name}". This will overwrite all current system data. This action CANNOT be undone. Proceed?`;
-  if (!window.confirm(confirmMsg)) {
-    event.target.value = ''; 
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('backup_file', file);
-
-  const toastId = toast.loading("Restoring system database... Do not close this window.");
-  setIsRestoring(true);
-
-  try {
-    const response = await fetch(`${apiBase}/api/admin/restore`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData 
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Database restoration failed.");
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
     }
-
-    toast.success("System restored successfully! Reloading...", { id: toastId });
-    setTimeout(() => window.location.reload(), 2000);
-    
-  } catch (error) {
-    toast.error(error.message, { id: toastId });
-  } finally {
-    setIsRestoring(false);
-    event.target.value = ''; 
-  }
-};
-
-  // --- EDIT/CANCEL/SAVE HANDLERS ---
-  const handleEdit = () => {
-    setTempSettings({ ...settings }); 
-    setIsEditMode(true);
   };
 
-  const handleCancel = () => {
-    setTempSettings({ ...settings }); 
-    setErrors({});
-    setIsEditMode(false);
-    toast("Changes cancelled.", { icon: 'ℹ️' });
+  // Handles dropdown switches for isolated structure units (Time changes)
+  const handleTimeSubChange = (field, part, val) => {
+    setTempSettings(prev => {
+      const current = prev[field] || (field === 'startTime' ? "09:00 AM" : "05:00 PM");
+      const [oldTime, oldPeriod] = current.split(' ');
+      const newTimeStr = part === 'val' ? `${val} ${oldPeriod}` : `${oldTime} ${val}`;
+      return { ...prev, [field]: newTimeStr };
+    });
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (tempSettings.maintenanceMode && !tempSettings.downtimeReason?.trim()) {
+      newErrors.downtimeReason = "Reason statement is required during active maintenance.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
-    if (!validate()) {
-      toast.error("Please fix the highlighted errors.");
-      return;
-    }
+    if (!validateForm()) return;
 
+    const loadingToast = toast.loading("Updating configurations...");
     try {
       const response = await fetch(`${apiBase}/api/admin/settings`, {
-        method: 'PUT',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(tempSettings)
+        body: JSON.stringify({
+          ...tempSettings,
+          retentionValue: parseInt(tempSettings.retentionValue, 10) || 3,
+          resumeTimer: parseInt(tempSettings.resumeTimer, 10) || 60
+        })
       });
 
-      if (response.ok) {
-        setSettings({ ...tempSettings }); 
-        setIsEditMode(false);
-        toast.success("System settings saved successfully.");
-      } else {
-        toast.error("Failed to save settings on the server.");
-      }
+      if (!response.ok) throw new Error("Could not update context target endpoint.");
+      
+      setSettings({ ...tempSettings });
+      setIsEditMode(false);
+      toast.success("System configurations deployed!", { id: loadingToast });
     } catch (error) {
-      toast.error("Network error occurred.");
+      toast.error("Failed to commit settings updates.", { id: loadingToast });
     }
   };
 
-  // --- TIME OPTIONS FOR SELECT INPUTS ---
-  const timeOptions = [
-    "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM"
-  ];
+  const handleBackupNow = async () => {
+    const procToast = toast.loading("Building full structural DB dump...");
+    try {
+      const response = await fetch(`${apiBase}/api/admin/backup/now`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error();
+      toast.success("Database image built and committed successfully!", { id: procToast });
+    } catch {
+      toast.error("Backup processing loop structural failure.", { id: procToast });
+    }
+  };
 
-  const backupTimeOptions = Array.from({ length: 24 }).map((_, i) => {
-    const hour = i % 12 || 12;
-    const ampm = i < 12 ? "AM" : "PM";
-    return `${hour.toString().padStart(2, '0')}:00 ${ampm}`;
-  });
+  const handleTriggerRestoreFile = () => {
+    fileInputRef.current?.click();
+  };
 
-  // --- RENDER LOADING STATE ---
+  const handleRestoreFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const confirmAction = window.confirm("CRITICAL WARNING: Restoring database records will overwrite current operation datasets. Do you wish to proceed?");
+    if (!confirmAction) { e.target.value = ''; return; }
+
+    setIsRestoring(true);
+    const procToast = toast.loading("Parsing structure configuration payloads...");
+
+    const formData = new FormData();
+    formData.append("backup_file", file);
+
+    try {
+      const response = await fetch(`${apiBase}/api/admin/restore`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "System migration transaction dropped.");
+      }
+
+      toast.success("Data mapping tables re-indexed successfully!", { id: procToast });
+      window.location.reload();
+    } catch (err) {
+      toast.error(err.message, { id: procToast });
+    } finally {
+      setIsRestoring(false);
+      e.target.value = ''; 
+    }
+  };
+
+  // --- LOADER RENDER OVERLAY (Handles asynchronous lifecycle without crashing strings) ---
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500 font-poppins">Loading system configurations...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-gabay-blue">
+        <Loader2 className="animate-spin text-gabay-teal" size={40} />
+        <p className="font-poppins text-sm font-medium tracking-wide animate-pulse">Pulling application state maps...</p>
+      </div>
+    );
   }
 
-  // --- MAIN RENDER ---
   return (
-    <div className="space-y-8 pb-10 font-poppins">
-
-      {/* HEADER & ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto pb-10">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-5">
         <div>
-          <h1 className="font-montserrat text-4xl font-bold text-gabay-blue">System Settings</h1>
-          <p className="text-sm text-gray-500 mt-1 font-regular">Configure core settings for GABAY maintenance</p>
+          <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue tracking-tight">System Control Matrix</h1>
+          <p className="text-xs md:text-sm font-poppins text-gray-500 mt-1">Configure parameters, operational shifts, data durability schedules, and emergency statuses.</p>
         </div>
-        <div className="flex gap-3">
-          {isEditMode ? (
-            <>
-              <button 
-                onClick={handleCancel}
-                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gabay-teal text-gabay-teal rounded-full font-semibold text-sm hover:bg-gray-50 transition-all"
-              >
-                <X size={18} /> Cancel
-              </button>
-              <button 
-                onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-gabay-teal text-white rounded-full font-semibold text-sm shadow-lg hover:bg-opacity-90 transition-all"
-              >
-                <Save size={18} /> Save Changes
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={handleEdit}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gabay-teal text-gabay-teal rounded-full font-semibold text-sm hover:bg-gray-50 transition-all"
-            >
-              <Edit2 size={18} /> Edit Settings
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* OPERATIONAL HOURS */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex items-center gap-3 text-gabay-blue">
-            <Clock className="p-1.5 bg-blue-50 rounded-lg" size={32} />
-            <h4 className="font-montserrat font-bold text-lg">Operational Hours</h4>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Start Time</label>
-              <select 
-                name="startTime"
-                disabled={!isEditMode}
-                value={tempSettings.startTime}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
-              >
-                {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">End Time</label>
-              <select 
-                name="endTime"
-                disabled={!isEditMode}
-                value={tempSettings.endTime}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
-              >
-                {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
-          {errors.hours && <p className="text-[11px] font-semibold text-red-500">{errors.hours}</p>}
-        </div>
-
-        {/* LOG RETENTION */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex items-center gap-3 text-orange-500">
-            <History className="p-1.5 bg-orange-50 rounded-lg" size={32} />
-            <h4 className="font-montserrat font-bold text-lg text-gabay-blue">Log Retention</h4>
-          </div>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Purge Period</label>
-              <input 
-                type="number"
-                name="retentionValue"
-                disabled={!isEditMode}
-                value={tempSettings.retentionValue}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
-              />
-            </div>
-            <select 
-              name="retentionUnit"
-              disabled={!isEditMode}
-              value={tempSettings.retentionUnit}
-              onChange={handleInputChange}
-              className="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm min-w-[150px] disabled:opacity-60"
+        {!isEditMode ? (
+          <button 
+            onClick={() => setIsEditMode(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gabay-blue text-white rounded-xl font-poppins font-semibold text-xs tracking-wider uppercase hover:bg-opacity-90 transition-all shadow-sm flex items-center justify-center gap-2"
+          >
+            <Edit2 size={14}/> Modify Settings
+          </button>
+        ) : (
+          <div className="flex w-full sm:w-auto gap-3">
+            <button 
+              onClick={() => { setIsEditMode(false); setTempSettings({ ...settings }); setErrors({}); }}
+              className="flex-1 sm:flex-none px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-poppins font-semibold text-xs tracking-wider uppercase hover:bg-gray-50 transition-all"
             >
-              <option value="years">Years</option>
-              <option value="months">Months</option>
-            </select>
+              Cancel
+            </button>
+            <button 
+              onClick={handleSave}
+              className="flex-1 sm:flex-none px-5 py-2.5 bg-gabay-teal text-white rounded-xl font-poppins font-semibold text-xs tracking-wider uppercase hover:bg-opacity-90 transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              <Save size={14}/> Commit Changes
+            </button>
           </div>
-          {errors.retention && <p className="text-[11px] font-semibold text-red-500">{errors.retention}</p>}
-        </div>
+        )}
+      </div>
 
-        {/* DATABASE BACKUPS */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-              <Database size={20} className="text-gabay-blue" />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* OPERATIONAL PARAMETERS MODULE */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <h3 className="font-montserrat text-base font-bold text-gabay-blue flex items-center gap-2">
+            <Clock size={18} className="text-gabay-teal" /> Window Boundary Metrics
+          </h3>
+          <p className="text-xs text-gray-400 font-poppins">Controls runtime limits for public booking assistants and structural slot allocation interfaces.</p>
+          
+          <div className="space-y-4 pt-2">
             <div>
-              <h2 className="text-lg font-bold text-gabay-blue font-montserrat">System Backup & Data</h2>
-              <p className="text-xs text-gray-500 font-poppins">Secure your records and manage database dumps</p>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2 pl-1">Daily Lock Opening</label>
+              <div className="flex gap-2">
+                <select 
+                  disabled={!isEditMode}
+                  value={startVal}
+                  onChange={(e) => handleTimeSubChange('startTime', 'val', e.target.value)}
+                  className="flex-1 p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-poppins outline-none focus:border-gabay-teal disabled:opacity-60"
+                >
+                  {["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00"].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select 
+                  disabled={!isEditMode}
+                  value={startPeriod}
+                  onChange={(e) => handleTimeSubChange('startTime', 'period', e.target.value)}
+                  className="p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-poppins outline-none focus:border-gabay-teal disabled:opacity-60"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2 pl-1">Daily Queue Termination</label>
+              <div className="flex gap-2">
+                <select 
+                  disabled={!isEditMode}
+                  value={endVal}
+                  onChange={(e) => handleTimeSubChange('endTime', 'val', e.target.value)}
+                  className="flex-1 p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-poppins outline-none focus:border-gabay-teal disabled:opacity-60"
+                >
+                  {["03:00", "03:30", "04:00", "04:30", "05:00", "05:30", "06:00", "06:30", "07:00", "07:30", "08:00"].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select 
+                  disabled={!isEditMode}
+                  value={endPeriod}
+                  onChange={(e) => handleTimeSubChange('endTime', 'period', e.target.value)}
+                  className="p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-poppins outline-none focus:border-gabay-teal disabled:opacity-60"
+                >
+                  <option value="PM">PM</option>
+                  <option value="AM">AM</option>
+                </select>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-wrap gap-4 mt-4">
-            <button 
-              onClick={triggerManualBackup}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gabay-teal text-white text-sm font-bold font-poppins rounded-xl hover:bg-opacity-90 transition shadow-md"
-            >
-              <Database size={18} /> GENERATE MANUAL BACKUP
-            </button>
-            
-            {/* NEW RESTORE SYSTEM BUTTON */}
-            <input 
-              type="file" 
-              accept=".sql" 
-              ref={fileInputRef} 
-              onChange={handleRestoreSystem} 
-              className="hidden" 
-            />
-            <button 
-              onClick={() => fileInputRef.current.click()}
-              disabled={isRestoring}
-              className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-red-500 text-red-500 text-sm font-bold font-poppins rounded-xl hover:bg-red-50 transition shadow-sm disabled:opacity-50"
-            >
-              <History size={18} /> {isRestoring ? "RESTORING..." : "RESTORE SYSTEM"}
-            </button>
+        {/* DATA DURABILITY INFRASTRUCTURE */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <h3 className="font-montserrat text-base font-bold text-gabay-blue flex items-center gap-2">
+            <Database size={18} className="text-gabay-teal" /> Durability & Archival Loop
+          </h3>
+          <p className="text-xs text-gray-400 font-poppins">Automate schema drops and snapshot uploads into decoupled persistence buckets.</p>
+          
+          <div className="space-y-3 pt-2">
+            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100/70 transition-all select-none">
+              <input 
+                type="checkbox"
+                name="autoBackup"
+                disabled={!isEditMode}
+                checked={tempSettings.autoBackup}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-gabay-teal border-gray-300 rounded focus:ring-gabay-teal focus:ring-opacity-25 disabled:opacity-50"
+              />
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-gabay-blue font-poppins">Automated Snapshots</p>
+                <p className="text-[10px] text-gray-400">Trigger standard structural pipeline passes automatically.</p>
+              </div>
+            </label>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1 pl-1">Frequency</label>
+                <select 
+                  name="backupFrequency"
+                  disabled={!isEditMode || !tempSettings.autoBackup}
+                  value={tempSettings.backupFrequency}
+                  onChange={handleInputChange}
+                  className="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-poppins outline-none disabled:opacity-50"
+                >
+                  <option value="Daily">Daily</option>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1 pl-1">Archival Window</label>
+                <select 
+                  name="retentionValue"
+                  disabled={!isEditMode}
+                  value={tempSettings.retentionValue}
+                  onChange={handleInputChange}
+                  className="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-poppins outline-none disabled:opacity-50"
+                >
+                  {[1,2,3,4,5].map(v => <option key={v} value={v}>{v} Years</option>)}
+                </select>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className={`grid grid-cols-2 gap-4 transition-opacity duration-300 ${tempSettings.autoBackup ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Frequency</label>
-              <select 
-                name="backupFrequency"
-                disabled={!isEditMode}
-                value={tempSettings.backupFrequency}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60 focus:border-gabay-teal transition-all"
-              >
-                <option value="Daily">Daily</option>
-                <option value="Every 3 days">Every 3 days</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Bi-Weekly">Bi-Weekly</option>
-                <option value="Monthly">Monthly</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Scheduled Time</label>
-              <select 
-                name="backupTime"
-                disabled={!isEditMode}
-                value={tempSettings.backupTime}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60 focus:border-gabay-teal transition-all"
-              >
-                {backupTimeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+        {/* MANUAL DUMP & ROLLBACK HANDLERS */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 flex flex-col justify-between">
+          <div>
+            <h3 className="font-montserrat text-base font-bold text-gabay-blue flex items-center gap-2">
+              <History size={18} className="text-gabay-teal" /> Recovery Orchestrator
+            </h3>
+            <p className="text-xs text-gray-400 font-poppins">Force manual state-map uploads or apply standard rollback operations to reverse cluster anomalies.</p>
           </div>
           
-          {!tempSettings.autoBackup && isEditMode && (
-            <p className="text-[10px] text-gray-400 italic text-center">
-              Enable toggle to schedule automatic backups.
-            </p>
-          )}
+          <div className="space-y-2.5 pt-4">
+            <button 
+              onClick={handleBackupNow}
+              className="w-full py-2.5 bg-white border border-gabay-blue text-gabay-blue hover:bg-gabay-blue/5 transition-all text-xs font-semibold font-poppins tracking-wider uppercase rounded-xl"
+            >
+              Trigger Snapshot Instantly
+            </button>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleRestoreFileSelected} 
+              accept=".sql,.json" 
+              className="hidden" 
+            />
+            
+            <button 
+              onClick={handleTriggerTriggerRestoreFile}
+              disabled={isRestoring}
+              className="w-full py-2.5 bg-gray-900 text-white hover:bg-black transition-all text-xs font-semibold font-poppins tracking-wider uppercase rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isRestoring ? "Re-Indexing Maps..." : "Apply Structural Overwrite"}
+            </button>
+          </div>
         </div>
 
-        {/* SYSTEM DOWNTIME */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3 text-red-500">
-              <HardHat className="p-1.5 bg-red-50 rounded-lg" size={32} />
-              <h4 className="font-montserrat font-bold text-lg text-gabay-blue">System Downtime</h4>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                name="maintenanceMode" 
-                disabled={!isEditMode} 
-                checked={tempSettings.maintenanceMode} 
-                onChange={handleInputChange} 
-                className="sr-only peer" 
-              />
-              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-            </label>
-          </div>
+      </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 transition-opacity duration-300 ${tempSettings.maintenanceMode ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left">Downtime Reason</label>
-              <select 
-                name="downtimeReason"
-                disabled={!isEditMode}
-                value={tempSettings.downtimeReason}
-                onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
-              >
-                <option value="Maintenance Mode">Maintenance Mode</option>
-                <option value="Data Backup">Data Backup</option>
-                <option value="System Optimization">System Optimization</option>
-              </select>
+      {/* EMERGENCY SERVICE BREAK MATRIX */}
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-red-50 text-red-500 rounded-xl border border-red-100">
+            <HardHat size={24} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-montserrat text-lg font-bold text-gabay-blue">Emergency Break Toggles</h3>
+            <p className="text-xs text-gray-400 font-poppins">Isolate patient routing components and pause traffic ingestion when handling infrastructural shifts or local hospital data disruptions.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 items-start">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-gabay-blue font-poppins uppercase tracking-wide">Maintenance Isolation</p>
+                <p className="text-[10px] text-gray-400">Halts active request parsers.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox"
+                  name="maintenanceMode"
+                  disabled={!isEditMode}
+                  checked={tempSettings.maintenanceMode}
+                  onChange={handleInputChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500 disabled:opacity-40"></div>
+              </label>
             </div>
+            
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left">Auto-Resume In</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left pl-1">Auto-Resume In</label>
               <select 
                 name="resumeTimer"
                 disabled={!isEditMode}
                 value={tempSettings.resumeTimer}
                 onChange={handleInputChange}
-                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
+                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-poppins outline-none disabled:opacity-60 focus:border-red-400"
               >
                 <option value="15">15 Minutes</option>
                 <option value="30">30 Minutes</option>
@@ -429,23 +426,37 @@ export default function AdminSettings() {
             </div>
           </div>
 
-          {!tempSettings.maintenanceMode && isEditMode && (
-            <p className="text-[10px] text-gray-400 italic text-center">
-              Enable toggle if there is system downtime.
-            </p>
-          )}
-
-          {tempSettings.maintenanceMode && (
-            <div className="p-2.5 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
-              <AlertTriangle size={16} className="text-red-500" />
-              <p className="text-[11px] font-bold text-red-600 uppercase">
-                GABAY is currently restricted for patients.
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block pl-1">Public Display Warnings Statement</label>
+            <textarea 
+              name="downtimeReason"
+              disabled={!isEditMode || !tempSettings.maintenanceMode}
+              value={tempSettings.downtimeReason}
+              onChange={handleInputChange}
+              rows={4}
+              placeholder="Provide a clear downtime explanation statement to present to users routing to the portal assets..."
+              className={`w-full p-3 bg-gray-50 border rounded-xl text-sm font-poppins outline-none resize-none transition-all disabled:opacity-40 ${
+                errors.downtimeReason ? 'border-red-400 focus:ring-red-100' : 'border-gray-100 focus:border-red-400'
+              }`}
+            />
+            {errors.downtimeReason && (
+              <p className="text-xs text-red-500 font-medium pl-1 flex items-center gap-1">
+                <AlertTriangle size={12}/> {errors.downtimeReason}
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
+        {tempSettings.maintenanceMode && (
+          <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2.5 animate-pulse">
+            <AlertTriangle size={16} className="text-red-500" />
+            <p className="text-[11px] font-bold text-red-600 uppercase tracking-wide">
+              Warning: Patient application gateways are isolated. Live booking pipelines are rejected while this switch is active.
+            </p>
+          </div>
+        )}
       </div>
+
     </div>
   );
 }

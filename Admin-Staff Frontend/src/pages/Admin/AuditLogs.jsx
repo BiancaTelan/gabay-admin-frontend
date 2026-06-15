@@ -6,11 +6,8 @@ import ExcelJS from 'exceljs';
 
 // --- ROLE BADGE STYLES ---
 const roleStyles = {
-  PATIENT: 'bg-purple-100 text-gabay-violet',
   STAFF: 'bg-teal-100 text-teal-700',
-  ADMIN: 'bg-blue-100 text-blue-700',
-  DOCTOR: 'bg-orange-100 text-gabay-orange',
-  SYSTEM: 'bg-gray-100 text-gray-500',
+  ADMIN: 'bg-blue-100 text-blue-700'
 };
 
 const ACTION_OPTIONS = [
@@ -264,7 +261,7 @@ export default function AuditLogs() {
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-3">User Role</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['PATIENT', 'STAFF', 'DOCTOR', 'ADMIN', 'SYSTEM'].map(role => (
+                    {['STAFF', 'ADMIN'].map(role => (
                       <label key={role} className="flex items-center gap-2 text-sm font-poppins text-gray-600 cursor-pointer">
                         <input 
                           type="checkbox" 

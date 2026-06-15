@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData = null }) {
@@ -34,6 +34,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSensitive, setShowSensitive] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isEditing && editData) {
@@ -44,7 +45,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
         surname: editData.surname || '',
         gender: editData.gender || 'Female',
         email: editData.email || '', 
-        password: '', // Leave blank; only send if intentionally changed
+        password: '', 
         contact: editData.phone !== 'N/A' ? editData.phone : '',
         role: editData.role === 'ADMIN' ? 'Admin' : 'Staff',
         schedule: editData.schedule && editData.schedule !== 'Unassigned' ? editData.schedule : '',
@@ -52,6 +53,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
         position: 'Staff'
       });
       setShowSensitive(false);
+      setShowPassword(false); // Reset password visibility when opening
     }
   }, [editData, isOpen, token]);
 
@@ -258,7 +260,23 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">New Password</label>
-                      <input type="password" minLength={8} className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Leave blank to keep current" />
+                      <div className="relative">
+                        <input 
+                          type={showPassword ? "text" : "password"} 
+                          minLength={8} 
+                          className="w-full border border-red-300 p-2 pr-10 rounded-lg text-sm outline-none focus:border-red-500" 
+                          value={formData.password} 
+                          onChange={e => setFormData({...formData, password: e.target.value})} 
+                          placeholder="Leave blank to keep current" 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

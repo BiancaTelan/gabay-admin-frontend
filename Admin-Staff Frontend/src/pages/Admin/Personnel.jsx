@@ -31,6 +31,7 @@ export default function Personnel() {
     status: ['Active', 'Deactivated'],
     deptFilter: '' 
   });
+  
   const [statusModal, setStatusModal] = useState({ isOpen: false, user: null, actionType: '' });
 
   const itemsPerPage = 10;
@@ -273,16 +274,17 @@ export default function Personnel() {
             <tbody className="divide-y divide-gray-100">
               {pagedData.map((doc) => {
                 const isAvailable = doc.status === 'Active';
-                const isDeactivated = doc.status !== 'Active'; // FIXED: Declared variable
+                const isDeactivated = doc.status !== 'Active';
                 
                 return (
-                  <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={doc.id} className={`hover:bg-gray-50 transition-colors ${isDeactivated ? 'opacity-60' : ''}`}>
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{doc.id}</td>
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{doc.licenseNumber || 'N/A'}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{doc.name}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{doc.dept}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{doc.schedule}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{doc.time}</td>
+                    <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-500">{doc.slot}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1.5 text-[11px] uppercase md:text-[12px] font-poppins font-medium text-gray-700">
                         <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-gabay-green' : 'bg-red-500'}`} />
@@ -291,23 +293,19 @@ export default function Personnel() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => { setEditingDoctor(doc); setIsAddModalOpen(true); }} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit Doctor"><Edit3 size={18}/></button>
+                        {/* RESTORED: View Details Button */}
+                        <button onClick={() => setViewDetailsDoctor(doc)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye size={18}/></button>
+                        
+                        {/* Edit Profile Button */}
+                        <button onClick={() => { setEditingDoctor(doc); setIsAddModalOpen(true); }} className="p-1.5 text-gabay-teal hover:bg-teal-50 rounded-lg transition-colors" title="Edit Doctor Profile"><Edit3 size={18}/></button>
+                        
+                        {/* RESTORED: Schedule Picker Button */}
+                        <button onClick={() => { setSelectedDoctorSched(doc); setIsScheduleModalOpen(true); }} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title="Manage Schedule & Slots"><CalendarClock size={18}/></button>
+                        
                         {isDeactivated ? (
-                            <button 
-                              onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'activate' })} 
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                              title="Activate Account"
-                            >
-                              <CircleCheckBig size={18}/>
-                            </button>
+                            <button onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'activate' })} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Activate Account"><CircleCheckBig size={18}/></button>
                           ) : (
-                            <button 
-                              onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'deactivate' })} 
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Deactivate Account"
-                            >
-                              <CircleMinus size={18}/>
-                            </button>
+                            <button onClick={() => setStatusModal({ isOpen: true, user: doc, actionType: 'deactivate' })} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Deactivate Account"><CircleMinus size={18}/></button>
                           )}
                       </div>
                     </td>

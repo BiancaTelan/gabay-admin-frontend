@@ -144,6 +144,13 @@ export default function AdminDashboard() {
     return 'This Month';
   };
 
+  const getStatTitle = () => {
+    if (filter === 'day') return 'Today';
+    if (filter === 'week') return 'Week';
+    if (filter === 'year') return 'Year';
+    return 'Month';
+  };
+
   // Main Dashboard Render
   return (
     <div className="space-y-8 pb-12">
@@ -206,9 +213,8 @@ export default function AdminDashboard() {
         </div> 
       </div>
 
-      {/* STATISTICS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard title="Appointments (Month)" value={data.appointments} icon={FileCheck} color="teal" />
+        <StatCard title={`Appointments (${getStatTitle()})`} value={data.appointments} icon={FileCheck} color="teal" />
         <StatCard title="Today's Slots" value={`${data.used_slots} / ${data.total_slots}`} icon={ClipboardList} color="orange" />
         <StatCard title="System Health" value={`${data.health_score}%`} icon={ShieldPlus} color="blue" />
         <StatCard title="Total Personnel" value={data.personnel} icon={Stethoscope} color="green" />

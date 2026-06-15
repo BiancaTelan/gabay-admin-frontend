@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CheckCircle, Camera, X, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { LogOut, CheckCircle, Camera, X, Lock, Mail } from 'lucide-react';
 import toast from 'react-hot-toast'; 
 import Input from '../../components/input';
 import ConfirmationModal from '../../components/confirmModal';
@@ -9,95 +9,76 @@ import { phonePattern } from '../../utils/constants';
 import { AuthContext } from '../../authContext';
 
 // ==========================================
-// HELPER COMPONENT 
+// HELPER COMPONENT: REACTIVE DROPDOWNS
 // ==========================================
-function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing, localUserInfo }) {
+function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
 
   useEffect(() => {
-    const loadInitialData = async () => {
+    const fetchProvinces = async () => {
       try {
         const provRes = await fetch('https://psgc.gitlab.io/api/provinces/');
         const provData = await provRes.json();
-
-        // Add Metro Manila manually since PSGC classifies it as a Region
         const ncr = { code: '130000000', name: 'METRO MANILA', isRegion: true };
-        const allProvinces = [...provData, ncr].sort((a, b) => a.name.localeCompare(b.name));
-        setProvinces(allProvinces);
-
-        // Pre-load cities if a province already exists
-        if (localUserInfo.province) {
-          const selectedProv = allProvinces.find(p => p.name === localUserInfo.province);
-          if (selectedProv) {
-            const cityUrl = selectedProv.isRegion 
-              ? `https://psgc.gitlab.io/api/regions/${selectedProv.code}/cities-municipalities/`
-              : `https://psgc.gitlab.io/api/provinces/${selectedProv.code}/cities-municipalities/`;
-            
-            const cityRes = await fetch(cityUrl);
-            const cityData = await cityRes.json();
-            setCities(cityData.sort((a, b) => a.name.localeCompare(b.name)));
-
-            // Pre-load barangays if a city already exists
-            if (localUserInfo.city) {
-              const selectedCity = cityData.find(c => c.name === localUserInfo.city);
-              if (selectedCity) {
-                const brgyRes = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedCity.code}/barangays/`);
-                const brgyData = await brgyRes.json();
-                setBarangays(brgyData.sort((a, b) => a.name.localeCompare(b.name)));
-              }
-            }
-          }
-        }
+        setProvinces([...provData, ncr].sort((a, b) => a.name.localeCompare(b.name)));
       } catch (error) {
-        console.error("Failed to load PSGC data", error);
+        console.error("Failed to load PSGC provinces", error);
       }
     };
+    fetchProvinces();
+  }, []);
 
-    if (localUserInfo.province !== undefined) {
-      loadInitialData();
-    }
-  }, [localUserInfo.province, localUserInfo.city]);
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!tempUserInfo.province) return;
+      const selectedProv = provinces.find(p => p.name === tempUserInfo.province);
+      
+      if (selectedProv) {
+        try {
+          const url = selectedProv.isRegion 
+            ? `https://psgc.gitlab.io/api/regions/${selectedProv.code}/cities-municipalities/`
+            : `https://psgc.gitlab.io/api/provinces/${selectedProv.code}/cities-municipalities/`;
+          const res = await fetch(url);
+          const data = await res.json();
+          setCities(data.sort((a, b) => a.name.localeCompare(b.name)));
+        } catch (error) {
+          console.error("Failed to load PSGC cities", error);
+        }
+      }
+    };
+    if (provinces.length > 0) fetchCities();
+  }, [tempUserInfo.province, provinces]);
 
-  const handleProvinceChange = async (e) => {
-    const provinceName = e.target.value;
-    const selectedProv = provinces.find(p => p.name === provinceName);
-    
-    setTempUserInfo(prev => ({ ...prev, province: provinceName, city: '', barangay: '' }));
-    setCities([]); 
-    setBarangays([]); 
-
-    if (selectedProv) {
-      const url = selectedProv.isRegion 
-        ? `https://psgc.gitlab.io/api/regions/${selectedProv.code}/cities-municipalities/`
-        : `https://psgc.gitlab.io/api/provinces/${selectedProv.code}/cities-municipalities/`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      setCities(data.sort((a, b) => a.name.localeCompare(b.name)));
-    }
-  };
-
-  const handleCityChange = async (e) => {
-    const cityName = e.target.value;
-    const selectedCity = cities.find(c => c.name === cityName);
-    
-    setTempUserInfo(prev => ({ ...prev, city: cityName, barangay: '' }));
-    setBarangays([]);
-
-    if (selectedCity) {
-      const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedCity.code}/barangays/`);
-      const data = await res.json();
-      setBarangays(data.sort((a, b) => a.name.localeCompare(b.name)));
-    }
-  };
+  useEffect(() => {
+    const fetchBarangays = async () => {
+      if (!tempUserInfo.city) return;
+      const selectedCity = cities.find(c => c.name === tempUserInfo.city);
+      
+      if (selectedCity) {
+        try {
+          const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${selectedCity.code}/barangays/`);
+          const data = await res.json();
+          setBarangays(data.sort((a, b) => a.name.localeCompare(b.name)));
+        } catch (error) {
+          console.error("Failed to load PSGC barangays", error);
+        }
+      }
+    };
+    if (cities.length > 0) fetchBarangays();
+  }, [tempUserInfo.city, cities]);
 
   return (
     <>
       <div className="md:col-span-2">
         <label className="block text-xs font-semibold text-gray-600 mb-1">Province</label>
-        <select disabled={!isEditing} value={tempUserInfo.province} onChange={handleProvinceChange} className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all">
+        <select 
+          disabled={!isEditing} 
+          value={tempUserInfo.province} 
+          onChange={(e) => setTempUserInfo(prev => ({ ...prev, province: e.target.value, city: '', barangay: '' }))} 
+          className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all"
+        >
           <option value="" disabled>Select Province</option>
           {provinces.map(prov => <option key={prov.code} value={prov.name}>{prov.name}</option>)}
         </select>
@@ -105,7 +86,12 @@ function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing, localUserI
 
       <div className="md:col-span-2">
         <label className="block text-xs font-semibold text-gray-600 mb-1">City / Municipality</label>
-        <select disabled={!isEditing || !tempUserInfo.province} value={tempUserInfo.city} onChange={handleCityChange} className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all">
+        <select 
+          disabled={!isEditing || !tempUserInfo.province} 
+          value={tempUserInfo.city} 
+          onChange={(e) => setTempUserInfo(prev => ({ ...prev, city: e.target.value, barangay: '' }))} 
+          className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all"
+        >
           <option value="" disabled>Select City</option>
           {cities.map(city => <option key={city.code} value={city.name}>{city.name}</option>)}
         </select>
@@ -113,7 +99,12 @@ function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing, localUserI
 
       <div className="md:col-span-2">
         <label className="block text-xs font-semibold text-gray-600 mb-1">Barangay</label>
-        <select disabled={!isEditing || !tempUserInfo.city} value={tempUserInfo.barangay} onChange={(e) => setTempUserInfo(prev => ({ ...prev, barangay: e.target.value }))} className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all">
+        <select 
+          disabled={!isEditing || !tempUserInfo.city} 
+          value={tempUserInfo.barangay} 
+          onChange={(e) => setTempUserInfo(prev => ({ ...prev, barangay: e.target.value }))} 
+          className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all"
+        >
           <option value="" disabled>Select Barangay</option>
           {barangays.map(brgy => <option key={brgy.code} value={brgy.name}>{brgy.name}</option>)}
         </select>
@@ -125,7 +116,6 @@ function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing, localUserI
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
-
 export default function PersonnelAccount() {
   const navigate = useNavigate();
   const { token, logout, userRole, setProfilePhoto, user, profilePhoto } = useContext(AuthContext);
@@ -135,20 +125,10 @@ export default function PersonnelAccount() {
   const apiBase = currentRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
 
   const [localUserInfo, setLocalUserInfo] = useState({
-    firstname: "",
-    middlename: "",
-    surname: "",
-    suffix: "",
-    role: currentRole?.toUpperCase() || "STAFF",
-    email: "",
-    contactNumber: "",
-    dob: "",
-    gender: "Male",
-    street: "",  
-    barangay: "", 
-    city: "",     
-    province: "",
-    postalCode: "", 
+    firstname: "", middlename: "", surname: "", suffix: "",
+    role: currentRole?.toUpperCase() || "STAFF", email: "",
+    contactNumber: "", dob: "", gender: "Male",
+    street: "", barangay: "", city: "", province: "", postalCode: "", 
     profilePhoto: null
   });
 
@@ -156,27 +136,32 @@ export default function PersonnelAccount() {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Modal States
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [changeModalType, setChangeModalType] = useState('email'); 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
 
-  // --- FETCH PROFILE ---
+  // Dictionary for Auto-Fill
+  const postalCodeMap = {
+    "1900": { city: "Cainta", province: "Rizal" },
+    "1920": { city: "Taytay", province: "Rizal" },
+    "1800": { city: "Marikina", province: "METRO MANILA" }, 
+    "1600": { city: "Pasig", province: "METRO MANILA" },
+    "1100": { city: "Quezon City", province: "METRO MANILA" },
+    "1000": { city: "Manila", province: "METRO MANILA" }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/profile/me`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+          method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });
 
         if (!response.ok) throw new Error("Failed to fetch profile data");
-        
         const data = await response.json();
         
         setLocalUserInfo(prev => ({ 
-          ...prev, 
-          ...data,
+          ...prev, ...data,
           firstname: data.firstname || prev.firstname,
           surname: data.surname || prev.surname,
           middlename: data.middlename || "",
@@ -193,16 +178,13 @@ export default function PersonnelAccount() {
         console.error("Profile Fetch Error:", error);
       }
     };
-
     if (token) fetchProfile();
   }, [apiBase, token]);
 
-  // Sync temp data when editing starts
   useEffect(() => {
     if (isEditing) setTempUserInfo({ ...localUserInfo });
   }, [isEditing, localUserInfo]);
 
-  // --- HANDLERS ---
   const handleEditToggle = () => {
     if (isEditing) setTempUserInfo({ ...localUserInfo });
     setIsEditing(!isEditing);
@@ -210,12 +192,22 @@ export default function PersonnelAccount() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setTempUserInfo(prev => ({ ...prev, [name]: value }));
+    
+    setTempUserInfo(prev => {
+      const updated = { ...prev, [name]: value };
+      
+      // Execute Postal Code Auto-fill
+      if (name === 'postalCode' && value.length === 4 && postalCodeMap[value]) {
+        updated.province = postalCodeMap[value].province;
+        updated.city = postalCodeMap[value].city;
+        updated.barangay = ''; 
+        toast.success(`Auto-filled location for ${postalCodeMap[value].city}`);
+      }
+      return updated;
+    });
   };
 
-  // --- STRICT VALIDATION & SAVE LOGIC ---
   const handleSaveProfile = async () => {
-    // 1. Core Field Validations
     if (!tempUserInfo.firstname.trim()) return toast.error("First Name is required.");
     if (!tempUserInfo.surname.trim()) return toast.error("Surname is required.");
     if (!tempUserInfo.dob) return toast.error("Date of Birth is required.");
@@ -275,10 +267,7 @@ export default function PersonnelAccount() {
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      return toast.error("File size must be less than 5MB");
-    }
+    if (file.size > 5 * 1024 * 1024) return toast.error("File size must be less than 5MB");
 
     const formData = new FormData();
     formData.append('profile_photo', file);
@@ -319,8 +308,6 @@ export default function PersonnelAccount() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10">
-      
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gabay-blue tracking-tight">Account Settings</h1>
@@ -342,12 +329,8 @@ export default function PersonnelAccount() {
         )}
       </div>
 
-      {/* MAIN CONTENT GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        
-        {/* LEFT COLUMN: Profile Form */}
         <div className="lg:col-span-2 space-y-6">
-          
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
@@ -376,15 +359,9 @@ export default function PersonnelAccount() {
               <div className="md:col-span-4">
                 <Input label="Street / Building / House No." name="street" value={isEditing ? tempUserInfo.street : localUserInfo.street} onChange={handleInputChange} disabled={!isEditing} />
               </div>
-              <div className="md:col-span-2">
-                <Input label="Barangay" name="barangay" value={isEditing ? tempUserInfo.barangay : localUserInfo.barangay} onChange={handleInputChange} disabled={!isEditing} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="City / Municipality" name="city" value={isEditing ? tempUserInfo.city : localUserInfo.city} onChange={handleInputChange} disabled={!isEditing} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Province" name="province" value={isEditing ? tempUserInfo.province : localUserInfo.province} onChange={handleInputChange} disabled={!isEditing} />
-              </div>
+              
+              <AddressDropdowns tempUserInfo={tempUserInfo} setTempUserInfo={setTempUserInfo} isEditing={isEditing} />
+              
               <div className="md:col-span-2">
                 <Input label="Postal / ZIP Code" name="postalCode" type="text" maxLength={4} value={isEditing ? tempUserInfo.postalCode : localUserInfo.postalCode} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g., 1900" />
               </div>
@@ -392,7 +369,6 @@ export default function PersonnelAccount() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Profile Photo & Security */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
             <div className="relative group">

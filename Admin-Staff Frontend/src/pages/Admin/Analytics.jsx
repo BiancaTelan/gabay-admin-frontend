@@ -224,7 +224,7 @@ export default function Analytics() {
                     <h4 className="text-sm font-bold text-gabay-blue truncate">{staff.name}</h4>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-bold tracking-tight">
+                  <div className="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-bold tracking-tight flex-shrink-0">
                     <div className="text-green-600">
                       <span>{staff.approved} </span>
                       <span className="hidden sm:inline">APPROVED</span>
@@ -234,13 +234,13 @@ export default function Analytics() {
                     <div className="text-red-500">
                       <span>{staff.canceled} </span>
                       <span className="hidden sm:inline">CANCELED</span>
-                      <span className="inline sm:hidden\">CANC</span>
+                      <span className="inline sm:hidden">CANC</span>
                     </div>
                     <span className="text-gray-300 font-normal">|</span>
                     <div className="text-teal-600">
                       <span>{staff.rescheduled} </span>
-                      <span className="hidden sm:inline\">RESCHEDULED</span>
-                      <span className="inline sm:hidden\">RESCHED</span>
+                      <span className="hidden sm:inline">RESCHEDULED</span>
+                      <span className="inline sm:hidden">RESCHED</span>
                     </div>
                   </div>
                 </div>
