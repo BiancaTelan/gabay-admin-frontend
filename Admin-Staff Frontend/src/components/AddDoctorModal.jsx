@@ -31,22 +31,40 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, { headers: { 'Authorization': `Bearer ${token}` }})
     .then(res => res.json())
-    .then(data => setDepartmentsList(data))
+    .then(data => {
+      setDepartmentsList(data);
+      if (isEditing && editData) {
+        const matchedDept = data.find(d => d.department === editData.dept);
+        if (matchedDept && !formData.deptID) {
+          setFormData(prev => ({ ...prev, deptID: matchedDept.deptID }));
+        }
+      }
+    })
     .catch(() => toast.error("Failed to load departments."));
 
     if (isEditing && editData) {
-      setFormData({
+      let fName = editData.firstname || '';
+      let sName = editData.surname || '';
+      if (!fName && !sName && editData.name) {
+          const parts = editData.name.split(' ');
+          sName = parts.length > 1 ? parts.pop() : '';
+          fName = parts.join(' ');
+      }
+
+      setFormData(prev => ({
+        ...prev,
         employeeID: editData.id && editData.id !== 'Unassigned' ? editData.id : '',
-        firstname: editData.firstname || '',
+        firstname: fName,
         middlename: editData.middlename || '',
-        surname: editData.surname || '',
+        surname: sName,
         licenseNumber: editData.licenseNumber || editData.license_number || '',
         email: editData.email || '',
         contact: editData.phone !== 'N/A' ? editData.phone : '',
-        deptID: editData.deptID || ''
-      });
+        deptID: editData.deptID || prev.deptID
+      }));
       setShowSensitive(false);
     } else {
+      setFormData({ employeeID: '', firstname: '', middlename: '', surname: '', licenseNumber: '', email: '', contact: '', deptID: '' });
       setSchedules([{ id: Date.now(), days: [], startTime: '08:00', endTime: '17:00', slot: 20 }]);
     }
   }, [editData, isOpen, token]);
@@ -70,27 +88,25 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${editData.raw_id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors`;
       
-    // FIX: Removed 'showSensitive' condition for employeeID and licenseNumber
-    const payload = isEditing ? {
-      firstname: formData.firstname.trim(),
-      middlename: formData.middlename.trim(),
-      surname: formData.surname.trim(),
-      contactNumber: formData.contact,
-      deptID: parseInt(formData.deptID),
-      employeeID: formData.employeeID ? formData.employeeID.trim() : undefined, 
-      email: showSensitive && formData.email ? formData.email : undefined,
-      licenseNumber: formData.licenseNumber ? formData.licenseNumber.trim() : undefined,
-    } : {
+    // UNIFIED PAYLOAD: Strictly send Employee ID and License Number every single time
+    const payload = {
       employeeID: formData.employeeID.trim(),
+      licenseNumber: formData.licenseNumber.trim(),
       firstname: formData.firstname.trim(),
       middlename: formData.middlename.trim(),
       surname: formData.surname.trim(),
-      licenseNumber: formData.licenseNumber.trim(),
-      email: formData.email.trim(),
       contactNumber: formData.contact,
-      deptID: parseInt(formData.deptID),
-      schedules: schedules
+      deptID: parseInt(formData.deptID)
     };
+
+    if (showSensitive && formData.email) {
+        payload.email = formData.email.trim();
+    }
+
+    if (!isEditing) {
+        payload.schedules = schedules;
+        payload.email = formData.email.trim();
+    }
 
     try {
       const response = await fetch(url, {
@@ -228,7 +244,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
                   <div className="mt-4 grid grid-cols-1 gap-4">
                     <p className="text-xs text-red-600 font-medium">Modifying these fields will trigger an email notification to the doctor with their updated credentials/assignments.</p>
                     
-                    {/* FIX: Removed duplicate ID and License inputs from here */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">New Email Address</label>
                       <input type="email" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="Change email..." />

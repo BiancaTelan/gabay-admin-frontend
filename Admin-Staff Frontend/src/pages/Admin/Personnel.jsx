@@ -12,18 +12,14 @@ export default function Personnel() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
   const [doctorsData, setDoctorsData] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [viewDetailsDoctor, setViewDetailsDoctor] = useState(null);
-  
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedDoctorSched, setSelectedDoctorSched] = useState(null);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filters, setFilters] = useState({
     sortKey: 'name', 
@@ -31,7 +27,6 @@ export default function Personnel() {
     status: ['Active', 'Deactivated'],
     deptFilter: '' 
   });
-  
   const [statusModal, setStatusModal] = useState({ isOpen: false, user: null, actionType: '' });
 
   const itemsPerPage = 10;
@@ -55,7 +50,6 @@ export default function Personnel() {
 
   useEffect(() => { if (token) fetchDoctors(); }, [token]);
 
-  // Keep SchedulePickerModal up-to-date post-refresh
   useEffect(() => {
     if (selectedDoctorSched) {
       const updatedDoc = doctorsData.find(d => d.raw_id === selectedDoctorSched.raw_id);
