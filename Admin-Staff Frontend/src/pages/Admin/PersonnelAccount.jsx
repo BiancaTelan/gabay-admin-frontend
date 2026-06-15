@@ -351,7 +351,7 @@ export default function PersonnelAccount() {
                   <div className="md:col-span-4">
                     <Input 
                       label="Full Name" 
-                      value={localUserInfo.firstname ? `${localUserInfo.firstname}, ${localUserInfo.middlename}, ${localUserInfo.surname}, ${localUserInfo.suffix}` : ''} 
+                      value={localUserInfo.firstname ? `${localUserInfo.firstname} ${localUserInfo.middlename} ${localUserInfo.surname}, ${localUserInfo.suffix}` : ''} 
                       disabled={true} 
                     />
                   </div>
