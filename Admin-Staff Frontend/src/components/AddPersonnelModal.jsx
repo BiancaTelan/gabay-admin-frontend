@@ -34,7 +34,8 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSensitive, setShowSensitive] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); 
+  const [errors, setErrors] = useState({}); 
 
   useEffect(() => {
     if (isEditing && editData) {
@@ -53,21 +54,45 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
         position: 'Staff'
       });
       setShowSensitive(false);
-      setShowPassword(false); // Reset password visibility when opening
+      setShowPassword(false); 
+      setErrors({});
+    } else {
+      setErrors({});
     }
   }, [editData, isOpen, token]);
+
+  // --- NEW: INLINE VALIDATION LOGIC ---
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.firstname.trim()) newErrors.firstname = "Required";
+    if (!formData.surname.trim()) newErrors.surname = "Required";
+    if (!formData.employeeID.trim()) newErrors.employeeID = "Required";
+    if (!formData.contact.trim()) newErrors.contact = "Required";
+    
+    if (!isEditing && !formData.email.trim()) newErrors.email = "Required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const ErrorWrapper = ({ label, name, children }) => (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
+      </div>
+      {children}
+    </div>
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.employeeID.trim() || !formData.firstname.trim() || !formData.surname.trim()) {
-        toast.error("Employee ID, First Name, and Surname are strictly required.");
+    if (!validate()) {
+        toast.error("Please fix the errors highlighted in red.");
         return;
     }
-    if (!isEditing && !formData.email.trim()) {
-        toast.error("An initial Email Address is required to create a new account.");
-        return;
-    }
+
     setIsSubmitting(true);
     
     const url = isEditing 
@@ -125,8 +150,8 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto font-poppins text-left">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-full overflow-y-auto font-poppins text-left">
         <div className="bg-gabay-blue px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
           <h2 className="text-lg font-bold">{isEditing ? 'Update Personnel Details' : 'Register New Personnel'}</h2>
           <button onClick={onClose} className="hover:text-gray-300 transition"><X size={20}/></button>
@@ -140,55 +165,53 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
               Personal Information
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} />
-            </div>
+            <ErrorWrapper label="First Name" name="firstname">
+              <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.firstname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} />
+            </ErrorWrapper>
+
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Middle Name <span className="text-gray-400 font-normal">(Optional)</span></label>
               <input type="text" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.middlename} onChange={e => setFormData({...formData, middlename: e.target.value})} />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Surname</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.surname} onChange={e => setFormData({...formData, surname: e.target.value})} />
-            </div>
+
+            <ErrorWrapper label="Surname" name="surname">
+              <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.surname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.surname} onChange={e => setFormData({...formData, surname: e.target.value})} />
+            </ErrorWrapper>
             
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
-              <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
+              <select className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue bg-white" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Prefer not to say">Prefer not to say</option>
               </select>
             </div>
-            <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Contact Number</label>
-                <input type="tel" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
-            </div>
+
+            <ErrorWrapper label="Contact Number" name="contact">
+                <input type="tel" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.contact ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
+            </ErrorWrapper>
 
             {/* SYSTEM DETAILS SECTION */}
             <div className="md:col-span-3 pb-2 pt-4 border-b text-sm font-bold text-gabay-blue uppercase tracking-wide">
               System Configuration
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Employee ID</label>
-              <input type="text" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" placeholder="e.g., EMP-001" value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
-            </div>
+            <ErrorWrapper label="Employee ID" name="employeeID">
+              <input type="text" placeholder="e.g., EMP-001" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.employeeID ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
+            </ErrorWrapper>
             
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">System Role</label>
-              <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+              <select className="w-full border p-2 border-gray-300 rounded-lg text-sm outline-none focus:border-gabay-blue bg-white" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
                 <option value="Staff">Staff</option>
                 <option value="Admin">Admin</option>
               </select>
             </div>
 
             {!isEditing && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                <input type="email" required className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
+              <ErrorWrapper label="Email Address" name="email">
+                <input type="email" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </ErrorWrapper>
             )}
             
             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -206,7 +229,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
                           newDays.sort((a, b) => DAYS_OF_WEEK.indexOf(a) - DAYS_OF_WEEK.indexOf(b));
                           setFormData({...formData, schedule: newDays.join(', ')});
                         }}
-                        className={`w-9 h-9 rounded-full text-xs font-bold transition-all ${isSelected ? 'bg-gabay-blue text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                        className={`w-9 h-9 rounded-full text-xs font-bold transition-all border ${isSelected ? 'bg-gabay-blue border-gabay-blue text-white shadow-md' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}
                       >{day}</button>
                     )
                   })}
