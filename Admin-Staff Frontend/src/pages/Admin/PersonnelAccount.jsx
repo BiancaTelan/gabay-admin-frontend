@@ -341,7 +341,7 @@ export default function PersonnelAccount() {
           {/* PERSONAL INFORMATION */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Personal Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-x-6 gap-y-5">
               {!isEditing ? (
                 <>
                   <div className="md:col-span-4">
