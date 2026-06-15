@@ -347,14 +347,14 @@ export default function PersonnelAccount() {
                   <div className="md:col-span-4">
                     <Input 
                       label="Full Name" 
-                      value={localUserInfo.firstname ? `${localUserInfo.middlename}, ${localUserInfo.surname}, ${localUserInfo.suffix}` : ''} 
+                      value={localUserInfo.firstname ? `${localUserInfo.firstname}, ${localUserInfo.middlename}, ${localUserInfo.surname}, ${localUserInfo.suffix}` : ''} 
                       disabled={true} 
                     />
                   </div>
                 </>
               ) : (
                 <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <ErrorWrapper label="First Name" name="firstname">
                     <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
                   </ErrorWrapper>
