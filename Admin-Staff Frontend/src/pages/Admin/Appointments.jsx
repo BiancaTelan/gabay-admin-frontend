@@ -44,7 +44,7 @@ export default function Appointments() {
     sortOrder: 'desc',
     statuses: ALL_STATUSES, 
     deptTypes: ['General', 'Specialty'],
-    deptFilter: '', // Selected department
+    deptFilter: '',
     timeline: 'All'
   });
 
@@ -108,31 +108,26 @@ export default function Appointments() {
 
     // --- TIMELINE FILTER LOGIC ---
     if (filters.timeline !== 'All') {
-      const now = new Date();
-      result = result.filter(item => {
-        if (!item.rawDate) return false;
-        
-        const itemDate = new Date(item.rawDate);
-        
-        if (filters.timeline === 'Today') {
-          return itemDate.toDateString() === now.toDateString();
-        }
-        if (filters.timeline === 'This Week') {
-          const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay()); 
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
-          return itemDate >= startOfWeek && itemDate <= endOfWeek;
-        }
-        if (filters.timeline === 'This Month') {
-          return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-        }
-        if (filters.timeline === 'This Year') {
-          return itemDate.getFullYear() === now.getFullYear();
-        }
-        return true;
-      });
-    }
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    result = result.filter(item => {
+      if (!item.rawDate) return false;
+      const itemDate = new Date(item.rawDate);
+      itemDate.setHours(0, 0, 0, 0);
+      
+      if (filters.timeline === 'Today') return itemDate.getTime() === now.getTime();
+      if (filters.timeline === 'This Week') {
+        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return itemDate >= startOfWeek && itemDate <= endOfWeek;
+      }
+      if (filters.timeline === 'This Month') {
+        return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }
 
     result.sort((a, b) => {
       const valA = String(a[filters.sortKey] || '');
@@ -235,6 +230,20 @@ export default function Appointments() {
             {showFilterDropdown && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-2xl p-5 space-y-5 max-h-[500px] overflow-y-auto z-50">
                 
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Timeline</p>
+                  <select 
+                    value={filters.timeline}
+                    className="w-full text-sm font-poppins border rounded-lg p-2 outline-none focus:border-gabay-blue bg-white"
+                    onChange={(e) => setFilters({...filters, timeline: e.target.value})}
+                  >
+                    <option value="All">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="This Week">This Week</option>
+                    <option value="This Month">This Month</option>
+                  </select>
+                </div>
+
                 <div>
                   <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Department</p>
                   <select 

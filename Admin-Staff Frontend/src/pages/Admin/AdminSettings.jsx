@@ -366,7 +366,7 @@ export default function AdminSettings() {
             />
             
             <button 
-              onClick={handleTriggerTriggerRestoreFile}
+              onClick={handleTriggerRestoreFile}
               disabled={isRestoring}
               className="w-full py-2.5 bg-gray-900 text-white hover:bg-black transition-all text-xs font-semibold font-poppins tracking-wider uppercase rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
