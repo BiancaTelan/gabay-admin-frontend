@@ -278,7 +278,7 @@ export default function Personnel() {
                 
                 return (
                   <tr key={doc.id} className={`hover:bg-gray-50 transition-colors ${isDeactivated ? 'opacity-60' : ''}`}>
-                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{doc.employeeID}</td>
+                    <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{doc.id}</td>
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{doc.licenseNumber || 'N/A'}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{doc.name}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gray-700">{doc.dept}</td>
@@ -332,7 +332,7 @@ export default function Personnel() {
             
             <div className="space-y-4">
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Doctor DB-ID</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.docID}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Employee ID</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.employeeID}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Employee ID</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.id}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">PRC License Number</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.licenseNumber || 'N/A'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Full Name</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.name}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm font-bold uppercase tracking-wide">Email Address</span><span className="text-gray-800 font-medium">{viewDetailsDoctor.email || 'N/A'}</span></div>
