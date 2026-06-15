@@ -347,7 +347,7 @@ export default function PersonnelAccount() {
                   <div className="md:col-span-4">
                     <Input 
                       label="Full Name" 
-                      value={localUserInfo.firstname ? `${localUserInfo.middlename}, ${localUserInfo.surname}` : ''} 
+                      value={localUserInfo.firstname ? `${localUserInfo.middlename}, ${localUserInfo.surname}, ${localUserInfo.suffix}` : ''} 
                       disabled={true} 
                     />
                   </div>
@@ -368,7 +368,7 @@ export default function PersonnelAccount() {
                 <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
               </>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block pl-1">Gender</label>
                   <select name="gender" value={isEditing ? tempUserInfo.gender : localUserInfo.gender} onChange={handleInputChange} disabled={!isEditing} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-poppins text-gray-800 outline-none focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal transition-all disabled:opacity-60 disabled:bg-gray-100">
