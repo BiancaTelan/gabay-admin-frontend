@@ -70,15 +70,16 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
       ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors/${editData.raw_id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/doctors`;
       
+    // FIX: Removed 'showSensitive' condition for employeeID and licenseNumber
     const payload = isEditing ? {
       firstname: formData.firstname.trim(),
       middlename: formData.middlename.trim(),
       surname: formData.surname.trim(),
       contactNumber: formData.contact,
       deptID: parseInt(formData.deptID),
-      employeeID: showSensitive && formData.employeeID ? formData.employeeID : undefined,
+      employeeID: formData.employeeID ? formData.employeeID.trim() : undefined, 
       email: showSensitive && formData.email ? formData.email : undefined,
-      licenseNumber: showSensitive && formData.licenseNumber ? formData.licenseNumber : undefined,
+      licenseNumber: formData.licenseNumber ? formData.licenseNumber.trim() : undefined,
     } : {
       employeeID: formData.employeeID.trim(),
       firstname: formData.firstname.trim(),
@@ -224,18 +225,11 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
                 </div>
                 
                 {showSensitive && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <p className="md:col-span-2 text-xs text-red-600 font-medium">Modifying these fields will trigger an email notification to the doctor with their updated credentials/assignments.</p>
+                  <div className="mt-4 grid grid-cols-1 gap-4">
+                    <p className="text-xs text-red-600 font-medium">Modifying these fields will trigger an email notification to the doctor with their updated credentials/assignments.</p>
                     
+                    {/* FIX: Removed duplicate ID and License inputs from here */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Change Employee ID</label>
-                      <input type="text" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Change License Number</label>
-                      <input type="text" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} />
-                    </div>
-                    <div className="md:col-span-2">
                       <label className="block text-xs font-semibold text-gray-700 mb-1">New Email Address</label>
                       <input type="email" className="w-full border border-red-300 p-2 rounded-lg text-sm outline-none focus:border-red-500" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="Change email..." />
                     </div>

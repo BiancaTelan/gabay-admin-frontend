@@ -120,10 +120,8 @@ export default function PersonnelAccount() {
   const navigate = useNavigate();
   const { token, logout, userRole, setProfilePhoto, user, profilePhoto } = useContext(AuthContext);
   const fileInputRef = useRef(null);
-
   const currentRole = user?.role || userRole; 
   const apiBase = currentRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
-
   const [localUserInfo, setLocalUserInfo] = useState({
     firstname: "", middlename: "", surname: "", suffix: "",
     role: currentRole?.toUpperCase() || "STAFF", email: "",
@@ -131,14 +129,39 @@ export default function PersonnelAccount() {
     street: "", barangay: "", city: "", province: "", postalCode: "", 
     profilePhoto: null
   });
-
   const [tempUserInfo, setTempUserInfo] = useState({ ...localUserInfo });
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [changeModalType, setChangeModalType] = useState('email'); 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '', onConfirm: null });
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const newErrors = {};
+    if (!tempUserInfo.firstname.trim()) newErrors.firstname = "Required";
+    if (!tempUserInfo.surname.trim()) newErrors.surname = "Required";
+    if (!tempUserInfo.dob) newErrors.dob = "Required";
+    if (!phonePattern.test(tempUserInfo.contactNumber)) newErrors.contactNumber = "Invalid format";
+    if (!tempUserInfo.street.trim()) newErrors.street = "Required";
+    if (!tempUserInfo.barangay.trim()) newErrors.barangay = "Required";
+    if (!tempUserInfo.city.trim()) newErrors.city = "Required";
+    if (!tempUserInfo.province.trim()) newErrors.province = "Required";
+    if (!/^\d{4}$/.test(tempUserInfo.postalCode)) newErrors.postalCode = "Must be 4 digits";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const ErrorWrapper = ({ label, name, children }) => (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
+      </div>
+      {children}
+    </div>
+  );
 
   // Dictionary for Auto-Fill
   const postalCodeMap = {
@@ -208,32 +231,15 @@ export default function PersonnelAccount() {
   };
 
   const handleSaveProfile = async () => {
-    if (!tempUserInfo.firstname.trim()) return toast.error("First Name is required.");
-    if (!tempUserInfo.surname.trim()) return toast.error("Surname is required.");
-    if (!tempUserInfo.dob) return toast.error("Date of Birth is required.");
-    
-    if (!tempUserInfo.contactNumber.trim()) {
-      return toast.error("Contact Number is required.");
-    } else if (!phonePattern.test(tempUserInfo.contactNumber)) {
-      return toast.error("Please enter a valid 11-digit contact number (e.g., 09123456789).");
-    }
-
-    if (!tempUserInfo.street.trim()) return toast.error("Street/Building is required.");
-    if (!tempUserInfo.barangay.trim()) return toast.error("Barangay is required.");
-    if (!tempUserInfo.city.trim()) return toast.error("City/Municipality is required.");
-    if (!tempUserInfo.province.trim()) return toast.error("Province is required.");
-    
-    if (!tempUserInfo.postalCode.trim()) {
-      return toast.error("Postal / ZIP Code is required.");
-    } else if (!/^\d{4}$/.test(tempUserInfo.postalCode)) {
-      return toast.error("Please enter a valid 4-digit Postal Code.");
+    if (!validate()) {
+        toast.error("Please fix the errors highlighted in red.");
+        return;
     }
 
     const payload = {
       firstname: tempUserInfo.firstname,
       middlename: tempUserInfo.middlename,
       surname: tempUserInfo.surname,
-      mi: tempUserInfo.mi,
       suffix: tempUserInfo.suffix,
       contactNumber: tempUserInfo.contactNumber,
       dob: tempUserInfo.dob,
@@ -258,6 +264,7 @@ export default function PersonnelAccount() {
       
       setLocalUserInfo({ ...tempUserInfo });
       setIsEditing(false);
+      setErrors({});
       toast.success("Profile updated successfully!", { id: loadingToast });
     } catch (error) {
       toast.error(error.message, { id: loadingToast });
@@ -331,12 +338,21 @@ export default function PersonnelAccount() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-2 space-y-6">
+          {/* PERSONAL INFORMATION */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Personal Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              <Input label="First Name" name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} />
+              
+              <ErrorWrapper label="First Name" name="firstname">
+                <Input name="firstname" value={isEditing ? tempUserInfo.firstname : localUserInfo.firstname} onChange={handleInputChange} disabled={!isEditing} className={errors.firstname ? 'border-red-500 bg-red-50/30' : ''} />
+              </ErrorWrapper>
+              
               <Input label="Middle Name" name="middlename" value={isEditing ? tempUserInfo.middlename : localUserInfo.middlename} onChange={handleInputChange} disabled={!isEditing} />
-              <Input label="Surname" name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} />
+              
+              <ErrorWrapper label="Surname" name="surname">
+                <Input name="surname" value={isEditing ? tempUserInfo.surname : localUserInfo.surname} onChange={handleInputChange} disabled={!isEditing} className={errors.surname ? 'border-red-500 bg-red-50/30' : ''} />
+              </ErrorWrapper>
+              
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Suffix" name="suffix" value={isEditing ? tempUserInfo.suffix : localUserInfo.suffix} onChange={handleInputChange} disabled={!isEditing} />
                 <div className="space-y-1">
@@ -348,23 +364,52 @@ export default function PersonnelAccount() {
                   </select>
                 </div>
               </div>
-              <Input label="Contact Number" name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" />
-              <Input label="Date of Birth" name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} />
+              
+              <ErrorWrapper label="Contact Number" name="contactNumber">
+                <Input name="contactNumber" type="tel" value={isEditing ? tempUserInfo.contactNumber : localUserInfo.contactNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="09xxxxxxxxx" className={errors.contactNumber ? 'border-red-500 bg-red-50/30' : ''} />
+              </ErrorWrapper>
+              
+              <ErrorWrapper label="Date of Birth" name="dob">
+                <Input name="dob" type="date" value={isEditing ? tempUserInfo.dob : localUserInfo.dob} onChange={handleInputChange} disabled={!isEditing} className={errors.dob ? 'border-red-500 bg-red-50/30' : ''} />
+              </ErrorWrapper>
+
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          {/* LOCATION DETAILS */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mt-6">
             <h2 className="text-lg font-bold text-gabay-blue font-montserrat mb-6 pb-2 border-b border-gray-100">Location Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5">
-              <div className="md:col-span-4">
-                <Input label="Street / Building / House No." name="street" value={isEditing ? tempUserInfo.street : localUserInfo.street} onChange={handleInputChange} disabled={!isEditing} />
-              </div>
-              
-              <AddressDropdowns tempUserInfo={tempUserInfo} setTempUserInfo={setTempUserInfo} isEditing={isEditing} />
-              
-              <div className="md:col-span-2">
-                <Input label="Postal / ZIP Code" name="postalCode" type="text" maxLength={4} value={isEditing ? tempUserInfo.postalCode : localUserInfo.postalCode} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g., 1900" />
-              </div>
+              {!isEditing ? (
+                <>
+                  <div className="md:col-span-4">
+                    <Input 
+                      label="Complete Address" 
+                      value={localUserInfo.street ? `${localUserInfo.street}, ${localUserInfo.barangay}, ${localUserInfo.city}, ${localUserInfo.province}` : ''} 
+                      disabled={true} 
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Input label="Postal / ZIP Code" value={localUserInfo.postalCode} disabled={true} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="md:col-span-4">
+                    <ErrorWrapper label="Street / Building / House No." name="street">
+                      <Input name="street" value={tempUserInfo.street} onChange={handleInputChange} disabled={!isEditing} className={errors.street ? 'border-red-500 bg-red-50/30' : ''} />
+                    </ErrorWrapper>
+                  </div>
+                  
+                  <AddressDropdowns tempUserInfo={tempUserInfo} setTempUserInfo={setTempUserInfo} isEditing={isEditing} />
+                  
+                  <div className="md:col-span-2">
+                    <ErrorWrapper label="Postal / ZIP Code" name="postalCode">
+                      <Input name="postalCode" type="text" maxLength={4} value={tempUserInfo.postalCode} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g., 1900" className={errors.postalCode ? 'border-red-500 bg-red-50/30' : ''} />
+                    </ErrorWrapper>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
