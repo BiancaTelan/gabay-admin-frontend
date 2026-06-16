@@ -215,16 +215,20 @@ export default function PersonnelAccount() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    setTempUserInfo(prev => ({ ...prev, [name]: value }));
-      
-    if (name === 'postalCode' && value.length === 4) {
-        const locationInfo = getLocationByZip(value);
-        if (locationInfo) {
-          updated.province = locationInfo.province;
-          updated.city = locationInfo.city;
-          updated.barangay = ''; 
-        }
+    setTempUserInfo(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'postalCode' && value.length === 4) {
+          const locationInfo = getLocationByZip(value);
+          if (locationInfo) {
+            updated.province = locationInfo.province;
+            updated.city = locationInfo.city;
+            updated.barangay = ''; 
+            toast.success(`Auto-filled location for ${locationInfo.city}`);
+          }
       }
+      return updated; 
+    });
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleSaveProfile = async () => {
