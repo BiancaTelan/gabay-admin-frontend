@@ -115,7 +115,7 @@ export default function Personnel() {
   };
 
   const filteredData = useMemo(() => {
-    const lowerSearch = search.toLowerCase().trim();
+    const searchTerms = search.toLowerCase().trim().split(/\s+/);
     
     let result = doctorsData.filter(item => {
       const name = item.name || '';
@@ -124,13 +124,9 @@ export default function Personnel() {
       const dept = item.dept || item.department || '';
       const license = item.licenseNumber || item.license_number || '';
 
-      return (
-        name.toLowerCase().includes(lowerSearch) ||
-        String(id).toLowerCase().includes(lowerSearch) ||
-        email.toLowerCase().includes(lowerSearch) ||
-        dept.toLowerCase().includes(lowerSearch) ||
-        String(license).toLowerCase().includes(lowerSearch)
-      );
+      const searchableString = `${name} ${id} ${email} ${dept} ${license}`.toLowerCase();
+
+      return searchTerms.every(term => searchableString.includes(term));
     });
 
     if (filters.status.length > 0) result = result.filter(i => filters.status.includes(i.status));
