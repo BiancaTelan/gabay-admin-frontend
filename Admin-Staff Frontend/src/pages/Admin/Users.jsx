@@ -76,15 +76,22 @@ export default function Users() {
   };
 
   const filteredData = useMemo(() => {
-    const lowerSearch = search.toLowerCase();
+    const cleanSearch = search.trim().toLowerCase();
+    const searchTerms = cleanSearch ? cleanSearch.split(/\s+/) : [];
     
-    let result = staffData.filter(item => 
-      (item.name && item.name.toLowerCase().includes(lowerSearch)) || 
-      (item.id && String(item.id).toLowerCase().includes(lowerSearch)) ||
-      (item.email && item.email.toLowerCase().includes(lowerSearch)) ||
-      (item.phone && String(item.phone).toLowerCase().includes(lowerSearch))
-    );
-    
+    let result = staffData.filter(item => {
+      if (searchTerms.length === 0) return true;
+
+      const name = item.name || '';
+      const id = item.id || '';
+      const email = item.email || '';
+      const phone = item.phone || item.contactNumber || '';
+
+      const searchableString = `${name} ${id} ${email} ${phone}`.toLowerCase();
+
+      return searchTerms.every(term => searchableString.includes(term));
+    });
+
     if (filters.roles.length > 0) result = result.filter(i => filters.roles.includes(i.role));
     if (filters.statuses.length > 0) result = result.filter(i => filters.statuses.includes(i.status));
 
@@ -247,10 +254,10 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {pagedData.map((user) => {
+                {pagedData.map((user, index) => {
                   const isDeactivated = user.status === 'Deactivated';
                   return (
-                    <tr key={user.id} className={`hover:bg-gray-50 ${isDeactivated ? 'opacity-60' : ''}`}>
+                    <tr key={user.raw_id || `user-${index}`} className={`hover:bg-gray-50 ${isDeactivated ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-4 text-sm text-gray-700 font-medium">{user.id}</td>
                       <td className="px-4 py-4">
                         <span className={`px-4 py-1 text-xs font-bold rounded-full ${user.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
