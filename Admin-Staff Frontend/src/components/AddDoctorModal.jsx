@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const ErrorWrapper = ({ label, error, children }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between items-center">
+      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      {error && <span className="text-[10px] text-red-500 font-bold">{error}</span>}
+    </div>
+    {children}
+  </div>
+);
+
 export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = null }) {
   if (!isOpen) return null;
 
@@ -30,7 +40,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
   });
 
   useEffect(() => {
-    // Fetch departments
     fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/departments`, { headers: { 'Authorization': `Bearer ${token}` }})
     .then(res => res.json())
     .then(data => {
@@ -44,7 +53,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
     })
     .catch(() => toast.error("Failed to load departments."));
 
-    // Pre-fill form data safely
     if (isEditing && editData) {
       let fName = editData.firstname || '';
       let sName = editData.surname || '';
@@ -66,11 +74,11 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
         deptID: editData.deptID || prev.deptID
       }));
       setShowSensitive(false);
-      setErrors({}); // Reset errors
+      setErrors({});
     } else {
       setFormData({ employeeID: '', firstname: '', middlename: '', surname: '', licenseNumber: '', email: '', contact: '', deptID: '' });
       setSchedules([{ id: Date.now(), days: [], startTime: '08:00', endTime: '17:00', slot: 20 }]);
-      setErrors({}); // Reset errors
+      setErrors({}); 
     }
   }, [editData, isOpen, token]);
 
@@ -92,17 +100,6 @@ export default function AddDoctorModal({ isOpen, onClose, onSuccess, editData = 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  // Wrapper for rendering inputs with inline errors
-  const ErrorWrapper = ({ label, name, children }) => (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
-      </div>
-      {children}
-    </div>
-  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();

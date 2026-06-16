@@ -9,6 +9,16 @@ import { phonePattern } from '../../utils/constants';
 import { AuthContext } from '../../authContext';
 import { getZipCode, getLocationByZip } from '../../utils/locationUtils'; 
 
+const ErrorWrapper = ({ label, error, children }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between items-center">
+      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      {error && <span className="text-[10px] text-red-500 font-bold">{error}</span>}
+    </div>
+    {children}
+  </div>
+);
+
 function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
