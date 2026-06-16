@@ -160,7 +160,25 @@ export default function PersonnelAccount() {
     const newErrors = {};
     if (!tempUserInfo.firstname.trim()) newErrors.firstname = "Required";
     if (!tempUserInfo.surname.trim()) newErrors.surname = "Required";
-    if (!tempUserInfo.dob) newErrors.dob = "Required";
+    if (!tempUserInfo.dob) {
+      newErrors.dob = "Required";
+    } else {
+      const birthDate = new Date(tempUserInfo.dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      if (birthDate > today) {
+        newErrors.dob = "Cannot be in the future";
+      } else if (age < 18) {
+        newErrors.dob = "Personnel must be at least 18 years old";
+      } else if (age > 110) {
+        newErrors.dob = "Age cannot exceed 110 years old";
+      }
+    }
     if (!phonePattern.test(tempUserInfo.contactNumber)) newErrors.contactNumber = "Invalid format";
     if (!tempUserInfo.street.trim()) newErrors.street = "Required";
     if (!tempUserInfo.barangay.trim()) newErrors.barangay = "Required";

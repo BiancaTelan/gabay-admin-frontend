@@ -210,39 +210,45 @@ export default function Analytics() {
                   <p className="text-sm text-gray-400 font-poppins italic col-span-full py-4 text-center">No staff performance data recorded for this period.</p>
               ) : (
                 staffPerformance.map((staff) => (
-                <div key={staff.id} className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm border-2 border-white shadow-sm">
-                      {staff.name.charAt(0)}
+                <div key={staff.id} className="flex flex-col gap-4 p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors bg-white">
+                  
+                  {/* Avatar & Name */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm border-2 border-white shadow-sm">
+                        {staff.name.charAt(0)}
+                      </div>
+                      {staff.isOnline && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-gabay-green border-2 border-white rounded-full" />
+                      )}
                     </div>
-                    {staff.isOnline && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-gabay-green border-2 border-white rounded-full animate-pulse" />
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gabay-blue truncate">{staff.name}</h4>
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-gabay-blue truncate">{staff.name}</h4>
+                  {/* Vertical Statistics Block */}
+                  <div className="bg-gray-50 border border-gray-100 p-2 rounded-xl flex items-center justify-between text-[10px] font-bold tracking-tight">
+                    <div className="flex flex-col items-center flex-1 min-w-0">
+                      <span className="text-green-600 text-sm">{staff.approved}</span>
+                      <span className="text-gray-400 mt-0.5 truncate w-full text-center">APPROVED</span>
+                    </div>
+                    
+                    <div className="w-px h-6 bg-gray-200 shrink-0"></div>
+                    
+                    <div className="flex flex-col items-center flex-1 min-w-0">
+                      <span className="text-red-500 text-sm">{staff.canceled}</span>
+                      <span className="text-gray-400 mt-0.5 truncate w-full text-center">CANCELED</span>
+                    </div>
+                    
+                    <div className="w-px h-6 bg-gray-200 shrink-0"></div>
+                    
+                    <div className="flex flex-col items-center flex-1 min-w-0">
+                      <span className="text-teal-600 text-sm">{staff.rescheduled}</span>
+                      <span className="text-gray-400 mt-0.5 truncate w-full text-center">RESCHED</span>
+                    </div>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-bold tracking-tight flex-shrink-0">
-                    <div className="text-green-600">
-                      <span>{staff.approved} </span>
-                      <span className="hidden sm:inline">APPROVED</span>
-                      <span className="inline sm:hidden">APPR</span>
-                    </div>
-                    <span className="text-gray-300 font-normal">|</span>
-                    <div className="text-red-500">
-                      <span>{staff.canceled} </span>
-                      <span className="hidden sm:inline">CANCELED</span>
-                      <span className="inline sm:hidden">CANC</span>
-                    </div>
-                    <span className="text-gray-300 font-normal">|</span>
-                    <div className="text-teal-600">
-                      <span>{staff.rescheduled} </span>
-                      <span className="hidden sm:inline">RESCHEDULED</span>
-                      <span className="inline sm:hidden">RESCHED</span>
-                    </div>
-                  </div>
                 </div>
               )))}
             </div>

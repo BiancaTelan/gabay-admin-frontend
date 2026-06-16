@@ -115,10 +115,14 @@ export default function Personnel() {
   };
 
   const filteredData = useMemo(() => {
+    const lowerSearch = search.toLowerCase();
+    
     let result = doctorsData.filter(item => 
-      (item.name && item.name.toLowerCase().includes(search.toLowerCase())) || 
-      (item.id && String(item.id).toLowerCase().includes(search.toLowerCase())) ||
-      (item.dept && item.dept.toLowerCase().includes(search.toLowerCase()))
+      (item.name && item.name.toLowerCase().includes(lowerSearch)) || 
+      (item.id && String(item.id).toLowerCase().includes(lowerSearch)) ||
+      (item.dept && item.dept.toLowerCase().includes(lowerSearch)) ||
+      (item.email && item.email.toLowerCase().includes(lowerSearch)) ||
+      (item.licenseNumber && String(item.licenseNumber).toLowerCase().includes(lowerSearch))
     );
 
     if (filters.status.length > 0) result = result.filter(i => filters.status.includes(i.status));
@@ -133,7 +137,7 @@ export default function Personnel() {
 
     return result;
   }, [search, filters, doctorsData]);
-
+  
   const handleExportExcel = async () => {
     if (filteredData.length === 0) {
       toast.error("No doctor data available to export."); return;

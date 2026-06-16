@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const ErrorWrapper = ({ label, error, children }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between items-center">
+      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      {error && <span className="text-[10px] text-red-500 font-bold">{error}</span>}
+    </div>
+    {children}
+  </div>
+);
+
 export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData = null }) {
   if (!isOpen) return null;
 
@@ -154,7 +164,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
               Personal Information
             </div>
 
-            <ErrorWrapper label="First Name" name="firstname">
+            <ErrorWrapper label="First Name" error={errors.firstname}>
               <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.firstname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})} />
             </ErrorWrapper>
 
@@ -163,7 +173,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
               <input type="text" className="w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue" value={formData.middlename} onChange={e => setFormData({...formData, middlename: e.target.value})} />
             </div>
 
-            <ErrorWrapper label="Surname" name="surname">
+            <ErrorWrapper label="Surname" error={errors.surname}>
               <input type="text" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.surname ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.surname} onChange={e => setFormData({...formData, surname: e.target.value})} />
             </ErrorWrapper>
             
@@ -176,7 +186,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
               </select>
             </div>
 
-            <ErrorWrapper label="Contact Number" name="contact">
+            <ErrorWrapper label="Contact Number" error={errors.contact}>
                 <input type="tel" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.contact ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
             </ErrorWrapper>
 
@@ -185,7 +195,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
               System Configuration
             </div>
 
-            <ErrorWrapper label="Employee ID" name="employeeID">
+            <ErrorWrapper label="Employee ID" error={errors.employeeID}>
               <input type="text" placeholder="e.g., EMP-001" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.employeeID ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.employeeID} onChange={e => setFormData({...formData, employeeID: e.target.value})} />
             </ErrorWrapper>
             
@@ -198,7 +208,7 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
             </div>
 
             {!isEditing && (
-              <ErrorWrapper label="Email Address" name="email">
+              <ErrorWrapper label="Email Address" error={errors.email}>
                 <input type="email" className={`w-full border p-2 rounded-lg text-sm outline-none focus:border-gabay-blue ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </ErrorWrapper>
             )}

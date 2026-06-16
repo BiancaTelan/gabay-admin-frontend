@@ -76,10 +76,15 @@ export default function Users() {
   };
 
   const filteredData = useMemo(() => {
+    const lowerSearch = search.toLowerCase();
+    
     let result = staffData.filter(item => 
-      (item.name && item.name.toLowerCase().includes(search.toLowerCase())) || 
-      (item.id && String(item.id).toLowerCase().includes(search.toLowerCase()))
+      (item.name && item.name.toLowerCase().includes(lowerSearch)) || 
+      (item.id && String(item.id).toLowerCase().includes(lowerSearch)) ||
+      (item.email && item.email.toLowerCase().includes(lowerSearch)) ||
+      (item.phone && String(item.phone).toLowerCase().includes(lowerSearch))
     );
+    
     if (filters.roles.length > 0) result = result.filter(i => filters.roles.includes(i.role));
     if (filters.statuses.length > 0) result = result.filter(i => filters.statuses.includes(i.status));
 
@@ -146,7 +151,13 @@ export default function Users() {
       <div className="flex flex-col lg:flex-row justify-between gap-4 items-center">
         <div className="flex flex-row items-center gap-3 w-full lg:w-auto">
           <div className="relative w-full lg:w-96">
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Personnel..." className="w-full pl-4 pr-10 py-2 border rounded-lg font-poppins outline-none focus:ring-2 focus:ring-gabay-blue/20" />
+            <input type="text" value={search} onChange={(e) => {
+              setSearch(e.target.value); 
+              setCurrentPage(1); 
+            }} 
+            placeholder="Search Personnel..." 
+            className="w-full pl-4 pr-10 py-2 border rounded-lg font-poppins outline-none focus:ring-2 focus:ring-gabay-blue/20"
+            />
             <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
           </div>
           <button onClick={() => { setSelectedPersonnel(null); setIsAddModalOpen(true); }} className="whitespace-nowrap flex items-center gap-2 px-5 py-2 rounded-full bg-gabay-teal text-white font-medium text-sm hover:bg-opacity-90 transition">
