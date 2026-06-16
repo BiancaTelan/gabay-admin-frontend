@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { 
   Clock, Database, History, AlertTriangle, Save, Edit2, 
-  X, HardHat, Upload 
+  X, HardHat, Upload, DownloadCloud 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthContext } from '../../authContext'; 
@@ -13,6 +13,8 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef(null);
+  const [cloudBackups, setCloudBackups] = useState([]);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
   const [settings, setSettings] = useState({
@@ -49,8 +51,29 @@ export default function AdminSettings() {
         setIsLoading(false);
       }
     };
+    
     fetchSettings();
+    fetchCloudBackups(); 
   }, [apiBase, token]);
+
+  const fetchCloudBackups = async () => {
+    setIsLoadingBackups(true);
+    try {
+      const response = await fetch(`${apiBase}/api/admin/backups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCloudBackups(data.backups || []);
+      } else {
+        toast.error("Failed to retrieve backup history.");
+      }
+    } catch (error) {
+      toast.error("Network error while fetching backups.");
+    } finally {
+      setIsLoadingBackups(false);
+    }
+  };
 
   // --- VALIDATION LOGIC ---
   const convertTo24Hour = (timeStr) => {
@@ -411,6 +434,45 @@ export default function AdminSettings() {
                 <Upload size={14} /> 
                 {isRestoring ? 'RESTORING...' : 'RESTORE DATA'}
               </button>
+          </div>
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <DownloadCloud size={14} /> Cloud Backups
+              </span>
+              <button
+                onClick={fetchCloudBackups}
+                disabled={isLoadingBackups}
+                className="text-[10px] text-gabay-teal font-bold hover:underline"
+              >
+                {isLoadingBackups ? 'REFRESHING...' : 'REFRESH LIST'}
+              </button>
+            </div>
+            
+            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+              {cloudBackups.length === 0 ? (
+                 <p className="text-xs text-gray-400 text-center py-2 italic">No backups found in Cloudinary.</p>
+              ) : (
+                cloudBackups.map((backup, idx) => (
+                   <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                     <div className="truncate pr-2">
+                       <p className="text-[11px] font-bold text-gabay-blue truncate">{backup.filename}</p>
+                       <p className="text-[10px] text-gray-500 mt-0.5">
+                         {new Date(backup.created_at).toLocaleString()} • {(backup.size_bytes / 1024 / 1024).toFixed(2)} MB
+                       </p>
+                     </div>
+                     <a 
+                       href={backup.download_url} 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className="text-[10px] font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-md text-gabay-teal hover:bg-teal-50 transition-colors flex-shrink-0"
+                     >
+                       DOWNLOAD
+                     </a>
+                   </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
