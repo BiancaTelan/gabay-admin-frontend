@@ -121,8 +121,7 @@ export default function Personnel() {
       (item.name && item.name.toLowerCase().includes(lowerSearch)) || 
       (item.id && String(item.id).toLowerCase().includes(lowerSearch)) ||
       (item.dept && item.dept.toLowerCase().includes(lowerSearch)) ||
-      (item.email && item.email.toLowerCase().includes(lowerSearch)) ||
-      (item.licenseNumber && String(item.licenseNumber).toLowerCase().includes(lowerSearch))
+      (item.email && item.email.toLowerCase().includes(lowerSearch))
     );
 
     if (filters.status.length > 0) result = result.filter(i => filters.status.includes(i.status));
