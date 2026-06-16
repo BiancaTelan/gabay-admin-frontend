@@ -7,29 +7,7 @@ import ConfirmationModal from '../../components/confirmModal';
 import ChangeModal from '../../components/changeModal';
 import { phonePattern } from '../../utils/constants'; 
 import { AuthContext } from '../../authContext';
-
-// ==========================================
-// STATIC DATA & WRAPPER COMPONENTS
-// ==========================================
-
-const postalCodeMap = {
-  "1900": { city: "Cainta", province: "Rizal" },
-  "1920": { city: "Taytay", province: "Rizal" },
-  "1800": { city: "Marikina", province: "METRO MANILA" }, 
-  "1600": { city: "Pasig", province: "METRO MANILA" },
-  "1100": { city: "Quezon City", province: "METRO MANILA" },
-  "1000": { city: "Manila", province: "METRO MANILA" }
-};
-
-const ErrorWrapper = ({ label, name, error, children }) => (
-  <div className="space-y-1">
-    <div className="flex justify-between items-center">
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-      {error && <span className="text-[10px] text-red-500 font-bold">{error}</span>}
-    </div>
-    {children}
-  </div>
-);
+import { getZipCode, getLocationByZip } from '../../utils/locationUtils'; 
 
 function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
   const [provinces, setProvinces] = useState([]);
@@ -109,7 +87,16 @@ function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
         <select 
           disabled={!isEditing || !tempUserInfo.province} 
           value={tempUserInfo.city} 
-          onChange={(e) => setTempUserInfo(prev => ({ ...prev, city: e.target.value, barangay: '' }))} 
+          onChange={(e) => {
+            const selectedCity = e.target.value;
+            const autoZip = getZipCode(localUserInfo.province, cityName);
+            setTempUserInfo(prev => ({ 
+              ...prev, 
+              city: selectedCity, 
+              barangay: '',
+              postalCode: autoZip || '' 
+            }));
+          }}
           className="w-full border p-2.5 rounded-xl text-sm outline-none bg-gray-50 focus:ring-2 focus:ring-gabay-teal/20 focus:border-gabay-teal disabled:opacity-60 disabled:bg-gray-100 transition-all"
         >
           <option value="" disabled>Select City</option>
@@ -218,20 +205,16 @@ export default function PersonnelAccount() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // 3. FIX: Simplified state update to prevent bugs with strict mode
     setTempUserInfo(prev => ({ ...prev, [name]: value }));
       
-    // Execute Postal Code Auto-fill Safely
-    if (name === 'postalCode' && value.length === 4 && postalCodeMap[value]) {
-      setTempUserInfo(prev => ({
-        ...prev,
-        postalCode: value, // Ensure the input still receives the value
-        province: postalCodeMap[value].province,
-        city: postalCodeMap[value].city,
-        barangay: '' 
-      }));
-      toast.success(`Auto-filled location for ${postalCodeMap[value].city}`);
-    }
+    if (name === 'postalCode' && value.length === 4) {
+        const locationInfo = getLocationByZip(value);
+        if (locationInfo) {
+          updated.province = locationInfo.province;
+          updated.city = locationInfo.city;
+          updated.barangay = ''; 
+        }
+      }
   };
 
   const handleSaveProfile = async () => {
