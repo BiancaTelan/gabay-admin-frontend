@@ -11,6 +11,7 @@ export default function AdminSettings() {
   const { token } = useContext(AuthContext);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef(null);
   const apiBase = import.meta.env.VITE_API_BASE_URL;
 
