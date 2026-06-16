@@ -889,7 +889,7 @@ export default function StaffAppointments() {
                           <span className="font-semibold text-gabay-navy">Batch:</span> {app.batch}
                         </p>
                       )}
-                      {app.approvingStaffName && activeTab !== "pending" && activeTab !== "canceled" && (
+                      {app.approvingStaffName && activeTab !== "pending" && activeTab !== "canceled" && app.status !== "rescheduled"  && (
                         <p className="font-poppins text-sm text-gabay-teal">
                           <span className="font-semibold text-gabay-navy">Approved by:</span> {app.approvingStaffName}
                         </p>
