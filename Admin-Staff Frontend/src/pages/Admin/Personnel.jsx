@@ -115,14 +115,23 @@ export default function Personnel() {
   };
 
   const filteredData = useMemo(() => {
-    const lowerSearch = search.toLowerCase();
+    const lowerSearch = search.toLowerCase().trim();
     
-    let result = doctorsData.filter(item => 
-      (item.name && item.name.toLowerCase().includes(lowerSearch)) || 
-      (item.id && String(item.id).toLowerCase().includes(lowerSearch)) ||
-      (item.dept && item.dept.toLowerCase().includes(lowerSearch)) ||
-      (item.email && item.email.toLowerCase().includes(lowerSearch))
-    );
+    let result = doctorsData.filter(item => {
+      const name = item.name || '';
+      const id = item.id || '';
+      const email = item.email || '';
+      const dept = item.dept || item.department || '';
+      const license = item.licenseNumber || item.license_number || '';
+
+      return (
+        name.toLowerCase().includes(lowerSearch) ||
+        String(id).toLowerCase().includes(lowerSearch) ||
+        email.toLowerCase().includes(lowerSearch) ||
+        dept.toLowerCase().includes(lowerSearch) ||
+        String(license).toLowerCase().includes(lowerSearch)
+      );
+    });
 
     if (filters.status.length > 0) result = result.filter(i => filters.status.includes(i.status));
     if (filters.deptFilter) result = result.filter(item => item.dept === filters.deptFilter);
