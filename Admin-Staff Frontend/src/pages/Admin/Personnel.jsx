@@ -247,6 +247,29 @@ export default function Personnel() {
                   </select>
                 </div>
 
+                <div>
+                  <p className="text-[10px] font-bold font-poppins text-gray-400 uppercase tracking-widest mb-2">Status</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Active', 'Deactivated'].map(s => (
+                      <label key={s} className="flex items-center gap-2 text-sm text-gray-600 font-poppins cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={filters.status.includes(s)} 
+                          onChange={(e) => {
+                            const newStatus = e.target.checked 
+                                ? [...filters.status, s] 
+                                : filters.status.filter(x => x !== s);
+                            setFilters({...filters, status: newStatus});
+                            setCurrentPage(1); 
+                          }} 
+                          className="w-4 h-4 rounded accent-gabay-blue" 
+                        /> 
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="pt-2 flex gap-2"> 
                   <button onClick={() => setFilters({ sortKey: 'name', sortOrder: 'asc', status: ['Active', 'Deactivated'], deptFilter: '' })} className="flex-1 py-2 text-xs border border-gray-400 rounded-lg font-poppins font-medium text-gray-400 hover:text-red-500 transition-colors">Reset All</button>
                   <button onClick={() => setShowFilterDropdown(false)} className="flex-1 py-2 bg-gabay-blue text-white rounded-lg text-xs font-poppins font-medium hover:bg-opacity-90 transition">Apply</button>
