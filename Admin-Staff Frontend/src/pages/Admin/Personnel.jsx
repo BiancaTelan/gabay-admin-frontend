@@ -115,9 +115,12 @@ export default function Personnel() {
   };
 
   const filteredData = useMemo(() => {
-    const searchTerms = search.toLowerCase().trim().split(/\s+/);
+    const cleanSearch = search.trim().toLowerCase();
+    const searchTerms = cleanSearch ? cleanSearch.split(/\s+/) : [];
     
     let result = doctorsData.filter(item => {
+      if (searchTerms.length === 0) return true;
+
       const name = item.name || '';
       const id = item.id || '';
       const email = item.email || '';
@@ -274,12 +277,12 @@ export default function Personnel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {pagedData.map((doc) => {
+              {pagedData.map((doc, index) => {
                 const isAvailable = doc.status === 'Active';
                 const isDeactivated = doc.status !== 'Active';
                 
                 return (
-                  <tr key={doc.id} className={`hover:bg-gray-50 transition-colors ${isDeactivated ? 'opacity-60' : ''}`}>
+                  <tr key={doc.raw_id || `doc-${index}`} className={`hover:bg-gray-50 transition-colors ${isDeactivated ? 'opacity-60' : ''}`}>
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700 font-medium">{doc.id}</td>
                     <td className="px-4 py-4 text-xs md:text-sm font-poppins text-gray-700">{doc.licenseNumber || 'N/A'}</td>
                     <td className="px-4 py-4 text-xs font-poppins md:text-sm text-gabay-blue font-medium">{doc.name}</td>
