@@ -2,16 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const ErrorWrapper = ({ label, name, children }) => (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-        {errors[name] && <span className="text-[10px] text-red-500 font-bold">{errors[name]}</span>}
-      </div>
-      {children}
-    </div>
-  );
-
 export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData = null }) {
   if (!isOpen) return null;
 
@@ -71,7 +61,6 @@ export default function AddPersonnelModal({ isOpen, onClose, onSuccess, editData
     }
   }, [editData, isOpen, token]);
 
-  // --- NEW: INLINE VALIDATION LOGIC ---
   const validate = () => {
     const newErrors = {};
     if (!formData.firstname.trim()) newErrors.firstname = "Required";
