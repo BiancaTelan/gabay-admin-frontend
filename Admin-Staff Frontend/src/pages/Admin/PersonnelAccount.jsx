@@ -99,7 +99,7 @@ function AddressDropdowns({ tempUserInfo, setTempUserInfo, isEditing }) {
           value={tempUserInfo.city} 
           onChange={(e) => {
             const selectedCity = e.target.value;
-            const autoZip = getZipCode(localUserInfo.province, cityName);
+            const autoZip = getZipCode(tempUserInfo.province, selectedCity);
             setTempUserInfo(prev => ({ 
               ...prev, 
               city: selectedCity, 
