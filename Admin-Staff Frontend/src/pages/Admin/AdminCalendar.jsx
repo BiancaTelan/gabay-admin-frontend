@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { ChevronLeft, ChevronRight, Eye, Plus, X, Check, Edit2 } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isBefore, startOfDay } from 'date-fns';
 import AddEvent from '../../components/AddEvent';
 import { AuthContext } from '../../authContext';
 import toast from 'react-hot-toast';
@@ -25,7 +25,6 @@ export default function AdminCalendar() {
     setJumpText(format(currentMonth, 'MM/yyyy'));
   }, [currentMonth]);
 
-  // Input Handler for Jump to Date field
   const handleInputChange = (e) => {
     let val = e.target.value.replace(/\D/g, "");
     if (val.length > 2) {
@@ -181,6 +180,9 @@ export default function AdminCalendar() {
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart);
     const endDate = endOfWeek(monthEnd);
+    
+    const today = startOfDay(new Date()); 
+    
     const rows = [];
     let day = startDate;
 
@@ -192,12 +194,15 @@ export default function AdminCalendar() {
         const event = events.find(e => isSameDay(cloneDay, e.date));
         const dayStats = getDayData(cloneDay);
         const isSelected = isSameDay(cloneDay, selectedDate);
+        
+        const isPastDate = isBefore(cloneDay, today); 
 
         daysInRow.push(
           <div
             key={day}
             className={`min-h-[80px] md:min-h-[110px] border p-1 md:p-2 transition-all cursor-pointer relative font-poppins flex flex-col group
               ${!isSameMonth(day, monthStart) ? 'bg-gray-50 text-gray-300' : 'text-gabay-blue'}
+              ${isPastDate ? 'opacity-50 bg-gray-100' : ''} 
               ${isSelected ? 'ring-2 ring-inset ring-gray-400 z-10' : 'hover:bg-teal-50/30'}`}
             onClick={() => handleDateClick(cloneDay)}
             onDoubleClick={() => handleDoubleClick(cloneDay)}
