@@ -131,6 +131,58 @@ export default function AdminSettings() {
       toast.error("Network error occurred.");
     }
   };
+  
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRestore = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.sql')) {
+      toast.error("Invalid file type. Please upload a .sql file.");
+      e.target.value = null;
+      return;
+    }
+
+    const confirmRestore = window.confirm(
+      "WARNING: Restoring a backup will overwrite the entire database. This action cannot be undone. Are you sure you want to proceed?"
+    );
+
+    if (!confirmRestore) {
+      e.target.value = null;
+      return;
+    }
+
+    setIsRestoring(true);
+    const loadingToast = toast.loading("Restoring database. Please do not close the browser...");
+
+    try {
+      const formData = new FormData();
+      formData.append('backup_file', file);
+
+      const response = await fetch(`${apiBase}/api/admin/restore`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        toast.success("Database restored successfully!", { id: loadingToast });
+      } else {
+        const errData = await response.json();
+        toast.error(errData.detail || "Failed to restore database.", { id: loadingToast });
+      }
+    } catch (error) {
+      toast.error("Network error during restoration.", { id: loadingToast });
+    } finally {
+      setIsRestoring(false);
+      e.target.value = null; 
+    }
+  };
 
   // --- TIME OPTIONS FOR SELECT INPUTS ---
   const timeOptions = [
@@ -274,30 +326,6 @@ export default function AdminSettings() {
                 />
                 <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gabay-teal"></div>
               </label>
-              
-              <button 
-                disabled={!isEditMode} 
-                className="text-[10px] font-bold text-gabay-teal border border-gabay-teal px-4 py-2 rounded-lg hover:bg-teal-50 disabled:opacity-30 transition-colors"
-                onClick={async () => {
-                  try {
-                    const response = await fetch(`${apiBase}/api/admin/backup`, { 
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (response.ok) {
-                        toast.success('Backup sequence initiated successfully!');
-                    } else {
-                        const errData = await response.json();
-                        toast.error(errData.detail || 'Backup failed to start.');
-                    }
-                  } catch (err) {
-                    toast.error('Network error. Check server logs.');
-                  }
-                }}
-              >
-                BACKUP NOW
-              </button>
             </div>
           </div>
 
@@ -338,6 +366,50 @@ export default function AdminSettings() {
               Enable toggle to schedule automatic backups.
             </p>
           )}
+
+          {/* MANUAL BACKUP & RESTORE CONTROLS */}
+          <div className="pt-4 border-t border-gray-100 flex gap-3">
+             <button 
+                disabled={!isEditMode || isRestoring} 
+                className="flex-1 text-[11px] font-bold text-gabay-teal border border-gabay-teal px-4 py-2.5 rounded-lg hover:bg-teal-50 disabled:opacity-30 transition-colors"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${apiBase}/api/admin/backup`, { 
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.ok) {
+                        toast.success('Backup sequence initiated successfully!');
+                    } else {
+                        const errData = await response.json();
+                        toast.error(errData.detail || 'Backup failed to start.');
+                    }
+                  } catch (err) {
+                    toast.error('Network error. Check server logs.');
+                  }
+                }}
+              >
+                BACKUP NOW
+              </button>
+
+              <input 
+                type="file" 
+                accept=".sql"
+                ref={fileInputRef} 
+                onChange={handleRestore} 
+                className="hidden" 
+              />
+              
+              <button 
+                disabled={!isEditMode || isRestoring} 
+                className="flex-1 flex justify-center items-center gap-2 text-[11px] font-bold text-orange-600 border border-orange-600 px-4 py-2.5 rounded-lg hover:bg-orange-50 disabled:opacity-30 transition-colors"
+                onClick={triggerFileInput}
+              >
+                <Upload size={14} /> 
+                {isRestoring ? 'RESTORING...' : 'RESTORE DATA'}
+              </button>
+          </div>
         </div>
 
         {/* SYSTEM DOWNTIME */}
