@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { 
   Clock, Database, History, AlertTriangle, Save, Edit2, 
-  X, HardHat
+  X, HardHat, Upload 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthContext } from '../../authContext'; 
