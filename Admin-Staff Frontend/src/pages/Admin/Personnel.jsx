@@ -137,7 +137,7 @@ export default function Personnel() {
 
     return result;
   }, [search, filters, doctorsData]);
-  
+
   const handleExportExcel = async () => {
     if (filteredData.length === 0) {
       toast.error("No doctor data available to export."); return;
