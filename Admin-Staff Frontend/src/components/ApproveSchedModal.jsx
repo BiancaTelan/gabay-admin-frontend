@@ -79,6 +79,11 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     setShowFileViewer(true);
   };
 
+  const closeFileViewer = () => {
+    setShowFileViewer(false);
+    setSecureFileUrl(null);
+  };
+
   const filteredDoctors = doctors.filter(
     (doc) => doc.department === (appointment?.department || "General")
   );
