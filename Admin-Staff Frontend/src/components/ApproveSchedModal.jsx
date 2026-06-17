@@ -61,52 +61,20 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
 
   const startDate = appointment?.requestedStartDate ? new Date(appointment.requestedStartDate) : new Date();
 
-  const handleViewFile = async () => {
+  const handleViewFile = () => {
     const documentUrl = appointment?.attachedFile;
     if (!documentUrl) {
       toast.error("No document attached.");
       return;
     }
-
-    setIsLoadingFile(true);
-    const toastId = toast.loading("Loading document securely...");
-
-    try {
-      const response = await fetch(documentUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) throw new Error("Unauthorized: Session expired.");
-        throw new Error("Failed to load document.");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      
-      // Update state to trigger your iframe modal
-      setSecureFileUrl(objectUrl);
-      setShowFileViewer(true);
-      toast.success("Document loaded.", { id: toastId });
-
-    } catch (error) {
-      console.error("Document View Error:", error);
-      toast.error(error.message, { id: toastId });
-    } finally {
-      setIsLoadingFile(false);
-    }
+    setSecureFileUrl(documentUrl);
+    setShowFileViewer(true);
   };
 
   // --- CLEANUP FUNCTION ---
   const closeFileViewer = () => {
     setShowFileViewer(false);
-    if (secureFileUrl) {
-      URL.revokeObjectURL(secureFileUrl); 
-      setSecureFileUrl(null);
-    }
+    setSecureFileUrl(null);
   };
 
   const filteredDoctors = doctors.filter(
