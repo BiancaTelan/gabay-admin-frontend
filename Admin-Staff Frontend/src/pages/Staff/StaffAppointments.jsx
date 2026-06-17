@@ -9,7 +9,8 @@ import {
   Bell,
   Download,
   LayoutGrid,
-  Table } from "lucide-react";
+  Table,
+  AlertTriangle } from "lucide-react";
 import ApproveScheduleModal from "../../components/ApproveSchedModal";
 import BookScheduleForm from "./BookScheduleForm";
 import ConfirmationModal from "../../components/confirmModal";
@@ -233,21 +234,29 @@ export default function StaffAppointments() {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
+  
+
   // --- HANDLE APPROVE APPOINTMENT ---
   const handleApprove = async (approvedData) => {
     try {
       const selectedDate = approvedData.appointmentDate;
+      const encodedDate = encodeURIComponent(selectedDate);
       const doctorId = approvedData?.docID || selectedAppointment?.docID;
+
+      const targetId = approvedData.id || selectedAppointment?.id;
 
       if (!doctorId) {
         toast.error("You must assign a doctor before approving this date!");
         return;
       }
 
+      // 2. Use the encodedDate in the URL
       const checkRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/check-availability?doctor_id=${doctorId}&date=${selectedDate}`,
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/check-availability?doctor_id=${doctorId}&date=${encodedDate}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
+
+      if (!checkRes.ok) throw new Error("Availability check failed.");
 
       const availability = await checkRes.json();
 
@@ -265,10 +274,11 @@ export default function StaffAppointments() {
       const payload = {
         assigned_date: selectedDate,
         assigned_doctor_id: doctorId,
+        batch: approvedData.batch || selectedAppointment?.batch
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${approvedData.id}/approve`,
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${targetId}/approve`,
         {
           method: "PUT",
           headers: {
@@ -283,13 +293,13 @@ export default function StaffAppointments() {
 
       await fetchAppointments();
       setModalOpen(false);
-      toast.success("Appointment successfully!");
+      toast.success("Appointment approved successfully!");
     } catch (error) {
       console.error("Approval error:", error);
       toast.error("Failed to approve appointment.");
     }
   };
-
+  
   // --- HANDLE DENY APPOINTMENT ---
   const handleDeny = async (appointmentId, reason) => {
     const targetId = appointmentId || selectedAppointment?.id;
@@ -306,7 +316,7 @@ export default function StaffAppointments() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${appointmentId}/deny`,
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${targetId}/deny`,
         {
           method: "PUT",
           headers: {
@@ -505,7 +515,7 @@ export default function StaffAppointments() {
       </div>
 
       <div className="w-full border border-gabay-blue overflow-hidden mb-6">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-2 md:grid-cols-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -547,48 +557,31 @@ export default function StaffAppointments() {
 
             <div className="flex gap-2 flex-wrap justify-end w-full lg:w-auto mt-4 lg:mt-0">
               {/* VIEW TOGGLE */}
-              <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+              <div className="flex bg-gray-100 rounded-lg overflow-hidden border border-gray-200 w-full sm:w-auto">
                 <button
                   onClick={() => setViewMode("card")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
-                    viewMode === "card"
-                      ? "bg-gabay-blue text-white shadow-inner"
-                      : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 sm:flex-none px-4 py-2 flex justify-center items-center gap-2 font-poppins text-sm transition-all ${
+                    viewMode === "card" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <LayoutGrid size={16} />
-                  Card
+                  <LayoutGrid size={16} /> Card
                 </button>
-
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`px-4 py-2 flex items-center gap-2 font-poppins text-sm transition-all ${
-                    viewMode === "table"
-                      ? "bg-gabay-blue text-white shadow-inner"
-                      : "text-gray-600 hover:bg-gray-200"
+                  className={`flex-1 sm:flex-none px-4 py-2 flex justify-center items-center gap-2 font-poppins text-sm transition-all ${
+                    viewMode === "table" ? "bg-gabay-blue text-white shadow-inner" : "text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <Table size={16} />
-                  Table
+                  <Table size={16} /> Table
                 </button>
               </div>
 
-              <Button
-                variant="teal-outline"
-                onClick={openFilter}
-                className="px-8 py-2 min-w-[150px]"
-              >
-                <Funnel size={16} className="inline mr-2" />
-                Filter & Sort
+              <Button variant="teal-outline" onClick={openFilter} className="w-full sm:w-auto px-8 py-2 min-w-[150px]">
+                <Funnel size={16} className="inline mr-2" /> Filter & Sort
               </Button>
 
-              <Button
-                variant="teal"
-                onClick={exportToExcel}
-                className="py-2 px-8 min-w-[150px]"
-              >
-                <Download size={16} className="inline mr-2" />
-                Export Excel
+              <Button variant="teal" onClick={exportToExcel} className="w-full sm:w-auto py-2 px-8 min-w-[150px]">
+                <Download size={16} className="inline mr-2" /> Export Excel
               </Button>
             </div>
           </div>
@@ -761,9 +754,12 @@ export default function StaffAppointments() {
                     {paginated.map((app) => (
                       <tr
                         key={app.id}
-                        className="border-b hover:bg-gray-50 transition font-poppins text-sm"
+                        className={`border-b transition font-poppins text-sm ${app.needsRescheduling ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-gray-50'}`}
                       >
-                        <td className="px-5 py-4 font-semibold text-gabay-navy">
+                        <td className="px-5 py-4 font-semibold text-gabay-navy flex items-center gap-2">
+                          {app.needsRescheduling && (
+                            <AlertTriangle size={16} className="text-red-500 shrink-0" title={`Needs Rescheduling: ${app.conflictReason}`} />
+                          )}
                           {app.name}
                         </td>
                         <td className="px-5 py-4">{app.hospitalNo}</td>
@@ -851,8 +847,20 @@ export default function StaffAppointments() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
               {paginated.map((app) => (
-                <div key={app.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gabay-teal transition-all flex flex-col justify-between">
-                  <div>
+                <div 
+                  key={app.id} 
+                  className={`bg-white border rounded-xl p-5 transition-all flex flex-col justify-between relative overflow-hidden ${
+                    app.needsRescheduling ? 'border-red-400 shadow-sm shadow-red-100 hover:border-red-500' : 'border-gray-200 shadow-sm hover:border-gabay-teal'
+                  }`}
+                >
+                  {app.needsRescheduling && (
+                    <div className="absolute top-0 left-0 right-0 bg-red-100 text-red-700 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                      <AlertTriangle size={12} className="shrink-0" /> 
+                      <span className="truncate">Needs Rescheduling: {app.conflictReason}</span>
+                    </div>
+                  )}
+
+                  <div className={app.needsRescheduling ? "pt-5" : ""}>
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -890,9 +898,19 @@ export default function StaffAppointments() {
                           <span className="font-semibold text-gabay-navy">Batch:</span> {app.batch}
                         </p>
                       )}
-                      {app.approvingStaffName && activeTab !== "pending" && (
+                      {app.approvingStaffName && activeTab !== "pending" && activeTab !== "canceled" && app.status !== "rescheduled"  && (
                         <p className="font-poppins text-sm text-gabay-teal">
                           <span className="font-semibold text-gabay-navy">Approved by:</span> {app.approvingStaffName}
+                        </p>
+                      )}
+                      {app.approvingStaffName && activeTab !== "pending" && app.status === "rescheduled"  && (
+                        <p className="font-poppins text-sm text-gabay-teal">
+                          <span className="font-semibold text-gabay-navy">Rescheduled by:</span> {app.approvingStaffName}
+                        </p>
+                      )}
+                      {app.approvingStaffName && activeTab !== "pending" && app.status === "denied"  && (
+                        <p className="font-poppins text-sm text-gabay-teal">
+                          <span className="font-semibold text-gabay-navy">Denied by:</span> {app.approvingStaffName}
                         </p>
                       )}
                     </div>
@@ -984,6 +1002,7 @@ export default function StaffAppointments() {
           onApprove={handleApprove}
           onDeny={handleDeny}
           token={token}
+          apiBase={apiBase} 
         />
       )}
 

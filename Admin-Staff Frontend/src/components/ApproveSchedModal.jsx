@@ -3,14 +3,19 @@ import { X, CalendarDays } from 'lucide-react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Button from '../components/button';
+import toast from 'react-hot-toast';
 
-export default function ApproveScheduleModal({ isOpen, onClose, appointment, onApprove, token, onDeny }) {
+export default function ApproveScheduleModal({ isOpen, onClose, appointment, onApprove, token, onDeny, apiBase = "/api/staff" }) {
   const [doctors, setDoctors] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState(appointment?.docID || '');
   const [allowedDays, setAllowedDays] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState('Morning');
   const [denyReason, setDenyReason] = useState('');
+
+  const [showFileViewer, setShowFileViewer] = useState(false);
+  const [secureFileUrl, setSecureFileUrl] = useState(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
 
   useEffect(() => {
     if (isOpen && appointment) {
@@ -21,27 +26,25 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     }
   }, [appointment, isOpen]);
 
-  const [showFileViewer, setShowFileViewer] = useState(false);
-  const [secureFileUrl, setSecureFileUrl] = useState(null);
-  const [isLoadingFile, setIsLoadingFile] = useState(false);
-
+  // --- FETCH DOCTORS LIST ---
   useEffect(() => {
     if (!token || !isOpen) return;
     
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/list`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/list`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(res => res.json())
     .then(data => setDoctors(data))
     .catch(err => console.error("Failed to fetch doctors", err));
-  }, [token, isOpen]);
+  }, [token, isOpen, apiBase]);
 
+  // --- FETCH DOCTOR WORKING DAYS ---
   useEffect(() => {
     if (!selectedDocId || !token || !isOpen) {
         setAllowedDays([]);
         return;
     }
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${selectedDocId}/working-days`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/${selectedDocId}/working-days`, {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json' 
@@ -50,9 +53,7 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
     .then(res => res.json())
     .then(data => setAllowedDays(data.working_days || []))
     .catch(err => console.error("Failed to fetch working days:", err));
-  }, [selectedDocId, token, isOpen]);
-
-
+  }, [selectedDocId, token, isOpen, apiBase]);
 
   const isWorkingDay = (date) => {
     return allowedDays.includes(date.getDay()); 
@@ -60,45 +61,24 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
 
   const startDate = appointment?.requestedStartDate ? new Date(appointment.requestedStartDate) : new Date();
 
-  const handleViewFile = async (e) => {
-    e.preventDefault(); 
-
-    if (secureFileUrl) {
-      setShowFileViewer(true);
+  // --- SMART INLINE FILE VIEWER ---
+  const handleViewFile = () => {
+    const documentUrl = appointment?.attachedFile;
+    if (!documentUrl) {
+      toast.error("No document attached.");
       return;
     }
+    
+    // Force HTTPS to prevent mixed-content blocking by modern browsers
+    const httpsUrl = documentUrl.replace(/^http:\/\//i, 'https://');
+    setSecureFileUrl(httpsUrl);
+    setShowFileViewer(true);
+  };
 
-    setIsLoadingFile(true);
-    try {
-      let targetUrl = appointment.attachedFile;
-      
-      if (!targetUrl.startsWith('http')) {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, ''); 
-        const path = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`; 
-        targetUrl = `${baseUrl}${path}`;
-      }
-
-      const response = await fetch(targetUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error(`Server returned ${response.status}`);
-
-      const blob = await response.blob();
-      
-      if (blob.type.includes('text/html')) {
-        throw new Error("The server returned an HTML webpage instead of a document.");
-      }
-
-      const objectUrl = URL.createObjectURL(blob);
-      setSecureFileUrl(objectUrl);
-      setShowFileViewer(true);
-    } catch (error) {
-      console.error("Error loading file:", error);
-      alert(`Could not load the attached file: ${error.message}`);
-    } finally {
-      setIsLoadingFile(false);
-    }
+  // --- CLEANUP FUNCTION ---
+  const closeFileViewer = () => {
+    setShowFileViewer(false);
+    setSecureFileUrl(null);
   };
 
   const filteredDoctors = doctors.filter(
@@ -124,10 +104,12 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
       appointmentDate: formattedDate,
       batch: selectedBatch
     });
-    onClose();
   };
 
   if (!isOpen || !appointment) return null;
+
+  // --- CHECK FILE TYPE FOR RENDER LOGIC ---
+  const isImage = secureFileUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6 backdrop-blur-sm">
@@ -243,7 +225,7 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
                 className="text-white bg-gabay-blue hover:bg-gabay-navy px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-colors disabled:bg-gray-300 whitespace-nowrap"
                 type="button"
               >
-                {isLoadingFile ? "Loading..." : "View File"}
+                View File
               </button>
             </div>
           )}
@@ -281,27 +263,37 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
 
       </div>
       
+      {/* FILE VIEWER MODAL */}
       {showFileViewer && (
         <div className="fixed inset-0 flex items-center justify-center z-[60] p-4 sm:p-10">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setShowFileViewer(false)}></div>
+          <div className="absolute inset-0 bg-black/80" onClick={closeFileViewer}></div>
           <div className="bg-gray-100 rounded-xl shadow-2xl w-full h-[85vh] flex flex-col relative z-10 border border-gray-300">
-            <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200 rounded-t-xl">
+            <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200 rounded-t-xl shrink-0">
               <h3 className="font-montserrat text-xl font-bold text-gabay-navy">
                 Document Viewer
               </h3>
               <button 
-                onClick={() => setShowFileViewer(false)} 
+                onClick={closeFileViewer} 
                 className="text-gray-400 hover:text-red-500 bg-gray-100 hover:bg-red-50 p-2 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-            <div className="flex-1 w-full h-full p-2">
-              <iframe 
-                src={secureFileUrl} 
-                className="w-full h-full rounded-lg bg-white shadow-inner" 
-                title="Secure Attachment Viewer" 
-              />
+            
+            <div className="flex-1 w-full h-full p-4 overflow-auto flex items-center justify-center bg-gray-50/50">
+              {isImage ? (
+                <img 
+                  src={secureFileUrl} 
+                  alt="Attached Document" 
+                  className="max-w-full max-h-full rounded-lg shadow-md border border-gray-200 object-contain"
+                />
+              ) : (
+                <iframe 
+                  src={secureFileUrl} 
+                  className="w-full h-full rounded-lg bg-white shadow-inner border border-gray-200" 
+                  title="Secure Attachment Viewer" 
+                />
+              )}
             </div>
           </div>
         </div>
