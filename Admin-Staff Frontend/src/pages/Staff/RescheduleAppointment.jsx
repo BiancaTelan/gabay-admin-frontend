@@ -9,19 +9,23 @@ import { AuthContext } from '../../authContext';
 import toast from 'react-hot-toast'; 
 
 export default function RescheduleAppointmentPage() {
-  const { token } = useContext(AuthContext);
+  const { token, userRole } = useContext(AuthContext);
+  const apiBase = userRole?.toUpperCase() === 'ADMIN' ? '/api/admin' : '/api/staff';
+
   const [allowedDays, setAllowedDays] = useState([]);
   const [scheduleDetails, setScheduleDetails] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
   const rawData = location.state?.appointment || location.state?.patientData;
+  
   const appointment = rawData ? {
-    id: rawData.id,
+    id: rawData.id || rawData.appointmentID, 
     ...rawData,
     name: rawData.name || rawData.patientName,
     appointmentDate: rawData.appointmentDate || rawData.previousDate || new Date().toISOString(),
     hospitalNo: rawData.hospitalNo || rawData.hospitalNumber || 'N/A'
   } : null;
+
   const nameParts = appointment?.name?.split(' ') || ['N/A'];
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ') || '';
@@ -43,7 +47,8 @@ export default function RescheduleAppointmentPage() {
       if (!doctorId || !token) return;
       
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/doctors/${doctorId}/working-days`, {
+        // 3. Implemented dynamic apiBase here
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/doctors/${doctorId}/working-days`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error("Failed to load");
@@ -58,7 +63,7 @@ export default function RescheduleAppointmentPage() {
     };
 
     fetchWorkingDays();
-  }, [appointment?.docID, token]);
+  }, [appointment?.docID, token, apiBase]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -112,7 +117,8 @@ export default function RescheduleAppointmentPage() {
         month: '2-digit', day: '2-digit', year: 'numeric'
       });
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/staff/appointments/${appointment.id}/reschedule`, {
+      // 4. Implemented dynamic apiBase and safe optional chaining for the ID
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${appointment?.id}/reschedule`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -143,6 +149,8 @@ export default function RescheduleAppointmentPage() {
     } catch (err) {
       console.error("Reschedule error:", err);
       setError(err.message);
+      // 5. THROW ERROR so the modal's try/catch block actually registers the failure
+      throw err; 
     } finally {
       setLoading(false);
     }
