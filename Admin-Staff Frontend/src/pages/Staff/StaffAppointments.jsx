@@ -234,11 +234,15 @@ export default function StaffAppointments() {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
+  
+
   // --- HANDLE APPROVE APPOINTMENT ---
   const handleApprove = async (approvedData) => {
     try {
       const selectedDate = approvedData.appointmentDate;
       const doctorId = approvedData?.docID || selectedAppointment?.docID;
+
+      const targetId = approvedData.id || selectedAppointment?.id;
 
       if (!doctorId) {
         toast.error("You must assign a doctor before approving this date!");
@@ -266,10 +270,11 @@ export default function StaffAppointments() {
       const payload = {
         assigned_date: selectedDate,
         assigned_doctor_id: doctorId,
+        batch: approvedData.batch || selectedAppointment?.batch
       };
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${approvedData.id}/approve`,
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${targetId}/approve`,
         {
           method: "PUT",
           headers: {
@@ -307,7 +312,7 @@ export default function StaffAppointments() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${appointmentId}/deny`,
+        `${import.meta.env.VITE_API_BASE_URL}${apiBase}/appointments/${targetId}/deny`,
         {
           method: "PUT",
           headers: {

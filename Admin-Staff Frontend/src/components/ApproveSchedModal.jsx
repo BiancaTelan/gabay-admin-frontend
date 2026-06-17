@@ -3,6 +3,7 @@ import { X, CalendarDays } from 'lucide-react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Button from '../components/button';
+import toast from 'react-hot-toast';
 
 export default function ApproveScheduleModal({ isOpen, onClose, appointment, onApprove, token, onDeny }) {
   const [doctors, setDoctors] = useState([]);
@@ -60,44 +61,51 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
 
   const startDate = appointment?.requestedStartDate ? new Date(appointment.requestedStartDate) : new Date();
 
-  const handleViewFile = async (e) => {
-    e.preventDefault(); 
-
-    if (secureFileUrl) {
-      setShowFileViewer(true);
+  const handleViewFile = async () => {
+    const documentUrl = appointment?.attachedFile;
+    if (!documentUrl) {
+      toast.error("No document attached.");
       return;
     }
 
     setIsLoadingFile(true);
-    try {
-      let targetUrl = appointment.attachedFile;
-      
-      if (!targetUrl.startsWith('http')) {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, ''); 
-        const path = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`; 
-        targetUrl = `${baseUrl}${path}`;
-      }
+    const toastId = toast.loading("Loading document securely...");
 
-      const response = await fetch(targetUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
+    try {
+      const response = await fetch(documentUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      if (!response.ok) throw new Error(`Server returned ${response.status}`);
-
-      const blob = await response.blob();
-      
-      if (blob.type.includes('text/html')) {
-        throw new Error("The server returned an HTML webpage instead of a document.");
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Unauthorized: Session expired.");
+        throw new Error("Failed to load document.");
       }
 
+      const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
+      
+      // Update state to trigger your iframe modal
       setSecureFileUrl(objectUrl);
       setShowFileViewer(true);
+      toast.success("Document loaded.", { id: toastId });
+
     } catch (error) {
-      console.error("Error loading file:", error);
-      alert(`Could not load the attached file: ${error.message}`);
+      console.error("Document View Error:", error);
+      toast.error(error.message, { id: toastId });
     } finally {
       setIsLoadingFile(false);
+    }
+  };
+
+  // --- CLEANUP FUNCTION ---
+  const closeFileViewer = () => {
+    setShowFileViewer(false);
+    if (secureFileUrl) {
+      URL.revokeObjectURL(secureFileUrl); 
+      setSecureFileUrl(null);
     }
   };
 
@@ -283,14 +291,14 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
       
       {showFileViewer && (
         <div className="fixed inset-0 flex items-center justify-center z-[60] p-4 sm:p-10">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setShowFileViewer(false)}></div>
+          <div className="absolute inset-0 bg-black/80" onClick={closeFileViewer}></div>
           <div className="bg-gray-100 rounded-xl shadow-2xl w-full h-[85vh] flex flex-col relative z-10 border border-gray-300">
             <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200 rounded-t-xl">
               <h3 className="font-montserrat text-xl font-bold text-gabay-navy">
                 Document Viewer
               </h3>
               <button 
-                onClick={() => setShowFileViewer(false)} 
+                onClick={closeFileViewer} 
                 className="text-gray-400 hover:text-red-500 bg-gray-100 hover:bg-red-50 p-2 rounded-full transition-colors"
               >
                 <X size={24} />
