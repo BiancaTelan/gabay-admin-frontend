@@ -69,16 +69,14 @@ export default function ApproveScheduleModal({ isOpen, onClose, appointment, onA
       return;
     }
     
-    // Force HTTPS to prevent mixed-content blocking by modern browsers
-    const httpsUrl = documentUrl.replace(/^http:\/\//i, 'https://');
-    setSecureFileUrl(httpsUrl);
-    setShowFileViewer(true);
-  };
+    let finalUrl = documentUrl.replace(/^http:\/\//i, 'https://');
 
-  // --- CLEANUP FUNCTION ---
-  const closeFileViewer = () => {
-    setShowFileViewer(false);
-    setSecureFileUrl(null);
+    if (finalUrl.toLowerCase().endsWith('.pdf')) {
+      finalUrl = finalUrl.replace(/\.pdf$/i, '.jpg');
+    }
+
+    setSecureFileUrl(finalUrl);
+    setShowFileViewer(true);
   };
 
   const filteredDoctors = doctors.filter(
